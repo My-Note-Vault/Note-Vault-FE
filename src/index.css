@@ -17,25 +17,25 @@ All colors MUST be HSL.
     --popover: 0 0% 100%;
     --popover-foreground: 220 15% 15%;
 
-    --primary: 220 100% 50%;
+    --primary: 280 85% 55%;
     --primary-foreground: 0 0% 100%;
-    --primary-hover: 220 100% 45%;
+    --primary-hover: 280 85% 50%;
 
-    --secondary: 220 15% 97%;
-    --secondary-foreground: 220 15% 15%;
+    --secondary: 280 15% 97%;
+    --secondary-foreground: 280 15% 15%;
 
-    --muted: 220 15% 96%;
-    --muted-foreground: 220 10% 50%;
+    --muted: 280 15% 96%;
+    --muted-foreground: 280 10% 50%;
 
-    --accent: 220 50% 95%;
-    --accent-foreground: 220 100% 40%;
+    --accent: 320 60% 90%;
+    --accent-foreground: 320 85% 40%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 15% 90%;
-    --input: 220 15% 95%;
-    --ring: 220 100% 50%;
+    --border: 280 15% 90%;
+    --input: 280 15% 95%;
+    --ring: 280 85% 55%;
 
     --success: 120 50% 45%;
     --success-foreground: 0 0% 100%;
@@ -44,18 +44,18 @@ All colors MUST be HSL.
     --warning-foreground: 0 0% 100%;
 
     /* Note Vault specific colors */
-    --vault-blue: 220 100% 50%;
-    --vault-blue-light: 220 50% 95%;
-    --vault-gray: 220 10% 50%;
-    --vault-gray-light: 220 15% 97%;
+    --vault-blue: 280 85% 55%;
+    --vault-blue-light: 320 50% 95%;
+    --vault-gray: 280 10% 50%;
+    --vault-gray-light: 280 15% 97%;
     
     /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(var(--vault-blue)), hsl(220 100% 45%));
+    --gradient-primary: linear-gradient(135deg, hsl(var(--vault-blue)), hsl(320 85% 60%));
     --gradient-hero: linear-gradient(180deg, hsl(var(--vault-blue-light)), hsl(0 0% 100%));
     
     /* Shadows */
-    --shadow-elegant: 0 10px 30px -10px hsl(var(--vault-blue) / 0.1);
-    --shadow-card: 0 4px 20px -4px hsl(220 15% 15% / 0.1);
+    --shadow-elegant: 0 10px 30px -10px hsl(var(--vault-blue) / 0.15);
+    --shadow-card: 0 4px 20px -4px hsl(280 15% 15% / 0.1);
     
     /* A4 dimensions */
     --a4-width: 210mm;
