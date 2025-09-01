@@ -4,7 +4,7 @@ import heroImage from "@/assets/hero-image.jpg";
 
 export const HeroSection = () => {
   return (
-    <section className="relative min-h-[90vh] flex items-center justify-center bg-gradient-to-b from-vault-blue-light to-background">
+    <section className="relative min-h-[90vh] flex items-center justify-center bg-gradient-to-br from-vault-primary-light via-vault-secondary-light to-background">
       <div className="container mx-auto px-4 py-20">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           <div className="space-y-8">

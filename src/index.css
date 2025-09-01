@@ -17,45 +17,49 @@ All colors MUST be HSL.
     --popover: 0 0% 100%;
     --popover-foreground: 220 15% 15%;
 
-    --primary: 280 85% 55%;
+    --primary: 262 83% 58%;
     --primary-foreground: 0 0% 100%;
-    --primary-hover: 280 85% 50%;
+    --primary-hover: 262 83% 53%;
 
-    --secondary: 280 15% 97%;
-    --secondary-foreground: 280 15% 15%;
+    --secondary: 262 15% 96%;
+    --secondary-foreground: 262 15% 15%;
 
-    --muted: 280 15% 96%;
-    --muted-foreground: 280 10% 50%;
+    --muted: 262 15% 95%;
+    --muted-foreground: 262 8% 45%;
 
-    --accent: 320 60% 90%;
-    --accent-foreground: 320 85% 40%;
+    --accent: 300 76% 72%;
+    --accent-foreground: 300 20% 15%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 280 15% 90%;
-    --input: 280 15% 95%;
-    --ring: 280 85% 55%;
+    --border: 262 15% 88%;
+    --input: 262 15% 93%;
+    --ring: 262 83% 58%;
 
-    --success: 120 50% 45%;
+    --success: 142 76% 36%;
     --success-foreground: 0 0% 100%;
 
-    --warning: 45 100% 55%;
+    --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
 
     /* Note Vault specific colors */
-    --vault-blue: 280 85% 55%;
-    --vault-blue-light: 320 50% 95%;
-    --vault-gray: 280 10% 50%;
-    --vault-gray-light: 280 15% 97%;
+    --vault-primary: 262 83% 58%;
+    --vault-primary-light: 262 40% 94%;
+    --vault-secondary: 300 76% 72%;
+    --vault-secondary-light: 300 30% 92%;
+    --vault-gray: 262 8% 45%;
+    --vault-gray-light: 262 15% 96%;
     
-    /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(var(--vault-blue)), hsl(320 85% 60%));
-    --gradient-hero: linear-gradient(180deg, hsl(var(--vault-blue-light)), hsl(0 0% 100%));
+    /* Canva-inspired gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(262 83% 58%), hsl(300 76% 72%));
+    --gradient-hero: linear-gradient(135deg, hsl(262 40% 94%), hsl(300 30% 92%));
+    --gradient-accent: linear-gradient(45deg, hsl(300 76% 72%), hsl(320 70% 68%));
     
-    /* Shadows */
-    --shadow-elegant: 0 10px 30px -10px hsl(var(--vault-blue) / 0.15);
-    --shadow-card: 0 4px 20px -4px hsl(280 15% 15% / 0.1);
+    /* Premium shadows */
+    --shadow-elegant: 0 10px 40px -10px hsl(262 83% 58% / 0.25);
+    --shadow-card: 0 4px 25px -4px hsl(262 50% 30% / 0.15);
+    --shadow-button: 0 4px 15px -2px hsl(262 83% 58% / 0.3);
     
     /* A4 dimensions */
     --a4-width: 210mm;

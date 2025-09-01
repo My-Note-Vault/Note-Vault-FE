@@ -72,14 +72,12 @@ export default {
 					foreground: 'hsl(var(--warning-foreground))'
 				},
 				vault: {
-					blue: 'hsl(var(--vault-blue))',
-					'blue-light': 'hsl(var(--vault-blue-light))',
+					primary: 'hsl(var(--vault-primary))',
+					'primary-light': 'hsl(var(--vault-primary-light))',
+					secondary: 'hsl(var(--vault-secondary))',
+					'secondary-light': 'hsl(var(--vault-secondary-light))',
 					gray: 'hsl(var(--vault-gray))',
-					'gray-light': 'hsl(var(--vault-gray-light))',
-					purple: 'hsl(280 85% 55%)',
-					'purple-light': 'hsl(280 50% 95%)',
-					pink: 'hsl(320 85% 60%)',
-					'pink-light': 'hsl(320 50% 95%)'
+					'gray-light': 'hsl(var(--vault-gray-light))'
 				}
 			},
 			borderRadius: {
