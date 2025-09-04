@@ -62,11 +62,23 @@ const defaultMarkdown = `# 김철수
 
 export default function Editor() {
   const [markdown, setMarkdown] = useState(defaultMarkdown);
-  const [isPreviewMode, setIsPreviewMode] = useState(false);
 
   const handleExportPDF = () => {
     // PDF 내보내기 기능 (추후 구현)
     console.log("PDF Export triggered");
+  };
+
+  const convertMarkdownToHTML = (text: string) => {
+    return text
+      .replace(/^# (.+)$/gm, '<h1 style="font-size: 24px; font-weight: bold; margin-bottom: 12px; color: #1a1a1a;">$1</h1>')
+      .replace(/^## (.+)$/gm, '<h2 style="font-size: 18px; font-weight: bold; margin: 20px 0 8px 0; border-bottom: 2px solid #8b5cf6; padding-bottom: 4px; color: #1a1a1a;">$2</h2>')
+      .replace(/^### (.+)$/gm, '<h3 style="font-size: 16px; font-weight: bold; margin: 16px 0 6px 0; color: #1a1a1a;">$3</h3>')
+      .replace(/\*\*(.+?)\*\*/g, '<strong style="color: #1a1a1a;">$1</strong>')
+      .replace(/\*(.+?)\*/g, '<em style="color: #666;">$1</em>')
+      .replace(/^- (.+)$/gm, '<div style="margin: 4px 0; padding-left: 16px; position: relative;"><span style="position: absolute; left: 0; color: #8b5cf6;">•</span>$1</div>')
+      .replace(/---/g, '<hr style="margin: 20px 0; border: none; border-top: 1px solid #e5e7eb;">')
+      .replace(/\n\n/g, '<div style="margin: 12px 0;"></div>')
+      .replace(/\n/g, '<br>');
   };
 
   return (
@@ -74,11 +86,10 @@ export default function Editor() {
       <Navigation />
       
       <div className="flex h-[calc(100vh-73px)]">
-        {/* 에디터 섹션 */}
-        <div className="flex-1 flex flex-col border-r">
-          {/* 툴바 */}
-          <div className="border-b p-4 flex items-center justify-between bg-muted/30">
-            <h2 className="text-lg font-semibold">마크다운 에디터</h2>
+        {/* 툴바 */}
+        <div className="w-full border-b p-4 bg-muted/30">
+          <div className="max-w-4xl mx-auto flex items-center justify-between">
+            <h2 className="text-lg font-semibold">Note Vault 에디터</h2>
             <div className="flex items-center space-x-2">
               <Button variant="outline" size="sm">
                 <Save className="h-4 w-4 mr-2" />
@@ -88,59 +99,39 @@ export default function Editor() {
                 <Settings className="h-4 w-4 mr-2" />
                 설정
               </Button>
-            </div>
-          </div>
-          
-          {/* 에디터 */}
-          <div className="flex-1 p-4">
-            <Textarea
-              value={markdown}
-              onChange={(e) => setMarkdown(e.target.value)}
-              className="w-full h-full resize-none border-0 focus-visible:ring-0 font-mono text-sm"
-              placeholder="마크다운으로 문서를 작성해보세요..."
-            />
-          </div>
-        </div>
-        
-        {/* A4 미리보기 섹션 */}
-        <div className="w-1/2 flex flex-col">
-          {/* 미리보기 툴바 */}
-          <div className="border-b p-4 flex items-center justify-between bg-muted/30">
-            <h2 className="text-lg font-semibold">A4 미리보기</h2>
-            <div className="flex items-center space-x-2">
-              <Button 
-                variant={isPreviewMode ? "default" : "outline"}
-                size="sm"
-                onClick={() => setIsPreviewMode(!isPreviewMode)}
-              >
-                <Eye className="h-4 w-4 mr-2" />
-                {isPreviewMode ? "편집 모드" : "미리보기"}
-              </Button>
               <Button onClick={handleExportPDF} size="sm">
                 <Download className="h-4 w-4 mr-2" />
                 PDF 내보내기
               </Button>
             </div>
           </div>
-          
-          {/* A4 미리보기 */}
-          <div className="flex-1 p-4 bg-vault-gray-light overflow-auto">
-            <div className="mx-auto bg-white shadow-lg" style={{ width: '210mm', minHeight: '297mm', padding: '20mm' }}>
-              <div 
-                className="prose prose-sm max-w-none"
-                dangerouslySetInnerHTML={{ 
-                  __html: markdown
-                    .replace(/^# (.+)$/gm, '<h1 style="font-size: 24px; font-weight: bold; margin-bottom: 8px;">$1</h1>')
-                    .replace(/^## (.+)$/gm, '<h2 style="font-size: 18px; font-weight: bold; margin: 16px 0 8px 0; border-bottom: 1px solid #ddd; padding-bottom: 4px;">$2</h2>')
-                    .replace(/^### (.+)$/gm, '<h3 style="font-size: 16px; font-weight: bold; margin: 12px 0 4px 0;">$3</h3>')
-                    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-                    .replace(/\*(.+?)\*/g, '<em>$1</em>')
-                    .replace(/^- (.+)$/gm, '<li style="margin: 2px 0;">$1</li>')
-                    .replace(/---/g, '<hr style="margin: 16px 0; border: none; border-top: 1px solid #ddd;">')
-                    .replace(/\n/g, '<br>')
-                }}
-              />
-            </div>
+        </div>
+      </div>
+
+      {/* A4 형태 에디터 */}
+      <div className="flex-1 p-8 bg-vault-gray-light overflow-auto">
+        <div className="max-w-4xl mx-auto">
+          <div 
+            className="mx-auto bg-white shadow-elegant border border-border/20" 
+            style={{ width: '210mm', minHeight: '297mm', padding: '25mm' }}
+          >
+            <div
+              contentEditable
+              suppressContentEditableWarning={true}
+              className="outline-none text-base leading-relaxed min-h-full"
+              style={{ 
+                fontFamily: 'system-ui, -apple-system, sans-serif',
+                lineHeight: '1.6',
+                color: '#1a1a1a'
+              }}
+              onInput={(e) => {
+                const target = e.target as HTMLDivElement;
+                setMarkdown(target.innerText || '');
+              }}
+              dangerouslySetInnerHTML={{ 
+                __html: convertMarkdownToHTML(markdown)
+              }}
+            />
           </div>
         </div>
       </div>
