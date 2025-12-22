@@ -12,7 +12,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # 👉 npm은 서버가 아니라 GitHub Actions에서만 사용됨
+      
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
@@ -23,7 +23,7 @@ jobs:
           npm ci
           npm run build
 
-      # 👉 dist → Nginx 서버 업로드 (새 release 폴더)
+      
       - name: Upload Release
         env:
           RELEASE: release-${{ github.run_id }}
@@ -32,7 +32,7 @@ jobs:
             -e "ssh -i <(echo '${{ secrets.WEB_SSH_KEY }}') -o StrictHostKeyChecking=no" \
             dist/ ec2-user@${{ secrets.WEB_HOST }}:/var/www/frontend/releases/$RELEASE/
 
-      # 👉 심볼릭 링크 교체 (무중단)
+      
       - name: Switch Symlink
         env:
           RELEASE: release-${{ github.run_id }}
@@ -41,4 +41,4 @@ jobs:
             -o StrictHostKeyChecking=no \
             ec2-user@${{ secrets.WEB_HOST }} << EOF
               ln -sfn /var/www/frontend/releases/$RELEASE /var/www/frontend/current
-EOF 
+
