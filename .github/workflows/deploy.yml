@@ -1,4 +1,4 @@
-name: ci-cd
+name: frontend-deploy-zero-downtime
 
 on:
   push:
@@ -9,12 +9,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: "20"
 
@@ -23,22 +20,25 @@ jobs:
           npm ci
           npm run build
 
-      
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.WEB_SSH_KEY }}" > ~/.ssh/keypare-1.pem
+          chmod 600 ~/.ssh/keypare-1.pem
+
       - name: Upload Release
         env:
           RELEASE: release-${{ github.run_id }}
         run: |
           rsync -az --delete \
-            -e "ssh -i <(echo '${{ secrets.WEB_SSH_KEY }}') -o StrictHostKeyChecking=no" \
+            -e "ssh -i ~/.ssh/keypare-1.pem -o StrictHostKeyChecking=no" \
             dist/ ec2-user@${{ secrets.WEB_HOST }}:/var/www/frontend/releases/$RELEASE/
 
-      
       - name: Switch Symlink
         env:
           RELEASE: release-${{ github.run_id }}
         run: |
-          ssh -i <(echo '${{ secrets.WEB_SSH_KEY }}') \
+          ssh -i ~/.ssh/keypare-1.pem \
             -o StrictHostKeyChecking=no \
             ec2-user@${{ secrets.WEB_HOST }} << EOF
               ln -sfn /var/www/frontend/releases/$RELEASE /var/www/frontend/current
-
