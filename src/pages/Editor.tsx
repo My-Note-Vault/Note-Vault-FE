@@ -1,139 +1,155 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Download, Eye, Save, Settings } from "lucide-react";
+import { Download, Save, Settings, Eye } from "lucide-react";
 import { Navigation } from "@/components/ui/navigation";
+import { marked } from "marked";
+import DOMPurify from "dompurify";
+import * as html2pdf from "html2pdf.js";
+import { useParams, useLocation } from "react-router-dom";
 
-const defaultMarkdown = `# 김철수
-**이메일**: kimcs@email.com | **전화**: 010-1234-5678  
-**주소**: 서울시 강남구 | **LinkedIn**: linkedin.com/in/kimcs
-
----
-
-## 경력 요약
-5년차 프론트엔드 개발자로서 React, TypeScript, Next.js를 활용한 웹 애플리케이션 개발 경험이 있습니다. 사용자 경험을 중시하며 성능 최적화에 관심이 많습니다.
-
----
-
-## 기술 스택
-- **Frontend**: React, TypeScript, Next.js, Vue.js
-- **Styling**: Tailwind CSS, Styled-components, SCSS
-- **Tools**: Git, Docker, Webpack, Vite
-- **Backend**: Node.js, Express, MongoDB
-
----
-
-## 경력 사항
-
-### ABC 테크 | 시니어 프론트엔드 개발자
-*2022.03 - 현재*
-- React 기반 B2B SaaS 플랫폼 개발 및 유지보수
-- 사용자 중심의 UI/UX 개선으로 사용자 만족도 30% 향상
-- TypeScript 도입으로 코드 품질 및 개발 생산성 20% 개선
-
-### XYZ 스타트업 | 프론트엔드 개발자
-*2019.06 - 2022.02*
-- E-commerce 웹사이트 개발 및 성능 최적화
-- 모바일 반응형 웹 구현으로 모바일 전환율 25% 증가
-- Redux 상태 관리 시스템 구축
-
----
-
-## 프로젝트
-
-### 온라인 쇼핑몰 플랫폼 개발
-*2023.01 - 2023.06*
-- **기술 스택**: React, TypeScript, Next.js, Tailwind CSS
-- **주요 성과**: 페이지 로딩 속도 40% 개선, SEO 점수 95점 달성
-- **담당 업무**: 프론트엔드 아키텍처 설계, 컴포넌트 라이브러리 구축
-
----
-
-## 학력
-**OO 대학교** | 컴퓨터공학과 졸업  
-*2015.03 - 2019.02*
-
----
-
-## 자격증
-- 정보처리기사 (2019)
-- AWS Certified Developer (2022)
-`;
+// ⭐ 추가: API 함수 import
+import { getTemplateDetail, saveMarkdown, updateTemplate } from "@/api/template";
 
 export default function Editor() {
-  const [markdown, setMarkdown] = useState(defaultMarkdown);
+  // ⭐ Editor URL → /editor/:id 에서 id 가져오기
+  const { id: templateId } = useParams();
+
+  const location = useLocation();
+  const { title: initialTitle, description: initialDescription, images: initialImages } =
+    location.state || {};
+
+  const [markdown, setMarkdown] = useState("");
+  const [previewOnly, setPreviewOnly] = useState(false);
+
+  
+  useEffect(() => {
+    if (!templateId) return;
+
+    (async () => {
+      try {
+        const data = await getTemplateDetail(templateId);
+        setMarkdown(data.markdown ?? "");
+      } catch (err) {
+        console.error("템플릿 불러오기 실패", err);
+      }
+    })();
+  }, [templateId]);
+
+
+  const renderMarkdown = (text: string) => {
+    const html = marked.parse(text, { breaks: true }) as string;
+    return DOMPurify.sanitize(html);
+  };
+
+
+  useEffect(() => {
+    if (!templateId) return;
+
+    const interval = setInterval(() => {
+      saveMarkdown(templateId, markdown);
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [markdown, templateId]);
+
+
+
+  // 수동 저장 버튼
+  const handleSave = async () => {
+    if (!templateId) return;
+    try {
+      await updateTemplate(templateId, {
+        title: initialTitle,
+        description: initialDescription,
+        images: initialImages,
+        markdown,
+      });
+      alert("저장 완료!");
+    } catch (err) {
+      console.error("저장 실패", err);
+    }
+  };
+
 
   const handleExportPDF = () => {
-    // PDF 내보내기 기능 (추후 구현)
-    console.log("PDF Export triggered");
+    const element = document.getElementById("pdf-preview");
+    if (!element) return;
+
+    const options = {
+      margin: 0,
+      filename: "notevault_document.pdf",
+      image: { type: "jpeg", quality: 1 },
+      html2canvas: { scale: 2, useCORS: true },
+      jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+    };
+
+    (html2pdf as any).default(element, options);
   };
 
-  const convertMarkdownToHTML = (text: string) => {
-    return text
-      .replace(/^# (.+)$/gm, '<h1 style="font-size: 24px; font-weight: bold; margin-bottom: 12px; color: #1a1a1a;">$1</h1>')
-      .replace(/^## (.+)$/gm, '<h2 style="font-size: 18px; font-weight: bold; margin: 20px 0 8px 0; border-bottom: 2px solid #8b5cf6; padding-bottom: 4px; color: #1a1a1a;">$2</h2>')
-      .replace(/^### (.+)$/gm, '<h3 style="font-size: 16px; font-weight: bold; margin: 16px 0 6px 0; color: #1a1a1a;">$3</h3>')
-      .replace(/\*\*(.+?)\*\*/g, '<strong style="color: #1a1a1a;">$1</strong>')
-      .replace(/\*(.+?)\*/g, '<em style="color: #666;">$1</em>')
-      .replace(/^- (.+)$/gm, '<div style="margin: 4px 0; padding-left: 16px; position: relative;"><span style="position: absolute; left: 0; color: #8b5cf6;">•</span>$1</div>')
-      .replace(/---/g, '<hr style="margin: 20px 0; border: none; border-top: 1px solid #e5e7eb;">')
-      .replace(/\n\n/g, '<div style="margin: 12px 0;"></div>')
-      .replace(/\n/g, '<br>');
-  };
 
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
-      
-      <div className="flex h-[calc(100vh-73px)]">
-        {/* 툴바 */}
-        <div className="w-full border-b p-4 bg-muted/30">
-          <div className="max-w-4xl mx-auto flex items-center justify-between">
-            <h2 className="text-lg font-semibold">Note Vault 에디터</h2>
-            <div className="flex items-center space-x-2">
-              <Button variant="outline" size="sm">
-                <Save className="h-4 w-4 mr-2" />
-                저장
-              </Button>
-              <Button variant="outline" size="sm">
-                <Settings className="h-4 w-4 mr-2" />
-                설정
-              </Button>
-              <Button onClick={handleExportPDF} size="sm">
-                <Download className="h-4 w-4 mr-2" />
-                PDF 내보내기
-              </Button>
-            </div>
+
+      {/* Toolbar */}
+      <div className="border-b p-4 bg-muted/30">
+        <div className="max-w-6xl mx-auto flex items-center justify-between">
+          <h2 className="text-lg font-semibold">Note Vault Markdown Editor</h2>
+
+          <div className="flex items-center space-x-2">
+            <Button variant="outline" size="sm" onClick={handleSave}>
+              <Save className="h-4 w-4 mr-2" /> 저장
+            </Button>
+
+            <Button variant="outline" size="sm">
+              <Settings className="h-4 w-4 mr-2" /> 설정
+            </Button>
+
+            <Button
+              variant={previewOnly ? "default" : "outline"}
+              size="sm"
+              onClick={() => setPreviewOnly(!previewOnly)}
+            >
+              <Eye className="h-4 w-4 mr-2" /> 미리보기
+            </Button>
+
+            <Button onClick={handleExportPDF} size="sm">
+              <Download className="h-4 w-4 mr-2" /> PDF 내보내기
+            </Button>
           </div>
         </div>
       </div>
 
-      {/* A4 형태 에디터 */}
-      <div className="flex-1 p-8 bg-vault-gray-light overflow-auto">
-        <div className="max-w-4xl mx-auto">
-          <div 
-            className="mx-auto bg-white shadow-elegant border border-border/20" 
-            style={{ width: '210mm', minHeight: '297mm', padding: '25mm' }}
-          >
+      {/* Layout */}
+      <div className="flex h-[calc(100vh-73px)] overflow-hidden">
+        
+        {/* LEFT — PREVIEW */}
+        <div className={`flex-1 p-5 bg-vault-gray-light overflow-auto ${previewOnly ? "w-full" : "w-1/2"}`}>
+          <div className="max-w-4xl mx-auto">
             <div
-              contentEditable
-              suppressContentEditableWarning={true}
-              className="outline-none text-base leading-relaxed min-h-full"
-              style={{ 
-                fontFamily: 'system-ui, -apple-system, sans-serif',
-                lineHeight: '1.6',
-                color: '#1a1a1a'
-              }}
-              onInput={(e) => {
-                const target = e.target as HTMLDivElement;
-                setMarkdown(target.innerText || '');
-              }}
-              dangerouslySetInnerHTML={{ 
-                __html: convertMarkdownToHTML(markdown)
-              }}
+              id="pdf-preview"
+              className="mx-auto bg-white shadow-elegant border border-border/20"
+              style={{ width: "210mm", minHeight: "297mm", padding: "25mm" }}
+              dangerouslySetInnerHTML={{ __html: renderMarkdown(markdown) }}
             />
           </div>
         </div>
+
+        {/* RIGHT — MARKDOWN INPUT */}
+        {!previewOnly && (
+          <div className="w-1/2 border-l bg-white flex flex-col">
+            <div className="p-4 border-b bg-muted/10">
+              <span className="text-sm text-gray-500">Markdown 입력</span>
+            </div>
+
+            <Textarea
+              value={markdown}
+              onChange={(e) => setMarkdown(e.target.value)}
+              className="flex-1 rounded-none resize-none border-none focus-visible:ring-0 p-5 font-mono text-sm leading-6"
+            />
+          </div>
+        )}
       </div>
     </div>
   );
