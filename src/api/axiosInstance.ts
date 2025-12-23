@@ -1,7 +1,8 @@
 import axios from "axios";
+import { API_BASE } from "@/constants/endpoints";
 
 const api = axios.create({
-  baseURL: "/api/v1",  // ⭐ 백엔드 주소
+  baseURL: API_BASE,
   withCredentials: true,
 });
 

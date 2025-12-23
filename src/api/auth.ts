@@ -1,13 +1,12 @@
 // src/api/auth.ts
 import axios from "axios";
-
-const API_BASE = "/api/v1";
+import { endpoints } from "@/constants/endpoints";
 
 export const redirectToGoogleOAuth = () => {
-  window.location.href = `${API_BASE}/oauth/google`;
+  window.location.href = endpoints.REDIRECT_TO_GOOGLE;
 };
 
 export const getAccessToken = async (code: string) => {
-  const res = await axios.get(`${API_BASE}/oauth/callback/google?code=${code}`);
+  const res = await axios.get(`${endpoints.CALLBACK_FROM_GOOGLE}?code=${code}`);
   return res.data; // { accessToken: "..." }
 };
