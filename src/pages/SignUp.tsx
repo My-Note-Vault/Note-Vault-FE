@@ -1,17 +1,16 @@
 // src/pages/SignUp.tsx
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { endpoints } from "@/constants/endpoints";
 
 export default function SignUp() {
   const navigate = useNavigate();
-  // 실제 백엔드 서버 주소로 변경 (배포 시 환경변수 사용 권장)
-  const BASE_URL = import.meta.env.VITE_API_BASE_URL;
   const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
   const handleSignup = (provider: string) => {
-    // 로그인 중 안내 페이지 등으로 보내고 싶으면 navigate("/loading") 추가 가능
-    window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${GOOGLE_CLIENT_ID}&redirect_uri=${BASE_URL}/api/v1/oauth/callback/google&response_type=code&scope=email profile`;
-};
+    const redirectUri = `${window.location.origin}${endpoints.CALLBACK_FROM_GOOGLE}`;
+    window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${GOOGLE_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=email profile`;
+  };
     // 백엔드에서 OAuth 수행 후 프론트엔드의 /oauth/callback 으로 redirect 예정
 
   return (

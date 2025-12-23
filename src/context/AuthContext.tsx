@@ -1,6 +1,7 @@
 // src/context/AuthContext.tsx
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import axios from "axios";
+import { endpoints } from "@/constants/endpoints";
 
 type AuthContextType = {
   accessToken: string | null;
@@ -33,9 +34,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   
   const loginWithOAuthCode = async (code: string) => {
     try {
-      const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
       // 백엔드가 code를 받아 accessToken을 발급해주는 엔드포인트로 교환 요청
-      const response = await axios.post(`${API_BASE}/api/v1/oauth/callback/google`, {
+      const response = await axios.post(endpoints.CALLBACK_FROM_GOOGLE, {
         code,
       });
 
