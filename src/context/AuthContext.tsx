@@ -35,7 +35,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
       // 백엔드가 code를 받아 accessToken을 발급해주는 엔드포인트로 교환 요청
-      const response = await axios.post(`${API_BASE}/api/auth/oauth2/callback`, {
+      const response = await axios.post(`${API_BASE}/api/v1/oauth/callback/google`, {
         code,
       });
 

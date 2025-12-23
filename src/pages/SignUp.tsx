@@ -10,7 +10,7 @@ export default function SignUp() {
 
   const handleSignup = (provider: string) => {
     // 로그인 중 안내 페이지 등으로 보내고 싶으면 navigate("/loading") 추가 가능
-    window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${GOOGLE_CLIENT_ID}&redirect_uri=${BASE_URL}/api/auth/oauth2/callback/google&response_type=code&scope=email profile`;
+    window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${GOOGLE_CLIENT_ID}&redirect_uri=${BASE_URL}/api/v1/oauth/callback/google&response_type=code&scope=email profile`;
 };
     // 백엔드에서 OAuth 수행 후 프론트엔드의 /oauth/callback 으로 redirect 예정
 
