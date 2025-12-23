@@ -1,3 +1,4 @@
+import { Navigate, useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button";
 import { ArrowRight, CheckCircle } from "lucide-react";
 
@@ -9,6 +10,8 @@ const benefits = [
 ];
 
 export const CTASection = () => {
+  const navigate = useNavigate();
+
   return (
     <section className="py-20 bg-gradient-to-r from-primary to-primary-hover">
       <div className="container mx-auto px-4">
@@ -30,12 +33,9 @@ export const CTASection = () => {
           </div>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" variant="secondary" className="text-lg px-8 py-6">
+            <Button size="lg" variant="secondary" className="text-lg px-8 py-6" onClick={() => navigate("/login")}>
               무료로 시작하기
               <ArrowRight className="ml-2 h-5 w-5" />
-            </Button>
-            <Button size="lg" variant="outline" className="text-lg px-8 py-6 border-white text-white hover:bg-white hover:text-primary">
-              데모 보기
             </Button>
           </div>
           

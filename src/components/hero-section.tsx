@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { ArrowRight, FileText, Download, DollarSign } from "lucide-react";
 import heroImage from "@/assets/hero-image.jpg";
+import { Link } from "react-router-dom";
 
 export const HeroSection = () => {
   return (
@@ -20,14 +21,21 @@ export const HeroSection = () => {
               </p>
             </div>
             
+
+
             <div className="flex flex-col sm:flex-row gap-4">
-              <Button size="lg" className="text-lg px-8 py-6">
-                무료로 시작하기
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
-              <Button variant="outline" size="lg" className="text-lg px-8 py-6">
-                템플릿 둘러보기
-              </Button>
+              <Link to="/sign-up" className="inline-block">
+                <Button size="lg" className="text-lg px-8 py-6">
+                  무료로 시작하기
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </Button>
+              </Link>
+
+              <Link to="/marketplace" className="inline-block">
+                <Button variant="outline" size="lg" className="text-lg px-8 py-6">
+                  템플릿 둘러보기
+                </Button>
+              </Link>
             </div>
             
             <div className="grid grid-cols-3 gap-8 pt-8">
