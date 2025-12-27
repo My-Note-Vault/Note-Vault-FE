@@ -1,12 +1,17 @@
 // src/api/auth.ts
-import axios from "axios";
+import api from "@/api/axiosInstance";
 import { endpoints } from "@/constants/endpoints";
+
 
 export const redirectToGoogleOAuth = () => {
   window.location.href = endpoints.REDIRECT_TO_GOOGLE;
 };
 
+
 export const getAccessToken = async (code: string) => {
-  const res = await axios.get(`${endpoints.CALLBACK_FROM_GOOGLE}?code=${code}`);
+  const res = await api.get(
+    `${endpoints.CALLBACK_FROM_GOOGLE}?code=${encodeURIComponent(code)}`
+  );
+
   return res.data; // { accessToken: "..." }
 };
