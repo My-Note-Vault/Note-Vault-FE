@@ -8,7 +8,7 @@ type AuthContextType = {
   isLoggedIn: boolean;
   login: (token: string) => void;
   logout: () => void;
-  loginWithOAuthCode: (code: string) => Promise<void>; 
+  loginWithOAuthCode: (code: string, state: string) => Promise<void>;  
 };
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -32,22 +32,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   
-  const loginWithOAuthCode = async (code: string) => {
-    try {
-      // 백엔드가 code를 받아 accessToken을 발급해주는 엔드포인트로 교환 요청
-      const response = await axios.post(endpoints.CALLBACK_FROM_GOOGLE, {
-        code,
-      });
+  const loginWithOAuthCode = async (code: string, state: string) => {
+  try {
+    const response = await axios.get(
+      `${endpoints.CALLBACK_FROM_GOOGLE}?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state)}`
+    );
 
-      const token = response.data.accessToken;
-      if (!token) throw new Error("No access token returned");
+    const token = response.data.token;
+    if (!token) throw new Error("No token returned");
 
-      login(token); // 내부 login() 호출 → localStorage 저장
-    } catch (error) {
-      console.error("OAuth login failed:", error);
-      throw error;
-    }
-  };
+    login(token);
+  } catch (error) {
+    console.error("OAuth login failed:", error);
+    throw error;
+  }
+};
+
 
   // 더미 로그인
   useEffect(() => {
