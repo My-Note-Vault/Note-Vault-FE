@@ -4,7 +4,8 @@ export const endpoints = {
 
     // Auth Endpoints
     REDIRECT_TO_GOOGLE: `${API_BASE}/oauth/google`,
-    CALLBACK_FROM_GOOGLE: `${API_BASE}/oauth/callback/google`,    
+    CALLBACK_FROM_GOOGLE: `${API_BASE}/oauth/callback/google`,
+    LOGIN_GOOGLE: '${API_BASE}/oauth/login/google',    
 
     // Like Endpoints
     LIKE: `${API_BASE}/like`,
