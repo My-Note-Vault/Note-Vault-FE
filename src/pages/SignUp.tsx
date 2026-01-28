@@ -1,20 +1,11 @@
 // src/pages/SignUp.tsx
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { endpoints } from "@/constants/endpoints";
 import { redirectToGoogleOAuth } from "@/api/auth";
 
 
 export default function SignUp() {
   const navigate = useNavigate();
-  const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-
-  
-const handleSignup = async (provider: string) => {
-  if (provider !== "google") return;
-  await redirectToGoogleOAuth(); // ← 서버 호출 후 redirect
-};
-    // 백엔드에서 OAuth 수행 후 프론트엔드의 /oauth/callback 으로 redirect 예정
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-r from-primary to-primary-hover text-white">
@@ -26,7 +17,7 @@ const handleSignup = async (provider: string) => {
       <div className="flex flex-col gap-4 w-72">
         {/* Google OAuth 버튼 */}
         <Button
-          onClick={() => handleSignup("google")}
+          onClick={redirectToGoogleOAuth}
           className="bg-white text-gray-800 hover:bg-gray-200"
         >
           <img
