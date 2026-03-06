@@ -1,20 +1,13 @@
-import { useState } from "react";
-import { useEditor, EditorContent } from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
-import Placeholder from "@tiptap/extension-placeholder";
+import { useState, useCallback, useRef } from "react";
+import MarkdownEditor, { type MarkdownEditorHandle } from "@/components/MarkdownEditor";
 
 export default function Editor() {
   const [title, setTitle] = useState("");
+  const editorRef = useRef<MarkdownEditorHandle>(null);
 
-  const editor = useEditor({
-    extensions: [
-      StarterKit,
-      Placeholder.configure({
-        placeholder: "",
-      }),
-    ],
-    content: "",
-  });
+  const handleAutoSave = useCallback((content: string) => {
+    console.log("자동 저장:", content);
+  }, []);
 
   return (
     <div className="min-h-screen bg-background">
@@ -27,21 +20,13 @@ export default function Editor() {
             onKeyDown={(e) => {
               if (e.key === "Enter") {
                 e.preventDefault();
-                editor
-                  ?.chain()
-                  .focus("start")
-                  .insertContentAt(0, { type: "paragraph" })
-                  .focus("start")
-                  .run();
+                editorRef.current?.focus();
               }
             }}
             placeholder="Untitled"
             className="w-full px-4 pt-4 pb-0 text-xl font-semibold bg-transparent outline-none"
           />
-          <EditorContent
-            editor={editor}
-            className="prose prose-p:my-1 prose-headings:my-2 max-w-none min-h-[700px] px-4 pb-4 [&_.tiptap]:outline-none"
-          />
+          <MarkdownEditor ref={editorRef} onAutoSave={handleAutoSave} />
         </div>
       </div>
     </div>
