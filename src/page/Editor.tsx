@@ -2,7 +2,7 @@ import { useState, useCallback, useRef } from "react";
 import MarkdownEditor, { type MarkdownEditorHandle } from "@/components/MarkdownEditor";
 
 export default function Editor() {
-  const [title, setTitle] = useState("");
+  const [title, setTitle] = useState("Untitled");
   const editorRef = useRef<MarkdownEditorHandle>(null);
 
   const handleAutoSave = useCallback((content: string) => {
@@ -11,8 +11,8 @@ export default function Editor() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="max-w-5xl mx-auto p-6">
-        <div className="border rounded-md">
+      <div className="max-w-[54.4rem] mx-auto p-6">
+        <div>
           <input
             type="text"
             value={title}
@@ -23,8 +23,7 @@ export default function Editor() {
                 editorRef.current?.focus();
               }
             }}
-            placeholder="Untitled"
-            className="w-full px-4 pt-4 pb-0 text-xl font-semibold bg-transparent outline-none"
+            className="w-full px-12 pt-4 pb-0 text-xl font-semibold bg-transparent outline-none"
           />
           <MarkdownEditor ref={editorRef} onAutoSave={handleAutoSave} />
         </div>

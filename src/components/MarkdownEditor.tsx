@@ -60,7 +60,7 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(({
 
   return (
     <div
-      className="min-h-[700px] px-4 pb-4 cursor-text"
+      className="min-h-[700px] px-12 pb-4 cursor-text"
       onClick={() => editor?.commands.focus("end")}
     >
       <EditorContent
