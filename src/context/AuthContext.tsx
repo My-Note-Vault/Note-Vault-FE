@@ -1,7 +1,7 @@
 // src/context/AuthContext.tsx
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import axios from "axios";
-import { endpoints } from "@/constants/endpoints";
+import { endpoints } from "@/old/constants/endpoints";
 
 type AuthContextType = {
   accessToken: string | null;

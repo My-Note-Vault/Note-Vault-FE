@@ -1,6 +1,4 @@
-import { HeroSection } from "@/old/components/hero-section"
-import UserHome from "@/old/components/UserHome"
-import { useAuth }  from "@/old/context/AuthContext"
+import { useAuth }  from "@/context/AuthContext"
 import { useEffect } from "react";
 
 const Home = () => {
