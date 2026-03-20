@@ -1,7 +1,9 @@
 import { useState } from "react";
-import { X, FileText, CalendarDays, Plus } from "lucide-react";
+import { X, FileText, CalendarDays, Columns3, Plus } from "lucide-react";
 import Editor from "@/page/Editor";
-import type { DocType } from "./Sidebar";
+import CalendarPage from "@/page/CalendarPage";
+import KanbanPage from "@/page/KanbanPage";
+import type { DocType } from "@/types/common";
 
 export type PaneId = "left" | "right";
 
@@ -158,9 +160,11 @@ export default function TabPane({
                 ${draggingTabId === tab.id ? "opacity-50" : ""}`}
               onClick={() => onClickTab(tab.id)}
             >
-              {tab.isDaily
-                ? <CalendarDays className="h-3.5 w-3.5 shrink-0 opacity-60" />
-                : <FileText className="h-3.5 w-3.5 shrink-0 opacity-60" />}
+              {tab.id === "kanban-view"
+                ? <Columns3 className="h-3.5 w-3.5 shrink-0 opacity-60" />
+                : tab.isDaily
+                  ? <CalendarDays className="h-3.5 w-3.5 shrink-0 opacity-60" />
+                  : <FileText className="h-3.5 w-3.5 shrink-0 opacity-60" />}
               <span className="truncate">{tab.name}</span>
               <button
                 onClick={(e) => {
@@ -209,16 +213,28 @@ export default function TabPane({
         )}
 
         {activeTab ? (
-          <Editor
-            key={activeTab.id}
-            documentId={activeTab.id}
-            documentName={activeTab.name}
-            isDailyNote={activeTab.isDaily}
-            docType={activeTab.docType}
-            children={activeTab.children}
-            onOpenDocument={onOpenDocument}
-            onRenameDocument={onRenameDocument}
-          />
+          activeTab.id === "calendar-view" ? (
+            <CalendarPage
+              key="calendar-view"
+              onOpenDocument={onOpenDocument}
+            />
+          ) : activeTab.id === "kanban-view" ? (
+            <KanbanPage
+              key="kanban-view"
+              onOpenDocument={onOpenDocument}
+            />
+          ) : (
+            <Editor
+              key={activeTab.id}
+              documentId={activeTab.id}
+              documentName={activeTab.name}
+              isDailyNote={activeTab.isDaily}
+              docType={activeTab.docType}
+              children={activeTab.children}
+              onOpenDocument={onOpenDocument}
+              onRenameDocument={onRenameDocument}
+            />
+          )
         ) : (
           <div className="flex-1 flex items-center justify-center h-full">
             <div className="flex flex-col items-center gap-3 text-sm">

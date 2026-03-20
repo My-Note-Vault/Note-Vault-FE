@@ -1,14 +1,14 @@
-// src/context/AuthContext.tsx
-import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import axios from "axios";
+import { createContext, useContext, useState, type ReactNode } from "react";
+import apiClient from "@/api/client";
 import { endpoints } from "@/constants/endpoints";
 
 type AuthContextType = {
   accessToken: string | null;
   isLoggedIn: boolean;
+  isOAuthLoading: boolean;
   login: (token: string) => void;
   logout: () => void;
-  loginWithOAuthCode: (code: string, state: string) => Promise<void>;  
+  loginWithOAuthCode: (code: string, state: string) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -17,10 +17,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [accessToken, setAccessToken] = useState<string | null>(
     localStorage.getItem("accessToken")
   );
+  const [isOAuthLoading, setIsOAuthLoading] = useState(false);
 
   const isLoggedIn = !!accessToken;
 
-  // 기본 로그인/로그아웃
   const login = (token: string) => {
     localStorage.setItem("accessToken", token);
     setAccessToken(token);
@@ -31,36 +31,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setAccessToken(null);
   };
 
-  
   const loginWithOAuthCode = async (code: string, state: string) => {
-  try {
-    const response = await axios.get(
-      `${endpoints.CALLBACK_FROM_GOOGLE}?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state)}`
-    );
+    setIsOAuthLoading(true);
+    try {
+      const response = await apiClient.get(
+        `${endpoints.CALLBACK_FROM_GOOGLE}?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state)}`
+      );
 
-    const token = response.data.token;
-    if (!token) throw new Error("No token returned");
+      const token = response.data.token;
+      if (!token) throw new Error("No token returned");
 
-    login(token);
-  } catch (error) {
-    console.error("OAuth login failed:", error);
-    throw error;
-  }
-};
-
-
-  // 더미 로그인
-  useEffect(() => {
-    if (import.meta.env.DEV && !accessToken) {
-      const dummyToken = "MOCK_DEV_JWT_TOKEN"; // 더미 토큰
-      console.log("[Dev Mode] 더미 로그인 활성화됨");
-      login(dummyToken);
+      login(token);
+    } catch (error) {
+      console.error("OAuth login failed:", error);
+      throw error;
+    } finally {
+      setIsOAuthLoading(false);
     }
-  }, [accessToken]);
-
+  };
 
   return (
-    <AuthContext.Provider value={{ accessToken, isLoggedIn, login, logout, loginWithOAuthCode }}>
+    <AuthContext.Provider value={{ accessToken, isLoggedIn, isOAuthLoading, login, logout, loginWithOAuthCode }}>
       {children}
     </AuthContext.Provider>
   );

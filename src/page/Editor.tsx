@@ -1,8 +1,16 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import MarkdownEditor, { type MarkdownEditorHandle } from "@/components/MarkdownEditor";
-import { ChevronRight } from "lucide-react";
-import type { DocType } from "@/components/Sidebar";
+import { ChevronRight, Loader2, AlertTriangle, RefreshCw } from "lucide-react";
+import type { DocType } from "@/types/common";
 import TaskMetadata, { type TaskMetadataValues } from "@/components/TaskMetadata";
+import { useDailyNoteDetail } from "@/hooks/useDocuments";
+import { useEntityDetail, useAutoSaveEntity, useUpdateEntity, type EntityDetail } from "@/hooks/useEntity";
+import type { TaskDetail } from "@/types/task";
+import type { SubTaskDetail } from "@/types/subtask";
+
+function hasMetadata(detail: EntityDetail): detail is TaskDetail | SubTaskDetail {
+  return "metadata" in detail && detail.metadata != null;
+}
 
 interface EditorProps {
   isDailyNote?: boolean;
@@ -23,17 +31,91 @@ export default function Editor({ isDailyNote = false, docType, documentId, docum
     endDate: undefined,
   });
 
+  // 엔티티 상세 조회
+  const dailyDate = isDailyNote ? documentId.replace("daily-", "") : null;
+  const { data: entityDetail, isLoading: isEntityLoading, isError: isEntityError, refetch: refetchEntity } = useEntityDetail(
+    isDailyNote ? null : documentId,
+    docType,
+  );
+  const { data: dailyDetail, isLoading: isDailyLoading, isError: isDailyError, refetch: refetchDaily } = useDailyNoteDetail(dailyDate);
+
+  const detail = isDailyNote ? dailyDetail : entityDetail;
+  const loading = isDailyNote ? isDailyLoading : isEntityLoading;
+  const isError = isDailyNote ? isDailyError : isEntityError;
+  const refetch = isDailyNote ? refetchDaily : refetchEntity;
+
+  // 서버에서 받은 메타데이터 반영
+  useEffect(() => {
+    if (detail && !isDailyNote && hasMetadata(detail as EntityDetail)) {
+      const meta = (detail as TaskDetail | SubTaskDetail).metadata!;
+      setMetadata({
+        status: meta.status,
+        startDate: meta.startDate ? new Date(meta.startDate) : undefined,
+        endDate: meta.endDate ? new Date(meta.endDate) : undefined,
+      });
+    }
+  }, [detail]);
+
   useEffect(() => {
     setTitle(isDailyNote ? "TODO" : documentName);
   }, [isDailyNote, documentName]);
 
+  // 자동 저장
+  const autoSaveMutation = useAutoSaveEntity();
+
   const handleAutoSave = useCallback((content: string) => {
-    console.log("자동 저장:", content);
-  }, []);
+    if (!docType && !isDailyNote) return;
+    autoSaveMutation.mutate({ id: documentId, type: docType ?? "space", content });
+  }, [documentId, docType, isDailyNote, autoSaveMutation]);
+
+  // 메타데이터 변경 저장
+  const updateMutation = useUpdateEntity();
+
+  const handleMetadataChange = useCallback((newMetadata: TaskMetadataValues) => {
+    if (!docType) return;
+    setMetadata(newMetadata);
+    updateMutation.mutate({
+      id: documentId,
+      type: docType,
+      metadata: {
+        status: newMetadata.status,
+        startDate: newMetadata.startDate?.toISOString().slice(0, 10) ?? null,
+        endDate: newMetadata.endDate?.toISOString().slice(0, 10) ?? null,
+      },
+    });
+  }, [documentId, docType, updateMutation]);
 
   const hasChildren = children && children.length > 0;
   const showChildrenSection = docType && docType !== "trivia" && hasChildren;
   const showMetadata = docType === "task" || docType === "subtask";
+
+  if (isError) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3 text-center">
+          <AlertTriangle className="h-8 w-8 text-destructive" />
+          <p className="text-sm text-muted-foreground">문서를 불러오지 못했습니다</p>
+          <button
+            onClick={() => refetch()}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-border text-sm hover:bg-muted transition-colors"
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+            다시 시도
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  const initialContent = detail?.content ?? "";
 
   return (
     <div className="min-h-screen bg-background">
@@ -59,7 +141,7 @@ export default function Editor({ isDailyNote = false, docType, documentId, docum
 
           {showMetadata && (
             <>
-              <TaskMetadata value={metadata} onChange={setMetadata} />
+              <TaskMetadata value={metadata} onChange={handleMetadataChange} />
               <div className="px-12 pb-1">
                 <div className="border-t border-border" />
               </div>
@@ -84,7 +166,7 @@ export default function Editor({ isDailyNote = false, docType, documentId, docum
             </div>
           )}
 
-          <MarkdownEditor ref={editorRef} onAutoSave={handleAutoSave} />
+          <MarkdownEditor ref={editorRef} initialContent={initialContent} onAutoSave={handleAutoSave} />
         </div>
       </div>
     </div>

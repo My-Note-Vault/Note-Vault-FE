@@ -12,8 +12,9 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
+import type { TaskStatus } from "@/types/common";
 
-export type TaskStatus = "todo" | "in_progress" | "done" | "hold";
+export type { TaskStatus };
 
 const STATUS_OPTIONS: { value: TaskStatus; label: string; color: string }[] = [
   { value: "todo", label: "할 일", color: "bg-gray-400" },

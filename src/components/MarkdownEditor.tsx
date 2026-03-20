@@ -54,6 +54,16 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(({
     },
   });
 
+  // API에서 늦게 도착하는 initialContent를 에디터에 반영
+  const hasSetContent = useRef(false);
+
+  useEffect(() => {
+    if (editor && initialContent && !hasSetContent.current) {
+      editor.commands.setContent(initialContent);
+      hasSetContent.current = true;
+    }
+  }, [editor, initialContent]);
+
   useImperativeHandle(ref, () => ({
     focus: () => editor?.commands.focus("start"),
   }), [editor]);

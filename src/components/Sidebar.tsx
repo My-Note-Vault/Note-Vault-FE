@@ -1,15 +1,9 @@
-import { useState, useEffect, useRef } from "react";
-import { ChevronRight, FileText, CalendarDays, FolderClosed, PanelLeftClose, PanelLeft, Plus, Layout, ListChecks, ListTodo, Sparkles, Search, X, Loader2 } from "lucide-react";
-import axios from "axios";
+import { useState, useEffect } from "react";
+import { ChevronRight, FileText, CalendarDays, FolderClosed, PanelLeftClose, PanelLeft, Plus, Layout, ListChecks, ListTodo, Sparkles, Search, X, Loader2, Trash2, Columns3 } from "lucide-react";
+import { useSearchDocuments } from "@/hooks/useDocuments";
 
-export type DocType = "space" | "task" | "subtask" | "trivia";
-
-export interface SidebarDocument {
-  id: string;
-  name: string;
-  type?: DocType;
-  children?: SidebarDocument[];
-}
+export type { DocType, SidebarItem, SearchResult } from "@/types/common";
+import type { DocType, SidebarItem, SearchResult } from "@/types/common";
 
 const CHILD_TYPE_MAP: Record<DocType, DocType | null> = {
   space: "task",
@@ -25,51 +19,13 @@ const DOC_TYPE_ICON: Record<DocType, typeof Layout> = {
   trivia: Sparkles,
 };
 
-export const DUMMY_DAILY_NOTES: SidebarDocument = {
-  id: "daily-note-root",
-  name: "Daily Note",
-  children: [
-    { id: "daily-2026-03-09", name: "2026-03-09" },
-    { id: "daily-2026-03-08", name: "2026-03-08" },
-    { id: "daily-2026-03-07", name: "2026-03-07" },
-    { id: "daily-2026-03-06", name: "2026-03-06" },
-    { id: "daily-2026-03-05", name: "2026-03-05" },
-    {
-      id: "daily-folder-2026-03",
-      name: "2026-03",
-      children: [
-        { id: "daily-2026-03-04", name: "2026-03-04" },
-        { id: "daily-2026-03-03", name: "2026-03-03" },
-        { id: "daily-2026-03-02", name: "2026-03-02" },
-        { id: "daily-2026-03-01", name: "2026-03-01" },
-      ],
-    },
-    {
-      id: "daily-folder-2026-02",
-      name: "2026-02",
-      children: [
-        { id: "daily-2026-02-28", name: "2026-02-28" },
-        { id: "daily-2026-02-27", name: "2026-02-27" },
-        { id: "daily-2026-02-26", name: "2026-02-26" },
-      ],
-    },
-  ],
-};
-
-function sortFoldersFirst(docs: SidebarDocument[]): SidebarDocument[] {
+function sortFoldersFirst(docs: SidebarItem[]): SidebarItem[] {
   return [...docs].sort((a, b) => {
     const aIsFolder = a.children && a.children.length > 0 ? 1 : 0;
     const bIsFolder = b.children && b.children.length > 0 ? 1 : 0;
     if (aIsFolder !== bIsFolder) return bIsFolder - aIsFolder;
     return a.name.localeCompare(b.name, undefined, { numeric: true });
   });
-}
-
-export interface SearchResult {
-  id: string;
-  name: string;
-  type?: DocType;
-  content?: string;
 }
 
 function HighlightText({ text, query }: { text: string; query: string }) {
@@ -125,15 +81,16 @@ function SearchResultItem({
 }
 
 interface DocItemProps {
-  doc: SidebarDocument;
+  doc: SidebarItem;
   depth: number;
   selectedId: string | null;
   onSelect: (id: string) => void;
   onAddItem?: (parentId: string) => void;
+  onDeleteItem?: (id: string) => void;
   icon?: "file" | "calendar";
 }
 
-function DocItem({ doc, depth, selectedId, onSelect, onAddItem, icon = "file" }: DocItemProps) {
+function DocItem({ doc, depth, selectedId, onSelect, onAddItem, onDeleteItem, icon = "file" }: DocItemProps) {
   const [expanded, setExpanded] = useState(false);
   const hasChildren = doc.children && doc.children.length > 0;
   const isExpandable = doc.type && doc.type !== "trivia";
@@ -141,10 +98,8 @@ function DocItem({ doc, depth, selectedId, onSelect, onAddItem, icon = "file" }:
 
   const handleClick = () => {
     if (doc.type && doc.type !== "trivia") {
-      // Space/Task/Sub Task: both selectable and expandable
       onSelect(doc.id);
     } else if (hasChildren && !doc.type) {
-      // Pure folders (like Daily Note folders)
       setExpanded(!expanded);
     } else {
       onSelect(doc.id);
@@ -199,6 +154,17 @@ function DocItem({ doc, depth, selectedId, onSelect, onAddItem, icon = "file" }:
             <Plus className="h-3.5 w-3.5" />
           </button>
         )}
+        {doc.type && onDeleteItem && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onDeleteItem(doc.id);
+            }}
+            className="p-0.5 rounded hover:bg-red-500/20 text-sidebar-foreground/50 hover:text-red-500 transition-colors opacity-0 group-hover/item:opacity-100"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        )}
       </div>
 
       {(hasChildren || isExpandable) && expanded && (
@@ -211,6 +177,7 @@ function DocItem({ doc, depth, selectedId, onSelect, onAddItem, icon = "file" }:
               selectedId={selectedId}
               onSelect={onSelect}
               onAddItem={onAddItem}
+              onDeleteItem={onDeleteItem}
               icon={icon}
             />
           ))}
@@ -221,67 +188,38 @@ function DocItem({ doc, depth, selectedId, onSelect, onAddItem, icon = "file" }:
 }
 
 interface SidebarProps {
-  onSelectSidebarDocument?: (id: string) => void;
-  docs: SidebarDocument[];
+  onSelectSidebarItem?: (id: string) => void;
+  docs: SidebarItem[];
+  dailyNotes?: SidebarItem;
   onAddItem?: (parentId: string) => void;
   onAddSpace?: () => void;
+  onDeleteItem?: (id: string) => void;
+  isLoading?: boolean;
 }
 
-export default function Sidebar({ onSelectSidebarDocument, docs, onAddItem, onAddSpace }: SidebarProps) {
+export default function Sidebar({ onSelectSidebarItem, docs, dailyNotes, onAddItem, onAddSpace, onDeleteItem, isLoading }: SidebarProps) {
   const [open, setOpen] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const abortRef = useRef<AbortController | null>(null);
+
+  // 1초 디바운스 후 검색
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedQuery(searchQuery.trim());
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const { data: searchResults = [], isLoading: isSearching } = useSearchDocuments(debouncedQuery);
 
   const handleSelect = (id: string) => {
     setSelectedId(id);
     setSearchQuery("");
-    setSearchResults([]);
-    onSelectSidebarDocument?.(id);
+    setDebouncedQuery("");
+    onSelectSidebarItem?.(id);
   };
-
-  // 1초 디바운스 후 검색 API 호출
-  useEffect(() => {
-    const trimmed = searchQuery.trim();
-
-    if (!trimmed) {
-      setSearchResults([]);
-      setIsSearching(false);
-      return;
-    }
-
-    setIsSearching(true);
-
-    const timer = setTimeout(async () => {
-      abortRef.current?.abort();
-      const controller = new AbortController();
-      abortRef.current = controller;
-
-      try {
-        const res = await axios.get("/api/v1/documents/search", {
-          params: { q: trimmed },
-          signal: controller.signal,
-        });
-        setSearchResults(res.data);
-      } catch (err) {
-        if (!axios.isCancel(err)) {
-          console.error("검색 실패:", err);
-          setSearchResults([]);
-        }
-      } finally {
-        if (!controller.signal.aborted) {
-          setIsSearching(false);
-        }
-      }
-    }, 1000);
-
-    return () => {
-      clearTimeout(timer);
-      abortRef.current?.abort();
-    };
-  }, [searchQuery]);
 
   const isSearchMode = searchQuery.trim().length > 0;
 
@@ -314,7 +252,7 @@ export default function Sidebar({ onSelectSidebarDocument, docs, onAddItem, onAd
             <button
               onClick={() => {
                 setSearchQuery("");
-                setSearchResults([]);
+                setDebouncedQuery("");
               }}
               className="p-1 rounded-md hover:bg-sidebar-accent transition-colors text-sidebar-foreground/50 hover:text-sidebar-foreground"
             >
@@ -354,20 +292,51 @@ export default function Sidebar({ onSelectSidebarDocument, docs, onAddItem, onAd
                 </div>
               )}
             </div>
+          ) : isLoading ? (
+            <div className="flex items-center gap-2 px-3 py-4 text-sm text-sidebar-foreground/50">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span>문서 불러오는 중...</span>
+            </div>
           ) : (
             /* 기본 문서 트리 */
             <>
-              <div className="space-y-0.5">
-                <DocItem
-                  doc={DUMMY_DAILY_NOTES}
-                  depth={0}
-                  selectedId={selectedId}
-                  onSelect={handleSelect}
-                  icon="calendar"
-                />
-              </div>
+              {dailyNotes && (
+                <div className="space-y-0.5">
+                  <DocItem
+                    doc={dailyNotes}
+                    depth={0}
+                    selectedId={selectedId}
+                    onSelect={handleSelect}
+                    icon="calendar"
+                  />
+                  <div
+                    className={`flex items-center gap-1 px-2 py-1.5 rounded-md cursor-pointer text-sm transition-colors
+                      ${selectedId === "calendar-view"
+                        ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                        : "text-sidebar-foreground hover:bg-sidebar-accent/50"}`}
+                    style={{ paddingLeft: "20px" }}
+                    onClick={() => handleSelect("calendar-view")}
+                  >
+                    <span className="w-4.5" />
+                    <CalendarDays className="h-4 w-4 shrink-0 opacity-60" />
+                    <span className="truncate flex-1">Calendar</span>
+                  </div>
+                  <div
+                    className={`flex items-center gap-1 px-2 py-1.5 rounded-md cursor-pointer text-sm transition-colors
+                      ${selectedId === "kanban-view"
+                        ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                        : "text-sidebar-foreground hover:bg-sidebar-accent/50"}`}
+                    style={{ paddingLeft: "20px" }}
+                    onClick={() => handleSelect("kanban-view")}
+                  >
+                    <span className="w-4.5" />
+                    <Columns3 className="h-4 w-4 shrink-0 opacity-60" />
+                    <span className="truncate flex-1">Kanban</span>
+                  </div>
+                </div>
+              )}
 
-              <div className="my-2 border-t border-sidebar-border" />
+              {dailyNotes && <div className="my-2 border-t border-sidebar-border" />}
 
               <div className="space-y-0.5">
                 {sortFoldersFirst(docs).map((doc) => (
@@ -378,6 +347,7 @@ export default function Sidebar({ onSelectSidebarDocument, docs, onAddItem, onAd
                     selectedId={selectedId}
                     onSelect={handleSelect}
                     onAddItem={onAddItem}
+                    onDeleteItem={onDeleteItem}
                   />
                 ))}
               </div>
