@@ -30,7 +30,7 @@ export default function LandingPage() {
   const navigate = useNavigate();
 
   const handleGoogleLogin = () => {
-    window.location.href = "/api/v1/oauth/google";
+    window.location.href = "/api/v1/oauth/login/google";
   };
 
   const handleDevLogin = () => {
