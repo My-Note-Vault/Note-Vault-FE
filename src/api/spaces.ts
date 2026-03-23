@@ -17,8 +17,8 @@ export const createSpace = async (req: CreateSpaceRequest): Promise<CreateSpaceR
   return data;
 };
 
-export const updateSpace = async (id: string, req: UpdateSpaceRequest): Promise<void> => {
-  await apiClient.patch(endpoints.SPACE_DETAIL(id), req);
+export const updateSpace = async (id: string, req: Omit<UpdateSpaceRequest, "workSpaceId" | "isPublic">): Promise<void> => {
+  await apiClient.patch(endpoints.SPACES, { ...req, workSpaceId: id, isPublic: false });
 };
 
 export const deleteSpace = async (id: string): Promise<void> => {

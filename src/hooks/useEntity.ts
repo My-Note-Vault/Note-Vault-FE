@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import type { DocType } from "@/types/common";
-import type { SpaceDetail, UpdateSpaceRequest } from "@/types/space";
+import type { SpaceDetail } from "@/types/space";
 import type { TaskDetail, TaskMetadata, UpdateTaskRequest } from "@/types/task";
 import type { SubTaskDetail, SubTaskMetadata, UpdateSubTaskRequest } from "@/types/subtask";
 import type { TriviaDetail, UpdateTriviaRequest } from "@/types/trivia";
@@ -112,7 +112,7 @@ export const useUpdateEntity = () => {
     mutationFn: async ({ id, type, ...req }: UpdateEntityRequest): Promise<void> => {
       switch (type) {
         case "space":
-          return updateSpace(id, req as UpdateSpaceRequest);
+          return updateSpace(id, req);
         case "task":
           return updateTask(id, req as UpdateTaskRequest);
         case "subtask":

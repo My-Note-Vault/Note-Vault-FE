@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchSpaceDetail, createSpace, updateSpace, deleteSpace } from "@/api/spaces";
-import type { CreateSpaceRequest, UpdateSpaceRequest } from "@/types/space";
+import type { CreateSpaceRequest } from "@/types/space";
 import { documentKeys } from "./useDocuments";
 
 export const spaceKeys = {
@@ -31,7 +31,7 @@ export const useCreateSpace = () => {
 export const useUpdateSpace = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, ...req }: UpdateSpaceRequest & { id: string }) => updateSpace(id, req),
+    mutationFn: ({ id, ...req }: { id: string; name?: string; content?: string; parentId?: string | null }) => updateSpace(id, req),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: spaceKeys.detail(variables.id) });
       if (variables.name) {

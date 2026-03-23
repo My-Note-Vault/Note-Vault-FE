@@ -18,6 +18,9 @@ export interface CreateSpaceResponse {
 }
 
 export interface UpdateSpaceRequest {
+  workSpaceId: string;
+  parentId?: string | null;
   name?: string;
   content?: string;
+  isPublic: boolean;
 }
