@@ -506,7 +506,7 @@ const App = () => {
                     <ErrorBoundary>
                         <Routes>
                             <Route path="/" element={<PublicRoute><LandingPage /></PublicRoute>} />
-                            <Route path="/oauth/callback/google" element={<OAuthCallbackPage />} />
+                            <Route path="/oauth/callback" element={<OAuthCallbackPage />} />
                             <Route path="/app/*" element={<ProtectedRoute><AppContent /></ProtectedRoute>} />
                         </Routes>
                     </ErrorBoundary>
