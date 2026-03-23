@@ -8,6 +8,7 @@ type AuthContextType = {
   isOAuthLoading: boolean;
   login: (token: string) => void;
   logout: () => void;
+  redirectToGoogle: () => Promise<void>;
   loginWithOAuthCode: (code: string, state: string) => Promise<void>;
 };
 
@@ -31,6 +32,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setAccessToken(null);
   };
 
+  const redirectToGoogle = async () => {
+    const response = await apiClient.get(endpoints.LOGIN_GOOGLE);
+    const url = response.data.url;
+    if (!url) throw new Error("No redirect URL returned");
+    window.location.href = url;
+  };
+
   const loginWithOAuthCode = async (code: string, state: string) => {
     setIsOAuthLoading(true);
     try {
@@ -51,7 +59,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ accessToken, isLoggedIn, isOAuthLoading, login, logout, loginWithOAuthCode }}>
+    <AuthContext.Provider value={{ accessToken, isLoggedIn, isOAuthLoading, login, logout, redirectToGoogle, loginWithOAuthCode }}>
       {children}
     </AuthContext.Provider>
   );
