@@ -87,7 +87,7 @@ export const useCreateEntity = () => {
     mutationFn: async ({ type, name, parentId }: CreateEntityRequest): Promise<CreateEntityResponse> => {
       switch (type) {
         case "space":
-          return createSpace({ name });
+          return createSpace({ parentId: parentId ?? null, name, content: null, isPublic: false });
         case "task":
           return createTask({ name, parentId: parentId! });
         case "subtask":

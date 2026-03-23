@@ -6,7 +6,10 @@ export interface SpaceDetail {
 }
 
 export interface CreateSpaceRequest {
+  parentId: string | null;
   name: string;
+  content: string | null;
+  isPublic: boolean;
 }
 
 export interface CreateSpaceResponse {

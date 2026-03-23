@@ -116,7 +116,7 @@ const CHILD_TYPE_MAP: Record<DocType, DocType | null> = {
 };
 
 const TYPE_LABELS: Record<DocType, string> = {
-    space: "새 Space",
+    space: "새 Work Space",
     task: "새 Task",
     subtask: "새 Sub Task",
     trivia: "새 Trivia",
@@ -240,13 +240,20 @@ function AppContent() {
     }, []);
 
     const handleAddSpace = useCallback(() => {
-        createEntityMutation.mutate({ type: "space", name: "새 Space" });
+        createEntityMutation.mutate(
+            { type: "space", name: "Untitled" },
+            {
+                onSuccess: (data) => {
+                    handleSelectDocument(data.id);
+                },
+            },
+        );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [handleSelectDocument]);
 
     const handleAddSpaceAndOpen = useCallback(() => {
         createEntityMutation.mutate(
-            { type: "space", name: "새 Space" },
+            { type: "space", name: "Untitled" },
             {
                 onSuccess: (data) => {
                     handleSelectDocument(data.id);

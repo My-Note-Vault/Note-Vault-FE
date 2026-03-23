@@ -243,7 +243,7 @@ export default function TabPane({
                 className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors"
               >
                 <Plus className="h-4 w-4" />
-                <span className="underline underline-offset-4">새 Space 생성하기</span>
+                <span className="underline underline-offset-4">새 Work Space 생성하기</span>
               </button>
               <button
                 onClick={() => {

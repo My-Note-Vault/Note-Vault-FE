@@ -358,7 +358,7 @@ export default function Sidebar({ onSelectSidebarItem, docs, dailyNotes, onAddIt
                   className="flex items-center gap-1 w-full px-2 py-1.5 mt-1 rounded-md text-sm text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent/50 transition-colors"
                 >
                   <Plus className="h-3.5 w-3.5" />
-                  <span>Space 추가</span>
+                  <span>Work Space 추가</span>
                 </button>
               )}
             </>
