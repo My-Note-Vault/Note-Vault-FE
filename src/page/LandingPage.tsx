@@ -1,5 +1,6 @@
 import { useAuth } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { endpoints } from "@/constants/endpoints";
 import { FileText, Columns3, CalendarDays, Search, ArrowRight } from "lucide-react";
 
 const FEATURES = [
@@ -30,7 +31,7 @@ export default function LandingPage() {
   const navigate = useNavigate();
 
   const handleGoogleLogin = () => {
-    window.location.href = "/api/v1/oauth/login/google";
+    window.location.href = endpoints.LOGIN_GOOGLE;
   };
 
   const handleDevLogin = () => {

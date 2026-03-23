@@ -3,9 +3,8 @@ export const API_BASE = "/api/v1";
 export const endpoints = {
 
 // Auth Endpoints
-REDIRECT_TO_GOOGLE: `${API_BASE}/oauth/google`,
+LOGIN_GOOGLE: `${API_BASE}/oauth/login/google`,
 CALLBACK_FROM_GOOGLE: `${API_BASE}/oauth/callback/google`,
-LOGIN_GOOGLE: `/oauth/login/google`,
 
 // Space Endpoints
 SPACES: `${API_BASE}/spaces`,
