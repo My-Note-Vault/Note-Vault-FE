@@ -13,6 +13,7 @@ export interface Tab {
   isDaily: boolean;
   docType?: DocType;
   children?: { id: string; name: string }[];
+  isNew?: boolean;
 }
 
 export interface PaneState {
@@ -32,6 +33,7 @@ interface TabPaneProps {
   onOpenDocument: (id: string) => void;
   onRenameDocument: (id: string, newName: string) => void;
   onAddSpace?: () => void;
+  onAutoSaveNewSpace?: (tabId: string, content: string) => void;
   draggingTabId: string | null;
   onDragStart: (tabId: string) => void;
   onDragEnd: () => void;
@@ -54,6 +56,7 @@ export default function TabPane({
   onOpenDocument,
   onRenameDocument,
   onAddSpace,
+  onAutoSaveNewSpace,
   onDragStart,
   onDragEnd,
 }: TabPaneProps) {
@@ -233,6 +236,8 @@ export default function TabPane({
               children={activeTab.children}
               onOpenDocument={onOpenDocument}
               onRenameDocument={onRenameDocument}
+              isNew={activeTab.isNew}
+              onAutoSaveNewSpace={onAutoSaveNewSpace ? (content: string) => onAutoSaveNewSpace(activeTab.id, content) : undefined}
             />
           )
         ) : (

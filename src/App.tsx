@@ -16,6 +16,7 @@ import {
     useDeleteEntity,
     useUpdateEntity,
 } from "@/hooks/useEntity";
+import { useCreateSpace } from "@/hooks/useSpaces";
 import { useLastVisited, useUpdateLastVisited } from "@/hooks/useLastVisited";
 import PublicRoute from "./components/auth/PublicRoute";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
@@ -132,8 +133,13 @@ function AppContent() {
     const { data: docs = [], isLoading } = useDocumentTree();
     const { data: dailyNotes } = useDailyNotes();
     const createEntityMutation = useCreateEntity();
+    const createSpaceMutation = useCreateSpace();
     const deleteEntityMutation = useDeleteEntity();
     const updateEntityMutation = useUpdateEntity();
+
+    // 새 WorkSpace 지연 생성용
+    const pendingNewSpacesRef = useRef(new Map<string, { name: string; content: string }>());
+    const flushingRef = useRef(new Set<string>());
 
     // Last visited
     const { data: lastVisited } = useLastVisited();
@@ -150,12 +156,65 @@ function AppContent() {
     });
     const [draggingTabId, setDraggingTabId] = useState<string | null>(null);
 
-    // 최신 docs 참조 (useCallback 안에서 사용)
+    // 최신 state 참조 (useCallback 안에서 사용)
+    const splitStateRef = useRef(splitState);
+    splitStateRef.current = splitState;
+
     const docsRef = useRef(docs);
     docsRef.current = docs;
 
     const dailyNotesRef = useRef(dailyNotes);
     dailyNotesRef.current = dailyNotes;
+
+    // 새 WorkSpace를 서버에 생성하고 탭 ID 교체
+    const flushPendingSpace = useCallback((tempId: string) => {
+        if (flushingRef.current.has(tempId)) return;
+        const data = pendingNewSpacesRef.current.get(tempId);
+        if (!data) return;
+
+        flushingRef.current.add(tempId);
+
+        createSpaceMutation.mutate(
+            { parentId: null, name: data.name, content: data.content || null, isPublic: false },
+            {
+                onSuccess: (result) => {
+                    pendingNewSpacesRef.current.delete(tempId);
+                    flushingRef.current.delete(tempId);
+                    // 탭의 임시 ID를 서버 ID로 교체
+                    setSplitState((prev) => {
+                        const newPanes = {} as Record<PaneId, PaneState>;
+                        for (const pid of ["left", "right"] as PaneId[]) {
+                            const pane = prev.panes[pid];
+                            newPanes[pid] = {
+                                ...pane,
+                                tabs: pane.tabs.map((t) =>
+                                    t.id === tempId
+                                        ? { ...t, id: result.id, name: result.name, isNew: undefined }
+                                        : t,
+                                ),
+                                activeTabId: pane.activeTabId === tempId ? result.id : pane.activeTabId,
+                            };
+                        }
+                        return { ...prev, panes: newPanes };
+                    });
+                },
+                onError: () => {
+                    flushingRef.current.delete(tempId);
+                },
+            },
+        );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    // 현재 포커스된 pane의 활성 탭이 새 WorkSpace면 flush
+    const flushActiveNewTab = useCallback(() => {
+        const state = splitStateRef.current;
+        const pane = state.panes[state.focusedPane];
+        const activeTab = pane.tabs.find((t) => t.id === pane.activeTabId);
+        if (activeTab?.isNew) {
+            flushPendingSpace(activeTab.id);
+        }
+    }, [flushPendingSpace]);
 
     // 마운트 시 최근 방문 문서 복원
     useEffect(() => {
@@ -167,6 +226,8 @@ function AppContent() {
     }, [lastVisited]);
 
     const handleSelectDocument = useCallback((id: string) => {
+        flushActiveNewTab();
+
         const isDaily = id.startsWith("daily-");
         const isCalendar = id === "calendar-view";
         const isKanban = id === "kanban-view";
@@ -239,31 +300,45 @@ function AppContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    const handleAddSpace = useCallback(() => {
-        createEntityMutation.mutate(
-            { type: "space", name: "Untitled" },
-            {
-                onSuccess: (data) => {
-                    handleSelectDocument(data.id);
-                },
-            },
-        );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [handleSelectDocument]);
+    const openNewSpaceTab = useCallback(() => {
+        flushActiveNewTab();
 
-    const handleAddSpaceAndOpen = useCallback(() => {
-        createEntityMutation.mutate(
-            { type: "space", name: "Untitled" },
-            {
-                onSuccess: (data) => {
-                    handleSelectDocument(data.id);
+        const tempId = `new-space-${Date.now()}`;
+        pendingNewSpacesRef.current.set(tempId, { name: "Untitled", content: "" });
+
+        setSplitState((prev) => {
+            const targetPaneId = prev.focusedPane;
+            const pane = prev.panes[targetPaneId];
+            if (pane.tabs.length >= 4) return prev;
+
+            return {
+                ...prev,
+                panes: {
+                    ...prev.panes,
+                    [targetPaneId]: {
+                        tabs: [
+                            { id: tempId, name: "Untitled", isDaily: false, docType: "space" as DocType, children: [], isNew: true },
+                            ...pane.tabs,
+                        ].slice(0, 4),
+                        activeTabId: tempId,
+                    },
                 },
-            },
-        );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [handleSelectDocument]);
+            };
+        });
+    }, [flushActiveNewTab]);
+
+    const handleAddSpace = openNewSpaceTab;
+    const handleAddSpaceAndOpen = openNewSpaceTab;
 
     const handleClickTab = useCallback((paneId: PaneId, tabId: string) => {
+        // 현재 활성 탭이 새 WorkSpace면 flush
+        const state = splitStateRef.current;
+        const pane = state.panes[paneId];
+        const currentTab = pane.tabs.find((t) => t.id === pane.activeTabId);
+        if (currentTab?.isNew && currentTab.id !== tabId) {
+            flushPendingSpace(currentTab.id);
+        }
+
         setSplitState((prev) => ({
             ...prev,
             focusedPane: paneId,
@@ -272,9 +347,12 @@ function AppContent() {
                 [paneId]: { ...prev.panes[paneId], activeTabId: tabId },
             },
         }));
-    }, []);
+    }, [flushPendingSpace]);
 
     const handleCloseTab = useCallback((paneId: PaneId, tabId: string) => {
+        // 새 WorkSpace 탭을 닫으면 pending 데이터 제거 (저장하지 않음)
+        pendingNewSpacesRef.current.delete(tabId);
+
         setSplitState((prev) => {
             const pane = prev.panes[paneId];
             const newTabs = pane.tabs.filter((t) => t.id !== tabId);
@@ -407,6 +485,12 @@ function AppContent() {
     }, []);
 
     const handleRenameDocument = useCallback((id: string, newName: string) => {
+        // 새 WorkSpace의 이름 변경은 pending ref에 반영
+        const pendingData = pendingNewSpacesRef.current.get(id);
+        if (pendingData) {
+            pendingData.name = newName;
+        }
+
         // 트리에서 docType 찾기
         const doc = findDocById(docsRef.current, id);
         const docType = doc?.type;
@@ -458,6 +542,14 @@ function AppContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [handleSelectDocument]);
 
+    // 새 WorkSpace의 auto-save → pending ref에 content 저장
+    const handleAutoSaveNewSpace = useCallback((tabId: string, content: string) => {
+        const data = pendingNewSpacesRef.current.get(tabId);
+        if (data) {
+            data.content = content;
+        }
+    }, []);
+
     const paneProps = (paneId: PaneId) => ({
         paneId,
         paneState: splitState.panes[paneId],
@@ -470,6 +562,7 @@ function AppContent() {
         onOpenDocument: handleSelectDocumentWithTracking,
         onRenameDocument: handleRenameDocument,
         onAddSpace: handleAddSpaceAndOpen,
+        onAutoSaveNewSpace: handleAutoSaveNewSpace,
         draggingTabId,
         onDragStart: setDraggingTabId,
         onDragEnd: () => setDraggingTabId(null),

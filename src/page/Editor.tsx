@@ -20,9 +20,11 @@ interface EditorProps {
   children?: { id: string; name: string }[];
   onOpenDocument?: (id: string) => void;
   onRenameDocument?: (id: string, newName: string) => void;
+  isNew?: boolean;
+  onAutoSaveNewSpace?: (content: string) => void;
 }
 
-export default function Editor({ isDailyNote = false, docType, documentId, documentName, children, onOpenDocument, onRenameDocument }: EditorProps) {
+export default function Editor({ isDailyNote = false, docType, documentId, documentName, children, onOpenDocument, onRenameDocument, isNew, onAutoSaveNewSpace }: EditorProps) {
   const [title, setTitle] = useState(isDailyNote ? "TODO" : documentName);
   const editorRef = useRef<MarkdownEditorHandle>(null);
   const [metadata, setMetadata] = useState<TaskMetadataValues>({
@@ -34,14 +36,14 @@ export default function Editor({ isDailyNote = false, docType, documentId, docum
   // 엔티티 상세 조회
   const dailyDate = isDailyNote ? documentId.replace("daily-", "") : null;
   const { data: entityDetail, isLoading: isEntityLoading, isError: isEntityError, refetch: refetchEntity } = useEntityDetail(
-    isDailyNote ? null : documentId,
+    isDailyNote || isNew ? null : documentId,
     docType,
   );
   const { data: dailyDetail, isLoading: isDailyLoading, isError: isDailyError, refetch: refetchDaily } = useDailyNoteDetail(dailyDate);
 
   const detail = isDailyNote ? dailyDetail : entityDetail;
-  const loading = isDailyNote ? isDailyLoading : isEntityLoading;
-  const isError = isDailyNote ? isDailyError : isEntityError;
+  const loading = isNew ? false : (isDailyNote ? isDailyLoading : isEntityLoading);
+  const isError = isNew ? false : (isDailyNote ? isDailyError : isEntityError);
   const refetch = isDailyNote ? refetchDaily : refetchEntity;
 
   // 서버에서 받은 메타데이터 반영
@@ -64,9 +66,13 @@ export default function Editor({ isDailyNote = false, docType, documentId, docum
   const autoSaveMutation = useAutoSaveEntity();
 
   const handleAutoSave = useCallback((content: string) => {
+    if (isNew) {
+      onAutoSaveNewSpace?.(content);
+      return;
+    }
     if (!docType && !isDailyNote) return;
     autoSaveMutation.mutate({ id: documentId, type: docType ?? "space", content });
-  }, [documentId, docType, isDailyNote, autoSaveMutation]);
+  }, [documentId, docType, isDailyNote, isNew, onAutoSaveNewSpace, autoSaveMutation]);
 
   // 메타데이터 변경 저장
   const updateMutation = useUpdateEntity();
