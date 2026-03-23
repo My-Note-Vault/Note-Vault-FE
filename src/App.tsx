@@ -140,6 +140,7 @@ function AppContent() {
     // 새 WorkSpace 지연 생성용
     const pendingNewSpacesRef = useRef(new Map<string, { name: string; content: string }>());
     const flushingRef = useRef(new Set<string>());
+    const idleTimerRef = useRef(new Map<string, ReturnType<typeof setTimeout>>());
 
     // Last visited
     const { data: lastVisited } = useLastVisited();
@@ -168,6 +169,13 @@ function AppContent() {
 
     // 새 WorkSpace를 서버에 생성하고 탭 ID 교체
     const flushPendingSpace = useCallback((tempId: string) => {
+        // idle 타이머 클리어
+        const timer = idleTimerRef.current.get(tempId);
+        if (timer) {
+            clearTimeout(timer);
+            idleTimerRef.current.delete(tempId);
+        }
+
         if (flushingRef.current.has(tempId)) return;
         const data = pendingNewSpacesRef.current.get(tempId);
         if (!data) return;
@@ -214,6 +222,18 @@ function AppContent() {
         if (activeTab?.isNew) {
             flushPendingSpace(activeTab.id);
         }
+    }, [flushPendingSpace]);
+
+    // 3초 idle 후 자동 flush (서버 생성 + 사이드바 반영)
+    const startIdleFlushTimer = useCallback((tempId: string) => {
+        const existing = idleTimerRef.current.get(tempId);
+        if (existing) clearTimeout(existing);
+
+        const timer = setTimeout(() => {
+            idleTimerRef.current.delete(tempId);
+            flushPendingSpace(tempId);
+        }, 3000);
+        idleTimerRef.current.set(tempId, timer);
     }, [flushPendingSpace]);
 
     // 마운트 시 최근 방문 문서 복원
@@ -325,7 +345,10 @@ function AppContent() {
                 },
             };
         });
-    }, [flushActiveNewTab]);
+
+        // 3초 idle 타이머 시작
+        startIdleFlushTimer(tempId);
+    }, [flushActiveNewTab, startIdleFlushTimer]);
 
     const handleAddSpace = openNewSpaceTab;
     const handleAddSpaceAndOpen = openNewSpaceTab;
@@ -350,7 +373,12 @@ function AppContent() {
     }, [flushPendingSpace]);
 
     const handleCloseTab = useCallback((paneId: PaneId, tabId: string) => {
-        // 새 WorkSpace 탭을 닫으면 pending 데이터 제거 (저장하지 않음)
+        // 새 WorkSpace 탭을 닫으면 타이머 + pending 데이터 제거 (저장하지 않음)
+        const timer = idleTimerRef.current.get(tabId);
+        if (timer) {
+            clearTimeout(timer);
+            idleTimerRef.current.delete(tabId);
+        }
         pendingNewSpacesRef.current.delete(tabId);
 
         setSplitState((prev) => {
@@ -485,10 +513,11 @@ function AppContent() {
     }, []);
 
     const handleRenameDocument = useCallback((id: string, newName: string) => {
-        // 새 WorkSpace의 이름 변경은 pending ref에 반영
+        // 새 WorkSpace의 이름 변경은 pending ref에 반영 + 타이머 리셋
         const pendingData = pendingNewSpacesRef.current.get(id);
         if (pendingData) {
             pendingData.name = newName;
+            startIdleFlushTimer(id);
         }
 
         // 트리에서 docType 찾기
@@ -542,13 +571,14 @@ function AppContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [handleSelectDocument]);
 
-    // 새 WorkSpace의 auto-save → pending ref에 content 저장
+    // 새 WorkSpace의 auto-save → pending ref에 content 저장 + 타이머 리셋
     const handleAutoSaveNewSpace = useCallback((tabId: string, content: string) => {
         const data = pendingNewSpacesRef.current.get(tabId);
         if (data) {
             data.content = content;
+            startIdleFlushTimer(tabId);
         }
-    }, []);
+    }, [startIdleFlushTimer]);
 
     const paneProps = (paneId: PaneId) => ({
         paneId,
