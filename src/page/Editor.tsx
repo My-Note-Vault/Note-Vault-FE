@@ -21,10 +21,9 @@ interface EditorProps {
   onOpenDocument?: (id: string) => void;
   onRenameDocument?: (id: string, newName: string) => void;
   isNew?: boolean;
-  onAutoSaveNewSpace?: (content: string) => void;
 }
 
-export default function Editor({ isDailyNote = false, docType, documentId, documentName, children, onOpenDocument, onRenameDocument, isNew, onAutoSaveNewSpace }: EditorProps) {
+export default function Editor({ isDailyNote = false, docType, documentId, documentName, children, onOpenDocument, onRenameDocument, isNew }: EditorProps) {
   const [title, setTitle] = useState(isDailyNote ? "TODO" : documentName);
   const editorRef = useRef<MarkdownEditorHandle>(null);
   const [metadata, setMetadata] = useState<TaskMetadataValues>({
@@ -66,13 +65,9 @@ export default function Editor({ isDailyNote = false, docType, documentId, docum
   const autoSaveMutation = useAutoSaveEntity();
 
   const handleAutoSave = useCallback((content: string) => {
-    if (isNew) {
-      onAutoSaveNewSpace?.(content);
-      return;
-    }
-    if (!docType && !isDailyNote) return;
-    autoSaveMutation.mutate({ id: documentId, type: docType ?? "space", content });
-  }, [documentId, docType, isDailyNote, isNew, onAutoSaveNewSpace, autoSaveMutation]);
+    if (!docType) return;
+    autoSaveMutation.mutate({ id: documentId, type: docType, content });
+  }, [documentId, docType, autoSaveMutation]);
 
   // 메타데이터 변경 저장
   const updateMutation = useUpdateEntity();
