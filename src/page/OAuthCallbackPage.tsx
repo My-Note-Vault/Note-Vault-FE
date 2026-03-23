@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { Loader2, AlertTriangle } from "lucide-react";
@@ -8,8 +8,12 @@ export default function OAuthCallbackPage() {
   const { loginWithOAuthCode } = useAuth();
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
+  const called = useRef(false);
 
   useEffect(() => {
+    if (called.current) return;
+    called.current = true;
+
     const code = searchParams.get("code");
     const state = searchParams.get("state") ?? "";
 
@@ -20,7 +24,8 @@ export default function OAuthCallbackPage() {
 
     loginWithOAuthCode(code, state)
       .then(() => {
-        navigate("/app", { replace: true });
+        window.history.replaceState({}, document.title, "/");
+        navigate("/", { replace: true });
       })
       .catch(() => {
         setError("로그인에 실패했습니다. 다시 시도해주세요.");

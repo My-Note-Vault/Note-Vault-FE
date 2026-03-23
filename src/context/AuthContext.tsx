@@ -42,9 +42,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const loginWithOAuthCode = async (code: string, state: string) => {
     setIsOAuthLoading(true);
     try {
-      const response = await apiClient.get(
-        `${endpoints.CALLBACK_FROM_GOOGLE}?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state)}`
-      );
+      const response = await apiClient.get(endpoints.CALLBACK_FROM_GOOGLE, {
+        params: { code, state },
+      });
 
       const token = response.data.token;
       if (!token) throw new Error("No token returned");
