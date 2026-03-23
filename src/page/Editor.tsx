@@ -26,6 +26,16 @@ interface EditorProps {
 export default function Editor({ isDailyNote = false, docType, documentId, documentName, children, onOpenDocument, onRenameDocument, isNew }: EditorProps) {
   const [title, setTitle] = useState(isDailyNote ? "TODO" : documentName);
   const editorRef = useRef<MarkdownEditorHandle>(null);
+  const renameTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const onRenameDocumentRef = useRef(onRenameDocument);
+  onRenameDocumentRef.current = onRenameDocument;
+
+  const debouncedRename = useCallback((id: string, newName: string) => {
+    if (renameTimerRef.current) clearTimeout(renameTimerRef.current);
+    renameTimerRef.current = setTimeout(() => {
+      onRenameDocumentRef.current?.(id, newName);
+    }, 2000);
+  }, []);
   const [metadata, setMetadata] = useState<TaskMetadataValues>({
     status: "todo",
     startDate: undefined,
@@ -129,7 +139,7 @@ export default function Editor({ isDailyNote = false, docType, documentId, docum
             onChange={(e) => {
               if (isDailyNote) return;
               setTitle(e.target.value);
-              onRenameDocument?.(documentId, e.target.value);
+              debouncedRename(documentId, e.target.value);
             }}
             onKeyDown={(e) => {
               if (e.key === "Enter") {
