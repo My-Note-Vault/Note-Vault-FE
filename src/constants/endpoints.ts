@@ -7,8 +7,8 @@ LOGIN_GOOGLE: `${API_BASE}/oauth/login/google`,
 CALLBACK_FROM_GOOGLE: `${API_BASE}/oauth/callback/google`,
 
 // Space Endpoints
-SPACES: `${API_BASE}/spaces`,
-SPACE_DETAIL: (id: string) => `${API_BASE}/spaces/${id}`,
+SPACES: `${API_BASE}/workspaces`,
+SPACE_DETAIL: (id: string) => `${API_BASE}/workspaces/${id}`,
 
 // Task Endpoints
 TASKS: `${API_BASE}/tasks`,
@@ -19,8 +19,8 @@ SUBTASKS: `${API_BASE}/subtasks`,
 SUBTASK_DETAIL: (id: string) => `${API_BASE}/subtasks/${id}`,
 
 // Trivia Endpoints
-TRIVIAS: `${API_BASE}/trivias`,
-TRIVIA_DETAIL: (id: string) => `${API_BASE}/trivias/${id}`,
+TRIVIAS: `${API_BASE}/trivia`,
+TRIVIA_DETAIL: (id: string) => `${API_BASE}/trivia/${id}`,
 
 // 통합 트리 & 검색
 DOCUMENT_TREE: `${API_BASE}/documents/tree`,
