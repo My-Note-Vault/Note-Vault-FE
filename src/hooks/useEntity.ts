@@ -111,8 +111,13 @@ export const useUpdateEntity = () => {
   return useMutation({
     mutationFn: async ({ id, type, ...req }: UpdateEntityRequest): Promise<void> => {
       switch (type) {
-        case "space":
-          return updateSpace(id, req);
+        case "space": {
+          const cached = queryClient.getQueryData<SpaceDetail>(spaceKeys.detail(id));
+          return updateSpace(id, {
+            name: req.name ?? cached?.name ?? "",
+            content: req.content ?? cached?.content ?? "",
+          });
+        }
         case "task":
           return updateTask(id, req as UpdateTaskRequest);
         case "subtask":
@@ -168,11 +173,15 @@ export const useDeleteEntity = () => {
 };
 
 export const useAutoSaveEntity = () => {
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: async ({ id, type, content }: AutoSaveEntityRequest): Promise<void> => {
       switch (type) {
-        case "space":
-          return updateSpace(id, { content });
+        case "space": {
+          const cached = queryClient.getQueryData<SpaceDetail>(spaceKeys.detail(id));
+          return updateSpace(id, { name: cached?.name ?? "", content });
+        }
         case "task":
           return updateTask(id, { content });
         case "subtask":
