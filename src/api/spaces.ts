@@ -13,8 +13,8 @@ export const fetchSpaceDetail = async (id: string): Promise<SpaceDetail> => {
 };
 
 export const createSpace = async (req: CreateSpaceRequest): Promise<CreateSpaceResponse> => {
-  const { data } = await apiClient.post<CreateSpaceResponse>(endpoints.SPACES, req);
-  return data;
+  const { data } = await apiClient.post<number>(endpoints.SPACES, req);
+  return { id: String(data), name: req.name };
 };
 
 export const updateSpace = async (id: string, req: Omit<UpdateSpaceRequest, "workSpaceId" | "isPublic">): Promise<void> => {

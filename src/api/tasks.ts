@@ -13,8 +13,8 @@ export const fetchTaskDetail = async (id: string): Promise<TaskDetail> => {
 };
 
 export const createTask = async (req: CreateTaskRequest): Promise<CreateTaskResponse> => {
-  const { data } = await apiClient.post<CreateTaskResponse>(endpoints.TASKS, req);
-  return data;
+  const { data } = await apiClient.post<number>(endpoints.TASKS, req);
+  return { id: String(data), name: req.name };
 };
 
 export const updateTask = async (id: string, req: UpdateTaskRequest): Promise<void> => {

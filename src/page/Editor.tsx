@@ -75,7 +75,7 @@ export default function Editor({ isDailyNote = false, docType, documentId, docum
   const autoSaveMutation = useAutoSaveEntity();
 
   const handleAutoSave = useCallback((content: string) => {
-    if (!docType) return;
+    if (!docType || !documentId) return;
     autoSaveMutation.mutate({ id: documentId, type: docType, content });
   }, [documentId, docType, autoSaveMutation]);
 
