@@ -18,7 +18,7 @@ export const createSubTask = async (req: CreateSubTaskRequest): Promise<CreateSu
 };
 
 export const updateSubTask = async (id: string, req: UpdateSubTaskRequest): Promise<void> => {
-  await apiClient.patch(endpoints.SUBTASK_DETAIL(id), req);
+  await apiClient.patch(endpoints.SUBTASKS, { ...req, workSpaceId: id });
 };
 
 export const deleteSubTask = async (id: string): Promise<void> => {

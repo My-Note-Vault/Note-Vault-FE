@@ -18,7 +18,7 @@ export const createTask = async (req: CreateTaskRequest): Promise<CreateTaskResp
 };
 
 export const updateTask = async (id: string, req: UpdateTaskRequest): Promise<void> => {
-  await apiClient.patch(endpoints.TASK_DETAIL(id), req);
+  await apiClient.patch(endpoints.TASKS, { ...req, workSpaceId: id });
 };
 
 export const deleteTask = async (id: string): Promise<void> => {
