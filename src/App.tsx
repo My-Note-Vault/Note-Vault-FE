@@ -192,6 +192,29 @@ function AppContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [lastVisited]);
 
+    // 세션 종료 시 마지막 방문 문서 서버 전송
+    useEffect(() => {
+        const handleBeforeUnload = () => {
+            const raw = localStorage.getItem("last_visited");
+            if (!raw) return;
+            const token = localStorage.getItem("accessToken");
+            if (!token) return;
+
+            fetch("/api/v1/users/last-visited", {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: raw,
+                keepalive: true,
+            });
+        };
+
+        window.addEventListener("beforeunload", handleBeforeUnload);
+        return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+    }, []);
+
     const handleSelectDocument = useCallback((id: string) => {
         const isDaily = id.startsWith("daily-");
         const isCalendar = id === "calendar-view";
