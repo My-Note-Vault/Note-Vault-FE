@@ -14,7 +14,7 @@ export interface NoteInfo {
 
 // UnfoldedNote — /api/v1/unfolded-notes
 export interface UnfoldedNote {
-  noteType: NoteType;
+  type: NoteType;
   noteId: number;
 }
 
