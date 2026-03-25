@@ -1,6 +1,8 @@
 import apiClient from "./client";
 import { endpoints } from "@/constants/endpoints";
 import type {
+  NoteInfo,
+  UnfoldedNote,
   SidebarItem,
   SearchResult,
   CalendarStatsResponse,
@@ -13,9 +15,15 @@ export interface DailyNoteDetail {
   content: string;
 }
 
-// 통합 트리 조회 (사이드바용)
-export const fetchDocumentTree = async (): Promise<SidebarItem[]> => {
-  const { data } = await apiClient.get<SidebarItem[]>(endpoints.DOCUMENT_TREE);
+// 전체 NoteInfo 조회 (flat list)
+export const fetchNoteInfoList = async (): Promise<NoteInfo[]> => {
+  const { data } = await apiClient.get<NoteInfo[]>(endpoints.NOTE_INFO_LIST);
+  return data;
+};
+
+// 펼쳐진 노트 ID 조회
+export const fetchUnfoldedNotes = async (): Promise<UnfoldedNote[]> => {
+  const { data } = await apiClient.get<UnfoldedNote[]>(endpoints.UNFOLDED_NOTES);
   return data;
 };
 

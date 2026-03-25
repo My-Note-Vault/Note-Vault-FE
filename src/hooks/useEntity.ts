@@ -97,7 +97,7 @@ export const useCreateEntity = () => {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: documentKeys.tree() });
+      queryClient.invalidateQueries({ queryKey: documentKeys.noteInfo() });
     },
     onError: () => {
       toast.error("생성에 실패했습니다");
@@ -130,7 +130,7 @@ export const useUpdateEntity = () => {
       const keys = entityKeyMap[variables.type];
       queryClient.invalidateQueries({ queryKey: keys.detail(variables.id) });
       if (variables.name) {
-        queryClient.invalidateQueries({ queryKey: documentKeys.tree() });
+        queryClient.invalidateQueries({ queryKey: documentKeys.noteInfo() });
       }
       if (variables.metadata) {
         queryClient.invalidateQueries({
@@ -163,7 +163,7 @@ export const useDeleteEntity = () => {
     },
     onSuccess: (_data, variables) => {
       const keys = entityKeyMap[variables.type];
-      queryClient.invalidateQueries({ queryKey: documentKeys.tree() });
+      queryClient.invalidateQueries({ queryKey: documentKeys.noteInfo() });
       queryClient.removeQueries({ queryKey: keys.detail(variables.id) });
     },
     onError: () => {

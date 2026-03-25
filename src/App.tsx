@@ -129,7 +129,7 @@ interface SplitState {
 }
 
 function AppContent() {
-    const { data: docs = [], isLoading } = useDocumentTree();
+    const { data: docs = [], unfoldedIds, isLoading } = useDocumentTree();
     const { data: dailyNotes } = useDailyNotes();
     const createEntityMutation = useCreateEntity();
     const deleteEntityMutation = useDeleteEntity();
@@ -524,6 +524,7 @@ function AppContent() {
                 onAddSpace={handleAddSpace}
                 onDeleteItem={handleDeleteDocument}
                 isLoading={isLoading}
+                unfoldedIds={unfoldedIds}
             />
             <main className="flex-1 overflow-hidden flex">
                 {splitState.mode === "single" ? (

@@ -1,17 +1,21 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
-  fetchDocumentTree,
+  fetchNoteInfoList,
+  fetchUnfoldedNotes,
   searchDocuments,
   fetchDailyNotes,
   fetchDailyNoteDetail,
   fetchCalendarStats,
 } from "@/api/documents";
-import type { SidebarItem } from "@/types/common";
+import type { NoteInfo, UnfoldedNote, SidebarItem } from "@/types/common";
+import { noteTypeToDocType } from "@/types/common";
 
 // localStorage 캐시 키
-const TREE_CACHE_KEY = "sidebar_tree";
-const TREE_CACHE_TS_KEY = "sidebar_tree_ts";
+const NOTES_CACHE_KEY = "sidebar_notes";
+const NOTES_CACHE_TS_KEY = "sidebar_notes_ts";
+const UNFOLDED_CACHE_KEY = "sidebar_unfolded";
+const UNFOLDED_CACHE_TS_KEY = "sidebar_unfolded_ts";
 const DAILY_CACHE_KEY = "sidebar_daily";
 const DAILY_CACHE_TS_KEY = "sidebar_daily_ts";
 
@@ -31,10 +35,42 @@ function writeCache(key: string, tsKey: string, data: unknown) {
   } catch { /* quota exceeded 등 무시 */ }
 }
 
+// flat NoteInfo[] → SidebarItem[] 트리 구성
+function buildTree(notes: NoteInfo[]): SidebarItem[] {
+  const map = new Map<number, SidebarItem & { _parentId: number | null }>();
+
+  for (const note of notes) {
+    map.set(note.id, {
+      id: String(note.id),
+      name: note.title,
+      type: noteTypeToDocType(note.type),
+      children: [],
+      _parentId: note.parentId,
+    });
+  }
+
+  const roots: SidebarItem[] = [];
+  for (const [, item] of map) {
+    if (item._parentId === null) {
+      roots.push(item);
+    } else {
+      map.get(item._parentId)?.children?.push(item);
+    }
+    delete (item as any)._parentId;
+  }
+  return roots;
+}
+
+// UnfoldedNote[] → Set<string> (펼쳐진 노트 ID 집합)
+function buildUnfoldedSet(unfoldedNotes: UnfoldedNote[]): Set<string> {
+  return new Set(unfoldedNotes.map((n) => String(n.noteId)));
+}
+
 // Query key 팩토리
 export const documentKeys = {
   all: ["documents"] as const,
-  tree: () => [...documentKeys.all, "tree"] as const,
+  noteInfo: () => [...documentKeys.all, "note-info"] as const,
+  unfolded: () => [...documentKeys.all, "unfolded"] as const,
   search: (query: string) => [...documentKeys.all, "search", query] as const,
   dailyNotes: () => ["daily-notes"] as const,
   dailyNoteDetail: (date: string) => ["daily-notes", "detail", date] as const,
@@ -42,24 +78,54 @@ export const documentKeys = {
     [...documentKeys.all, "calendar-stats", year, month] as const,
 };
 
-// 통합 트리 조회 (사이드바) — localStorage 캐시 우선 로드
+// 사이드바 트리 조회 — note-info flat list를 받아 클라이언트에서 트리 구성
 export const useDocumentTree = () => {
-  const query = useQuery({
-    queryKey: documentKeys.tree(),
-    queryFn: fetchDocumentTree,
+  const noteInfoQuery = useQuery({
+    queryKey: documentKeys.noteInfo(),
+    queryFn: fetchNoteInfoList,
     staleTime: 1000 * 60,
-    initialData: () => readCache<SidebarItem[]>(TREE_CACHE_KEY),
+    initialData: () => readCache<NoteInfo[]>(NOTES_CACHE_KEY),
     initialDataUpdatedAt: () =>
-      Number(localStorage.getItem(TREE_CACHE_TS_KEY)) || undefined,
+      Number(localStorage.getItem(NOTES_CACHE_TS_KEY)) || undefined,
   });
 
-  useEffect(() => {
-    if (query.data && query.dataUpdatedAt && !query.isPlaceholderData) {
-      writeCache(TREE_CACHE_KEY, TREE_CACHE_TS_KEY, query.data);
-    }
-  }, [query.data, query.dataUpdatedAt, query.isPlaceholderData]);
+  const unfoldedQuery = useQuery({
+    queryKey: documentKeys.unfolded(),
+    queryFn: fetchUnfoldedNotes,
+    staleTime: 1000 * 60,
+    initialData: () => readCache<UnfoldedNote[]>(UNFOLDED_CACHE_KEY),
+    initialDataUpdatedAt: () =>
+      Number(localStorage.getItem(UNFOLDED_CACHE_TS_KEY)) || undefined,
+  });
 
-  return query;
+  // localStorage 캐시 저장
+  useEffect(() => {
+    if (noteInfoQuery.data && noteInfoQuery.dataUpdatedAt && !noteInfoQuery.isPlaceholderData) {
+      writeCache(NOTES_CACHE_KEY, NOTES_CACHE_TS_KEY, noteInfoQuery.data);
+    }
+  }, [noteInfoQuery.data, noteInfoQuery.dataUpdatedAt, noteInfoQuery.isPlaceholderData]);
+
+  useEffect(() => {
+    if (unfoldedQuery.data && unfoldedQuery.dataUpdatedAt && !unfoldedQuery.isPlaceholderData) {
+      writeCache(UNFOLDED_CACHE_KEY, UNFOLDED_CACHE_TS_KEY, unfoldedQuery.data);
+    }
+  }, [unfoldedQuery.data, unfoldedQuery.dataUpdatedAt, unfoldedQuery.isPlaceholderData]);
+
+  const docs = useMemo(
+    () => (noteInfoQuery.data ? buildTree(noteInfoQuery.data) : []),
+    [noteInfoQuery.data],
+  );
+
+  const unfoldedIds = useMemo(
+    () => (unfoldedQuery.data ? buildUnfoldedSet(unfoldedQuery.data) : new Set<string>()),
+    [unfoldedQuery.data],
+  );
+
+  return {
+    data: docs,
+    unfoldedIds,
+    isLoading: noteInfoQuery.isLoading || unfoldedQuery.isLoading,
+  };
 };
 
 // Daily Notes 트리 조회 — localStorage 캐시 우선 로드

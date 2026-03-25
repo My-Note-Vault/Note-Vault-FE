@@ -88,10 +88,11 @@ interface DocItemProps {
   onAddItem?: (parentId: string) => void;
   onDeleteItem?: (id: string) => void;
   icon?: "file" | "calendar";
+  unfoldedIds?: Set<string>;
 }
 
-function DocItem({ doc, depth, selectedId, onSelect, onAddItem, onDeleteItem, icon = "file" }: DocItemProps) {
-  const [expanded, setExpanded] = useState(false);
+function DocItem({ doc, depth, selectedId, onSelect, onAddItem, onDeleteItem, icon = "file", unfoldedIds }: DocItemProps) {
+  const [expanded, setExpanded] = useState(() => unfoldedIds?.has(doc.id) ?? false);
   const hasChildren = doc.children && doc.children.length > 0;
   const isExpandable = doc.type && doc.type !== "trivia";
   const canAdd = doc.type && CHILD_TYPE_MAP[doc.type] !== null;
@@ -179,6 +180,7 @@ function DocItem({ doc, depth, selectedId, onSelect, onAddItem, onDeleteItem, ic
               onAddItem={onAddItem}
               onDeleteItem={onDeleteItem}
               icon={icon}
+              unfoldedIds={unfoldedIds}
             />
           ))}
         </div>
@@ -195,9 +197,10 @@ interface SidebarProps {
   onAddSpace?: () => void;
   onDeleteItem?: (id: string) => void;
   isLoading?: boolean;
+  unfoldedIds?: Set<string>;
 }
 
-export default function Sidebar({ onSelectSidebarItem, docs, dailyNotes, onAddItem, onAddSpace, onDeleteItem, isLoading }: SidebarProps) {
+export default function Sidebar({ onSelectSidebarItem, docs, dailyNotes, onAddItem, onAddSpace, onDeleteItem, isLoading, unfoldedIds }: SidebarProps) {
   const [open, setOpen] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -348,6 +351,7 @@ export default function Sidebar({ onSelectSidebarItem, docs, dailyNotes, onAddIt
                     onSelect={handleSelect}
                     onAddItem={onAddItem}
                     onDeleteItem={onDeleteItem}
+                    unfoldedIds={unfoldedIds}
                   />
                 ))}
               </div>

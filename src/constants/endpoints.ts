@@ -22,8 +22,9 @@ SUBTASK_DETAIL: (id: string) => `${API_BASE}/subtasks/${id}`,
 TRIVIAS: `${API_BASE}/trivia`,
 TRIVIA_DETAIL: (id: string) => `${API_BASE}/trivia/${id}`,
 
-// 통합 트리 & 검색
-DOCUMENT_TREE: `${API_BASE}/documents/tree`,
+// 사이드바: note-info + unfolded
+NOTE_INFO_LIST: `${API_BASE}/unfolded-notes/note-info`,
+UNFOLDED_NOTES: `${API_BASE}/unfolded-notes`,
 DOCUMENT_SEARCH: `${API_BASE}/search`,
 
 // Daily Note Endpoints
