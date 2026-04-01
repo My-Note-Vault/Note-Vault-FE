@@ -231,7 +231,7 @@ export default function Sidebar({ onSelectSidebarItem, docs, dailyNotes, onAddIt
       {!open && (
         <button
           onClick={() => setOpen(true)}
-          className="fixed top-3 left-3 z-50 p-1.5 rounded-md hover:bg-sidebar-accent transition-colors text-sidebar-foreground"
+          className="fixed top-3 left-[60px] z-50 p-1.5 rounded-md hover:bg-sidebar-accent transition-colors text-sidebar-foreground"
         >
           <PanelLeft className="h-5 w-5" />
         </button>

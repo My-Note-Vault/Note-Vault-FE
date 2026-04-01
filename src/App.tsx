@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Toaster, toast } from "sonner";
 import { AuthProvider } from "./context/AuthContext";
 import { PanelGroup, Panel, PanelResizeHandle } from "react-resizable-panels";
+import ActivityBar from "./components/ActivityBar";
 import Sidebar from "./components/Sidebar";
 import type { SidebarItem, DocType } from "@/types/common";
 import TabPane, { type PaneId, type PaneState } from "./components/TabPane";
@@ -516,6 +517,7 @@ function AppContent() {
 
     return (
         <div className="flex h-screen">
+            <ActivityBar onSelectItem={handleSelectDocumentWithTracking} />
             <Sidebar
                 onSelectSidebarItem={handleSelectDocumentWithTracking}
                 docs={docs}
