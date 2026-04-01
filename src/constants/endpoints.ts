@@ -28,13 +28,13 @@ UNFOLDED_NOTES: `${API_BASE}/unfolded-notes`,
 DOCUMENT_SEARCH: `${API_BASE}/search`,
 
 // Daily Note Endpoints
-DAILY_NOTES: `${API_BASE}/daily-notes`,
+DAILY_NOTES: `${API_BASE}/daily-notes/sidebar`,
 DAILY_NOTE_DETAIL: (date: string) => `${API_BASE}/daily-notes/${date}`,
 
 // Calendar Endpoints
 CALENDAR_STATS: `${API_BASE}/calendar/stats`,
 
 // Last Visited
-LAST_VISITED: `${API_BASE}/users/last-visited`,
+LAST_VISITED: `${API_BASE}/users/last-visited-path`,
 
 };

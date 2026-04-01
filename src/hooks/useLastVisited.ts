@@ -15,7 +15,7 @@ function readLastVisitedCache(): LastVisitedResponse | undefined {
 }
 
 export const lastVisitedKeys = {
-  all: ["last-visited"] as const,
+  all: ["last-visited-path"] as const,
 };
 
 export const useLastVisited = () => {

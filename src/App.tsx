@@ -203,7 +203,7 @@ function AppContent() {
             const token = localStorage.getItem("accessToken");
             if (!token) return;
 
-            fetch("/api/v1/users/last-visited", {
+            fetch("/api/v1/users/last-visited-path", {
                 method: "PUT",
                 headers: {
                     "Content-Type": "application/json",
