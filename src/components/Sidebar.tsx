@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ChevronRight, FileText, CalendarDays, FolderClosed, PanelLeftClose, PanelLeft, Plus, Layout, ListChecks, ListTodo, Sparkles, Search, X, Loader2, Trash2, Columns3 } from "lucide-react";
+import { ChevronRight, FileText, CalendarDays, FolderClosed, Plus, Layout, ListChecks, ListTodo, Sparkles, Search, X, Loader2, Trash2, Columns3 } from "lucide-react";
 import { useSearchDocuments } from "@/hooks/useDocuments";
 
 export type { DocType, SidebarItem, SearchResult } from "@/types/common";
@@ -198,10 +198,10 @@ interface SidebarProps {
   onDeleteItem?: (id: string) => void;
   isLoading?: boolean;
   unfoldedIds?: Set<string>;
+  open: boolean;
 }
 
-export default function Sidebar({ onSelectSidebarItem, docs, dailyNotes, onAddItem, onAddSpace, onDeleteItem, isLoading, unfoldedIds }: SidebarProps) {
-  const [open, setOpen] = useState(true);
+export default function Sidebar({ onSelectSidebarItem, docs, dailyNotes, onAddItem, onAddSpace, onDeleteItem, isLoading, unfoldedIds, open }: SidebarProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -228,18 +228,9 @@ export default function Sidebar({ onSelectSidebarItem, docs, dailyNotes, onAddIt
 
   return (
     <>
-      {!open && (
-        <button
-          onClick={() => setOpen(true)}
-          className="fixed top-3 left-[60px] z-50 p-1.5 rounded-md hover:bg-sidebar-accent transition-colors text-sidebar-foreground"
-        >
-          <PanelLeft className="h-5 w-5" />
-        </button>
-      )}
-
       <aside
-        className={`h-screen w-60 bg-sidebar-background border-r border-sidebar-border flex flex-col shrink-0 transition-[margin] duration-200
-          ${open ? "ml-0" : "-ml-60"}`}
+        className={`h-screen bg-sidebar-background border-r border-sidebar-border flex flex-col shrink-0 transition-[width] duration-200 overflow-hidden
+          ${open ? "w-60" : "w-0 border-r-0"}`}
       >
         {/* 헤더: 검색 입력 */}
         <div className="flex items-center gap-2 px-3 py-2.5 border-b border-sidebar-border">
@@ -251,7 +242,7 @@ export default function Sidebar({ onSelectSidebarItem, docs, dailyNotes, onAddIt
             onChange={(e) => setSearchQuery(e.target.value)}
             className="flex-1 min-w-0 bg-transparent text-sm text-sidebar-foreground placeholder:text-sidebar-foreground/40 outline-none"
           />
-          {isSearchMode ? (
+          {isSearchMode && (
             <button
               onClick={() => {
                 setSearchQuery("");
@@ -260,13 +251,6 @@ export default function Sidebar({ onSelectSidebarItem, docs, dailyNotes, onAddIt
               className="p-1 rounded-md hover:bg-sidebar-accent transition-colors text-sidebar-foreground/50 hover:text-sidebar-foreground"
             >
               <X className="h-3.5 w-3.5" />
-            </button>
-          ) : (
-            <button
-              onClick={() => setOpen(false)}
-              className="p-1 rounded-md hover:bg-sidebar-accent transition-colors text-sidebar-foreground"
-            >
-              <PanelLeftClose className="h-4 w-4" />
             </button>
           )}
         </div>

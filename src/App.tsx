@@ -141,6 +141,8 @@ function AppContent() {
     const updateLastVisitedMutation = useUpdateLastVisited();
     const hasRestoredLastVisited = useRef(false);
 
+    const [sidebarOpen, setSidebarOpen] = useState(true);
+
     const [splitState, setSplitState] = useState<SplitState>({
         mode: "single",
         focusedPane: "left",
@@ -517,7 +519,11 @@ function AppContent() {
 
     return (
         <div className="flex h-screen">
-            <ActivityBar onSelectItem={handleSelectDocumentWithTracking} />
+            <ActivityBar
+                onSelectItem={handleSelectDocumentWithTracking}
+                sidebarOpen={sidebarOpen}
+                onToggleSidebar={() => setSidebarOpen((v) => !v)}
+            />
             <Sidebar
                 onSelectSidebarItem={handleSelectDocumentWithTracking}
                 docs={docs}
@@ -527,6 +533,7 @@ function AppContent() {
                 onDeleteItem={handleDeleteDocument}
                 isLoading={isLoading}
                 unfoldedIds={unfoldedIds}
+                open={sidebarOpen}
             />
             <main className="flex-1 overflow-hidden flex">
                 {splitState.mode === "single" ? (
