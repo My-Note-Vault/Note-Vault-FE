@@ -29,7 +29,7 @@ DOCUMENT_SEARCH: `${API_BASE}/search`,
 
 // Daily Note Endpoints
 DAILY_NOTES: `${API_BASE}/daily-notes/all`,
-DAILY_NOTE_DETAIL: (date: string) => `${API_BASE}/daily-notes/${date}`,
+DAILY_NOTE_DETAIL: `${API_BASE}/daily-notes`,
 
 // Calendar Endpoints
 CALENDAR_STATS: `${API_BASE}/calendar/stats`,

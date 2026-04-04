@@ -44,12 +44,11 @@ export default function Editor({ isDailyNote = false, docType, documentId, docum
   });
 
   // 엔티티 상세 조회
-  const dailyDate = isDailyNote ? documentId.replace("daily-", "") : null;
   const { data: entityDetail, isLoading: isEntityLoading, isError: isEntityError, refetch: refetchEntity } = useEntityDetail(
     isDailyNote || isNew ? null : documentId,
     docType,
   );
-  const { data: dailyDetail, isLoading: isDailyLoading, isError: isDailyError, refetch: refetchDaily } = useDailyNoteDetail(dailyDate);
+  const { data: dailyDetail, isLoading: isDailyLoading, isError: isDailyError, refetch: refetchDaily } = useDailyNoteDetail(isDailyNote);
 
   const detail = isDailyNote ? dailyDetail : entityDetail;
   const loading = isNew ? false : (isDailyNote ? isDailyLoading : isEntityLoading);
@@ -84,9 +83,9 @@ export default function Editor({ isDailyNote = false, docType, documentId, docum
   const dailyUpdateMutation = useUpdateDailyNote();
 
   const handleDailyAutoSave = useCallback((field: "todayTodo" | "tomorrowTodo" | "memo", content: string) => {
-    if (!dailyDate) return;
-    dailyUpdateMutation.mutate({ date: dailyDate, [field]: content });
-  }, [dailyDate, dailyUpdateMutation]);
+    if (!isDailyNote) return;
+    dailyUpdateMutation.mutate({ [field]: content });
+  }, [isDailyNote, dailyUpdateMutation]);
 
   // 메타데이터 변경 저장
   const updateMutation = useUpdateEntity();

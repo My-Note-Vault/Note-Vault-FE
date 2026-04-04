@@ -46,18 +46,17 @@ export const fetchDailyNotes = async (): Promise<SidebarItem> => {
   return data;
 };
 
-// Daily Note 상세 조회
-export const fetchDailyNoteDetail = async (date: string): Promise<DailyNoteDetail> => {
-  const { data } = await apiClient.get<DailyNoteDetail>(endpoints.DAILY_NOTE_DETAIL(date));
+// Daily Note 상세 조회 (오늘 날짜 기준)
+export const fetchDailyNoteDetail = async (): Promise<DailyNoteDetail> => {
+  const { data } = await apiClient.get<DailyNoteDetail>(endpoints.DAILY_NOTE_DETAIL);
   return data;
 };
 
 // Daily Note 수정
 export const updateDailyNote = async (
-  date: string,
   body: Partial<Pick<DailyNoteDetail, "todayTodo" | "tomorrowTodo" | "memo">>,
 ): Promise<DailyNoteDetail> => {
-  const { data } = await apiClient.put<DailyNoteDetail>(endpoints.DAILY_NOTE_DETAIL(date), body);
+  const { data } = await apiClient.put<DailyNoteDetail>(endpoints.DAILY_NOTE_DETAIL, body);
   return data;
 };
 

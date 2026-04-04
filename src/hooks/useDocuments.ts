@@ -75,7 +75,7 @@ export const documentKeys = {
   unfolded: () => [...documentKeys.all, "unfolded"] as const,
   search: (query: string) => [...documentKeys.all, "search", query] as const,
   dailyNotes: () => ["daily-notes"] as const,
-  dailyNoteDetail: (date: string) => ["daily-notes", "detail", date] as const,
+  dailyNoteDetail: () => ["daily-notes", "detail"] as const,
   calendarStats: (year: number, month: number) =>
     [...documentKeys.all, "calendar-stats", year, month] as const,
 };
@@ -150,12 +150,12 @@ export const useDailyNotes = () => {
   return query;
 };
 
-// Daily Note 상세 조회
-export const useDailyNoteDetail = (date: string | null) => {
+// Daily Note 상세 조회 (오늘 날짜 기준)
+export const useDailyNoteDetail = (enabled: boolean) => {
   return useQuery({
-    queryKey: documentKeys.dailyNoteDetail(date!),
-    queryFn: () => fetchDailyNoteDetail(date!),
-    enabled: !!date,
+    queryKey: documentKeys.dailyNoteDetail(),
+    queryFn: fetchDailyNoteDetail,
+    enabled,
     staleTime: 1000 * 30,
   });
 };
@@ -163,8 +163,8 @@ export const useDailyNoteDetail = (date: string | null) => {
 // Daily Note 수정
 export const useUpdateDailyNote = () => {
   return useMutation({
-    mutationFn: ({ date, ...body }: { date: string } & Partial<Pick<DailyNoteDetail, "todayTodo" | "tomorrowTodo" | "memo">>) =>
-      updateDailyNote(date, body),
+    mutationFn: (body: Partial<Pick<DailyNoteDetail, "todayTodo" | "tomorrowTodo" | "memo">>) =>
+      updateDailyNote(body),
   });
 };
 
