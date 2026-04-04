@@ -287,8 +287,8 @@ export default function Sidebar({ onSelectSidebarItem, docs, dailyNotes, onAddIt
           ) : (
             /* 기본 문서 트리 */
             <>
-              {dailyNotes && (
-                <div className="space-y-0.5">
+              <div className="space-y-0.5">
+                {dailyNotes?.children && dailyNotes.children.length > 0 && (
                   <DocItem
                     doc={dailyNotes}
                     depth={0}
@@ -296,34 +296,34 @@ export default function Sidebar({ onSelectSidebarItem, docs, dailyNotes, onAddIt
                     onSelect={handleSelect}
                     icon="calendar"
                   />
-                  <div
-                    className={`flex items-center gap-1 px-2 py-1.5 rounded-md cursor-pointer text-sm transition-colors
-                      ${selectedId === "calendar-view"
-                        ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                        : "text-sidebar-foreground hover:bg-sidebar-accent/50"}`}
-                    style={{ paddingLeft: "20px" }}
-                    onClick={() => handleSelect("calendar-view")}
-                  >
-                    <span className="w-4.5" />
-                    <CalendarDays className="h-4 w-4 shrink-0 opacity-60" />
-                    <span className="truncate flex-1">Calendar</span>
-                  </div>
-                  <div
-                    className={`flex items-center gap-1 px-2 py-1.5 rounded-md cursor-pointer text-sm transition-colors
-                      ${selectedId === "kanban-view"
-                        ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                        : "text-sidebar-foreground hover:bg-sidebar-accent/50"}`}
-                    style={{ paddingLeft: "20px" }}
-                    onClick={() => handleSelect("kanban-view")}
-                  >
-                    <span className="w-4.5" />
-                    <Columns3 className="h-4 w-4 shrink-0 opacity-60" />
-                    <span className="truncate flex-1">Kanban</span>
-                  </div>
+                )}
+                <div
+                  className={`flex items-center gap-1 px-2 py-1.5 rounded-md cursor-pointer text-sm transition-colors
+                    ${selectedId === "calendar-view"
+                      ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                      : "text-sidebar-foreground hover:bg-sidebar-accent/50"}`}
+                  style={{ paddingLeft: "20px" }}
+                  onClick={() => handleSelect("calendar-view")}
+                >
+                  <span className="w-4.5" />
+                  <CalendarDays className="h-4 w-4 shrink-0 opacity-60" />
+                  <span className="truncate flex-1">Calendar</span>
                 </div>
-              )}
+                <div
+                  className={`flex items-center gap-1 px-2 py-1.5 rounded-md cursor-pointer text-sm transition-colors
+                    ${selectedId === "kanban-view"
+                      ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                      : "text-sidebar-foreground hover:bg-sidebar-accent/50"}`}
+                  style={{ paddingLeft: "20px" }}
+                  onClick={() => handleSelect("kanban-view")}
+                >
+                  <span className="w-4.5" />
+                  <Columns3 className="h-4 w-4 shrink-0 opacity-60" />
+                  <span className="truncate flex-1">Kanban</span>
+                </div>
+              </div>
 
-              {dailyNotes && <div className="my-2 border-t border-sidebar-border" />}
+              <div className="my-2 border-t border-sidebar-border" />
 
               <div className="space-y-0.5">
                 {sortFoldersFirst(docs).map((doc) => (
