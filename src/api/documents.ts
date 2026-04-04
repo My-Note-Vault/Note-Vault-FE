@@ -10,9 +10,10 @@ import type {
 
 // DailyNote 상세 타입
 export interface DailyNoteDetail {
-  id: string;
-  name: string;
-  content: string;
+  dailyNoteId: number;
+  todayTodo: string;
+  tomorrowTodo: string;
+  memo: string;
 }
 
 // 전체 NoteInfo 조회 (flat list)
@@ -48,6 +49,15 @@ export const fetchDailyNotes = async (): Promise<SidebarItem> => {
 // Daily Note 상세 조회
 export const fetchDailyNoteDetail = async (date: string): Promise<DailyNoteDetail> => {
   const { data } = await apiClient.get<DailyNoteDetail>(endpoints.DAILY_NOTE_DETAIL(date));
+  return data;
+};
+
+// Daily Note 수정
+export const updateDailyNote = async (
+  date: string,
+  body: Partial<Pick<DailyNoteDetail, "todayTodo" | "tomorrowTodo" | "memo">>,
+): Promise<DailyNoteDetail> => {
+  const { data } = await apiClient.put<DailyNoteDetail>(endpoints.DAILY_NOTE_DETAIL(date), body);
   return data;
 };
 

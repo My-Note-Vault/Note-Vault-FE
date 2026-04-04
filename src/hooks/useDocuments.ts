@@ -1,13 +1,15 @@
 import { useEffect, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import {
   fetchNoteInfoList,
   fetchUnfoldedNotes,
   searchDocuments,
   fetchDailyNotes,
   fetchDailyNoteDetail,
+  updateDailyNote,
   fetchCalendarStats,
 } from "@/api/documents";
+import type { DailyNoteDetail } from "@/api/documents";
 import type { NoteInfo, UnfoldedNote, SidebarItem } from "@/types/common";
 import { noteTypeToDocType } from "@/types/common";
 
@@ -155,6 +157,14 @@ export const useDailyNoteDetail = (date: string | null) => {
     queryFn: () => fetchDailyNoteDetail(date!),
     enabled: !!date,
     staleTime: 1000 * 30,
+  });
+};
+
+// Daily Note 수정
+export const useUpdateDailyNote = () => {
+  return useMutation({
+    mutationFn: ({ date, ...body }: { date: string } & Partial<Pick<DailyNoteDetail, "todayTodo" | "tomorrowTodo" | "memo">>) =>
+      updateDailyNote(date, body),
   });
 };
 

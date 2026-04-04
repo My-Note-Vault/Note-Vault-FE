@@ -3,7 +3,8 @@ import MarkdownEditor, { type MarkdownEditorHandle } from "@/components/Markdown
 import { ChevronRight, Loader2, AlertTriangle, RefreshCw } from "lucide-react";
 import type { DocType } from "@/types/common";
 import TaskMetadata, { type TaskMetadataValues } from "@/components/TaskMetadata";
-import { useDailyNoteDetail } from "@/hooks/useDocuments";
+import { useDailyNoteDetail, useUpdateDailyNote } from "@/hooks/useDocuments";
+import type { DailyNoteDetail } from "@/api/documents";
 import { useEntityDetail, useAutoSaveEntity, useUpdateEntity, type EntityDetail } from "@/hooks/useEntity";
 import type { TaskDetail } from "@/types/task";
 import type { SubTaskDetail } from "@/types/subtask";
@@ -71,13 +72,21 @@ export default function Editor({ isDailyNote = false, docType, documentId, docum
     setTitle(isDailyNote ? "TODO" : documentName);
   }, [isDailyNote, documentName]);
 
-  // 자동 저장
+  // 자동 저장 (엔티티)
   const autoSaveMutation = useAutoSaveEntity();
 
   const handleAutoSave = useCallback((content: string) => {
     if (!docType || !documentId) return;
     autoSaveMutation.mutate({ id: documentId, type: docType, content });
   }, [documentId, docType, autoSaveMutation]);
+
+  // 자동 저장 (DailyNote)
+  const dailyUpdateMutation = useUpdateDailyNote();
+
+  const handleDailyAutoSave = useCallback((field: "todayTodo" | "tomorrowTodo" | "memo", content: string) => {
+    if (!dailyDate) return;
+    dailyUpdateMutation.mutate({ date: dailyDate, [field]: content });
+  }, [dailyDate, dailyUpdateMutation]);
 
   // 메타데이터 변경 저장
   const updateMutation = useUpdateEntity();
@@ -126,7 +135,49 @@ export default function Editor({ isDailyNote = false, docType, documentId, docum
     );
   }
 
-  const initialContent = detail?.content ?? "";
+  if (isDailyNote) {
+    const daily = dailyDetail as DailyNoteDetail | undefined;
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="max-w-[54.4rem] mx-auto p-6">
+          <input
+            type="text"
+            value={title}
+            readOnly
+            className="w-full px-12 pt-4 pb-0 text-xl font-semibold bg-transparent outline-none"
+          />
+
+          <div className="px-12 pt-6 pb-1">
+            <h3 className="text-sm font-medium text-muted-foreground">오늘 할 일</h3>
+          </div>
+          <MarkdownEditor
+            initialContent={daily?.todayTodo ?? ""}
+            onAutoSave={(content) => handleDailyAutoSave("todayTodo", content)}
+          />
+
+          <div className="px-12 pt-4 pb-1">
+            <div className="border-t border-border mb-4" />
+            <h3 className="text-sm font-medium text-muted-foreground">내일 할 일</h3>
+          </div>
+          <MarkdownEditor
+            initialContent={daily?.tomorrowTodo ?? ""}
+            onAutoSave={(content) => handleDailyAutoSave("tomorrowTodo", content)}
+          />
+
+          <div className="px-12 pt-4 pb-1">
+            <div className="border-t border-border mb-4" />
+            <h3 className="text-sm font-medium text-muted-foreground">메모</h3>
+          </div>
+          <MarkdownEditor
+            initialContent={daily?.memo ?? ""}
+            onAutoSave={(content) => handleDailyAutoSave("memo", content)}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  const initialContent = (entityDetail as EntityDetail | undefined)?.content ?? "";
 
   return (
     <div className="min-h-screen bg-background">
@@ -135,9 +186,7 @@ export default function Editor({ isDailyNote = false, docType, documentId, docum
           <input
             type="text"
             value={title}
-            readOnly={isDailyNote}
             onChange={(e) => {
-              if (isDailyNote) return;
               setTitle(e.target.value);
               debouncedRename(documentId, e.target.value);
             }}
