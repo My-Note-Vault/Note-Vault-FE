@@ -160,11 +160,16 @@ export const useDailyNoteDetail = (enabled: boolean) => {
   });
 };
 
+type UpdateDailyNoteRequest = {
+  dailyNoteId: number;
+  body: Partial<Pick<DailyNoteDetail, "todayTodo" | "tomorrowTodo" | "memo">>;
+};
+
 // Daily Note 수정
 export const useUpdateDailyNote = () => {
   return useMutation({
-    mutationFn: (body: Partial<Pick<DailyNoteDetail, "todayTodo" | "tomorrowTodo" | "memo">>) =>
-      updateDailyNote(body),
+    mutationFn: ({dailyNoteId, body}: UpdateDailyNoteRequest) =>
+      updateDailyNote(dailyNoteId, body),
   });
 };
 
