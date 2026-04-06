@@ -24,7 +24,16 @@ interface EditorProps {
   isNew?: boolean;
 }
 
-export default function Editor({ isDailyNote = false, docType, documentId, documentName, children, onOpenDocument, onRenameDocument, isNew }: EditorProps) {
+export default function Editor({
+  isDailyNote = false,
+  docType,
+  documentId,
+  documentName,
+  children,
+  onOpenDocument,
+  onRenameDocument,
+  isNew,
+}: EditorProps) {
   const [title, setTitle] = useState(isDailyNote ? "TODO" : documentName);
   const editorRef = useRef<MarkdownEditorHandle>(null);
   const renameTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -37,6 +46,7 @@ export default function Editor({ isDailyNote = false, docType, documentId, docum
       onRenameDocumentRef.current?.(id, newName);
     }, 2000);
   }, []);
+
   const [metadata, setMetadata] = useState<TaskMetadataValues>({
     status: "todo",
     startDate: undefined,
@@ -44,16 +54,27 @@ export default function Editor({ isDailyNote = false, docType, documentId, docum
   });
 
   // 엔티티 상세 조회
-  const { data: entityDetail, isLoading: isEntityLoading, isError: isEntityError, refetch: refetchEntity } = useEntityDetail(
-    isDailyNote || isNew ? null : documentId,
-    docType,
-  );
-  const { data: dailyDetail, isLoading: isDailyLoading, isError: isDailyError, refetch: refetchDaily } = useDailyNoteDetail(isDailyNote);
+  const {
+    data: entityDetail,
+    isLoading: isEntityLoading,
+    isError: isEntityError,
+    refetch: refetchEntity,
+  } = useEntityDetail(isDailyNote || isNew ? null : documentId, docType);
+
+  const {
+    data: dailyDetail,
+    isLoading: isDailyLoading,
+    isError: isDailyError,
+    refetch: refetchDaily,
+  } = useDailyNoteDetail(isDailyNote);
 
   const detail = isDailyNote ? dailyDetail : entityDetail;
-  const loading = isNew ? false : (isDailyNote ? isDailyLoading : isEntityLoading);
-  const isError = isNew ? false : (isDailyNote ? isDailyError : isEntityError);
+  const loading = isNew ? false : isDailyNote ? isDailyLoading : isEntityLoading;
+  const isError = isNew ? false : isDailyNote ? isDailyError : isEntityError;
   const refetch = isDailyNote ? refetchDaily : refetchEntity;
+
+  // daily note id는 상세 조회 결과에서 가져옴
+  const dailyNoteId = dailyDetail?.dailyNoteId;
 
   // 서버에서 받은 메타데이터 반영
   useEffect(() => {
@@ -65,7 +86,7 @@ export default function Editor({ isDailyNote = false, docType, documentId, docum
         endDate: meta.endDate ? new Date(meta.endDate) : undefined,
       });
     }
-  }, [detail]);
+  }, [detail, isDailyNote]);
 
   useEffect(() => {
     setTitle(isDailyNote ? "TODO" : documentName);
@@ -74,35 +95,52 @@ export default function Editor({ isDailyNote = false, docType, documentId, docum
   // 자동 저장 (엔티티)
   const autoSaveMutation = useAutoSaveEntity();
 
-  const handleAutoSave = useCallback((content: string) => {
-    if (!docType || !documentId) return;
-    autoSaveMutation.mutate({ id: documentId, type: docType, content });
-  }, [documentId, docType, autoSaveMutation]);
+  const handleAutoSave = useCallback(
+    (content: string) => {
+      if (!docType || !documentId) return;
+      autoSaveMutation.mutate({ id: documentId, type: docType, content });
+    },
+    [documentId, docType, autoSaveMutation],
+  );
 
   // 자동 저장 (DailyNote)
   const dailyUpdateMutation = useUpdateDailyNote();
 
-  const handleDailyAutoSave = useCallback((field: "todayTodo" | "tomorrowTodo" | "memo", content: string) => {
-    if (!isDailyNote) return;
-    dailyUpdateMutation.mutate({ [field]: content });
-  }, [isDailyNote, dailyUpdateMutation]);
+  const handleDailyAutoSave = useCallback(
+    (field: "todayTodo" | "tomorrowTodo" | "memo", content: string) => {
+      if (!isDailyNote || !dailyNoteId) return;
+
+      dailyUpdateMutation.mutate({
+        dailyNoteId,
+        body: {
+          [field]: content,
+        },
+      });
+    },
+    [isDailyNote, dailyNoteId, dailyUpdateMutation],
+  );
 
   // 메타데이터 변경 저장
   const updateMutation = useUpdateEntity();
 
-  const handleMetadataChange = useCallback((newMetadata: TaskMetadataValues) => {
-    if (!docType) return;
-    setMetadata(newMetadata);
-    updateMutation.mutate({
-      id: documentId,
-      type: docType,
-      metadata: {
-        status: newMetadata.status,
-        startDate: newMetadata.startDate?.toISOString().slice(0, 10) ?? null,
-        endDate: newMetadata.endDate?.toISOString().slice(0, 10) ?? null,
-      },
-    });
-  }, [documentId, docType, updateMutation]);
+  const handleMetadataChange = useCallback(
+    (newMetadata: TaskMetadataValues) => {
+      if (!docType) return;
+
+      setMetadata(newMetadata);
+
+      updateMutation.mutate({
+        id: documentId,
+        type: docType,
+        metadata: {
+          status: newMetadata.status,
+          startDate: newMetadata.startDate?.toISOString().slice(0, 10) ?? null,
+          endDate: newMetadata.endDate?.toISOString().slice(0, 10) ?? null,
+        },
+      });
+    },
+    [documentId, docType, updateMutation],
+  );
 
   const hasChildren = children && children.length > 0;
   const showChildrenSection = docType && docType !== "trivia" && hasChildren;
@@ -136,6 +174,7 @@ export default function Editor({ isDailyNote = false, docType, documentId, docum
 
   if (isDailyNote) {
     const daily = dailyDetail as DailyNoteDetail | undefined;
+
     return (
       <div className="min-h-screen bg-background">
         <div className="max-w-[54.4rem] mx-auto p-6">
@@ -225,7 +264,11 @@ export default function Editor({ isDailyNote = false, docType, documentId, docum
             </div>
           )}
 
-          <MarkdownEditor ref={editorRef} initialContent={initialContent} onAutoSave={handleAutoSave} />
+          <MarkdownEditor
+            ref={editorRef}
+            initialContent={initialContent}
+            onAutoSave={handleAutoSave}
+          />
         </div>
       </div>
     </div>
