@@ -219,9 +219,10 @@ function AppContent() {
     }, []);
 
     const handleSelectDocument = useCallback((id: string) => {
-        const isDaily = id.startsWith("daily-");
         const isCalendar = id === "calendar-view";
         const isKanban = id === "kanban-view";
+        const isDaily = id === "daily-note"
+            || !!dailyNotesRef.current?.children?.some(c => c.id === id);
 
         let name: string;
         let docType: DocType | undefined;
@@ -490,7 +491,8 @@ function AppContent() {
     // 문서 선택 + 최근 방문 기록
     const handleSelectDocumentWithTracking = useCallback((id: string) => {
         handleSelectDocument(id);
-        const isSpecial = id === "calendar-view" || id === "kanban-view" || id.startsWith("daily-");
+        const isSpecial = id === "calendar-view" || id === "kanban-view" || id === "daily-note"
+            || !!dailyNotesRef.current?.children?.some(c => c.id === id);
         if (!isSpecial) {
             const doc = findDocById(docsRef.current, id);
             if (doc?.type) {

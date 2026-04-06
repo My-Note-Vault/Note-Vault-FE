@@ -248,10 +248,7 @@ export default function TabPane({
                 <span className="underline underline-offset-4">새 Work Space 생성하기</span>
               </button>
               <button
-                onClick={() => {
-                  const today = new Date().toISOString().slice(0, 10);
-                  onOpenDocument(`daily-${today}`);
-                }}
+                onClick={() => onOpenDocument("daily-note")}
                 className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors"
               >
                 <CalendarDays className="h-4 w-4" />
