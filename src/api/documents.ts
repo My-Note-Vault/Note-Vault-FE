@@ -42,21 +42,22 @@ export const searchDocuments = async (
 
 // Daily Notes 트리 조회
 export const fetchDailyNotes = async (): Promise<SidebarItem> => {
-  const { data } = await apiClient.get<SidebarItem>(endpoints.DAILY_NOTES);
+  const { data } = await apiClient.get<SidebarItem>(endpoints.DAILY_NOTES_ALL);
   return data;
 };
 
 // Daily Note 상세 조회 (오늘 날짜 기준)
 export const fetchDailyNoteDetail = async (): Promise<DailyNoteDetail> => {
-  const { data } = await apiClient.get<DailyNoteDetail>(endpoints.DAILY_NOTE_DETAIL);
+  const { data } = await apiClient.get<DailyNoteDetail>(endpoints.DAILY_NOTE);
   return data;
 };
 
 // Daily Note 수정
 export const updateDailyNote = async (
+  dailyNoteId: number,
   body: Partial<Pick<DailyNoteDetail, "todayTodo" | "tomorrowTodo" | "memo">>,
 ): Promise<DailyNoteDetail> => {
-  const { data } = await apiClient.put<DailyNoteDetail>(endpoints.DAILY_NOTE_DETAIL, body);
+  const { data } = await apiClient.patch<DailyNoteDetail>(`${endpoints.DAILY_NOTE}/${dailyNoteId}`, body);
   return data;
 };
 
