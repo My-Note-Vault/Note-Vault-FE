@@ -1,9 +1,10 @@
 import { useState, useCallback, useRef, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import MarkdownEditor, { type MarkdownEditorHandle } from "@/components/MarkdownEditor";
 import { ChevronRight, Loader2, AlertTriangle, RefreshCw } from "lucide-react";
 import type { DocType } from "@/types/common";
 import TaskMetadata, { type TaskMetadataValues } from "@/components/TaskMetadata";
-import { useDailyNoteDetail, useUpdateDailyNote } from "@/hooks/useDocuments";
+import { useDailyNoteDetail, useUpdateDailyNote, documentKeys } from "@/hooks/useDocuments";
 import type { DailyNoteDetail } from "@/api/documents";
 import { useEntityDetail, useAutoSaveEntity, useUpdateEntity, type EntityDetail } from "@/hooks/useEntity";
 import type { TaskDetail } from "@/types/task";
@@ -34,6 +35,7 @@ export default function Editor({
   onRenameDocument,
   isNew,
 }: EditorProps) {
+  const queryClient = useQueryClient();
   const [title, setTitle] = useState(isDailyNote ? "TODO" : documentName);
   const editorRef = useRef<MarkdownEditorHandle>(null);
   const renameTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -91,6 +93,15 @@ export default function Editor({
   useEffect(() => {
     setTitle(isDailyNote ? "TODO" : documentName);
   }, [isDailyNote, documentName]);
+
+  // DailyNote 조회 성공 시 사이드바 갱신 (처음 열었을 때도 사이드바에 나타나도록)
+  const hasInvalidatedDailyNotes = useRef(false);
+  useEffect(() => {
+    if (isDailyNote && dailyDetail && !hasInvalidatedDailyNotes.current) {
+      hasInvalidatedDailyNotes.current = true;
+      queryClient.invalidateQueries({ queryKey: documentKeys.dailyNotes() });
+    }
+  }, [isDailyNote, dailyDetail, queryClient]);
 
   // 자동 저장 (엔티티)
   const autoSaveMutation = useAutoSaveEntity();

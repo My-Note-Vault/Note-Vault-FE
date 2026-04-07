@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   fetchNoteInfoList,
   fetchUnfoldedNotes,
@@ -167,9 +167,15 @@ type UpdateDailyNoteRequest = {
 
 // Daily Note 수정
 export const useUpdateDailyNote = () => {
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: ({dailyNoteId, body}: UpdateDailyNoteRequest) =>
       updateDailyNote(dailyNoteId, body),
+    onSuccess: () => {
+      // DailyNote 수정 성공 시 사이드바의 dailyNotes 목록을 갱신
+      queryClient.invalidateQueries({ queryKey: documentKeys.dailyNotes() });
+    },
   });
 };
 
