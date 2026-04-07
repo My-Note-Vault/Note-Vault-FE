@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect, Component, type ReactNode, type ErrorInfo } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useSearchParams } from "react-router-dom";
 import { Toaster, toast } from "sonner";
 import { AuthProvider } from "./context/AuthContext";
 import { PanelGroup, Panel, PanelResizeHandle } from "react-resizable-panels";
@@ -137,6 +137,7 @@ function AppContent() {
     const createEntityMutation = useCreateEntity();
     const deleteEntityMutation = useDeleteEntity();
     const updateEntityMutation = useUpdateEntity();
+    const [searchParams, setSearchParams] = useSearchParams();
 
     // Last visited
     const { data: lastVisited } = useLastVisited();
@@ -145,13 +146,25 @@ function AppContent() {
 
     const [sidebarOpen, setSidebarOpen] = useState(true);
 
-    const [splitState, setSplitState] = useState<SplitState>({
-        mode: "single",
-        focusedPane: "left",
-        panes: {
-            left: { tabs: [], activeTabId: null },
-            right: { tabs: [], activeTabId: null },
-        },
+    // localStorage에서 초기 상태 복원
+    const [splitState, setSplitState] = useState<SplitState>(() => {
+        try {
+            const saved = localStorage.getItem("splitState");
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                return parsed;
+            }
+        } catch (e) {
+            console.error("Failed to restore splitState:", e);
+        }
+        return {
+            mode: "single",
+            focusedPane: "left",
+            panes: {
+                left: { tabs: [], activeTabId: null },
+                right: { tabs: [], activeTabId: null },
+            },
+        };
     });
     const [draggingTabId, setDraggingTabId] = useState<string | null>(null);
 
@@ -164,6 +177,38 @@ function AppContent() {
 
     const dailyNotesRef = useRef(dailyNotes);
     dailyNotesRef.current = dailyNotes;
+
+    // splitState가 변경될 때마다 localStorage에 저장
+    useEffect(() => {
+        try {
+            localStorage.setItem("splitState", JSON.stringify(splitState));
+        } catch (e) {
+            console.error("Failed to save splitState:", e);
+        }
+    }, [splitState]);
+
+    // 활성 탭이 변경되면 URL 업데이트
+    useEffect(() => {
+        const activePane = splitState.panes[splitState.focusedPane];
+        const activeTabId = activePane.activeTabId;
+        if (activeTabId) {
+            setSearchParams({ tab: activeTabId }, { replace: true });
+        } else {
+            setSearchParams({}, { replace: true });
+        }
+    }, [splitState.focusedPane, splitState.panes, setSearchParams]);
+
+    // URL에서 탭 복원 (마운트 시 한 번)
+    const hasRestoredFromUrl = useRef(false);
+    useEffect(() => {
+        if (hasRestoredFromUrl.current) return;
+        const tabId = searchParams.get("tab");
+        if (tabId) {
+            hasRestoredFromUrl.current = true;
+            handleSelectDocument(tabId);
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     // 생성 성공 시 탭 열기 헬퍼
     const openNewTab = useCallback((id: string, name: string, docType: DocType) => {
