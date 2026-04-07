@@ -28,13 +28,19 @@ UNFOLDED_NOTES: `${API_BASE}/unfolded-notes`,
 DOCUMENT_SEARCH: `${API_BASE}/search`,
 
 // Daily Note Endpoints
-DAILY_NOTES: `${API_BASE}/daily-notes/all`,
-DAILY_NOTE_DETAIL: `${API_BASE}/daily-notes`,
+DAILY_NOTES_ALL: `${API_BASE}/daily-notes/all`,
+DAILY_NOTE: `${API_BASE}/daily-notes`,
 
 // Calendar Endpoints
 CALENDAR_STATS: `${API_BASE}/calendar/stats`,
 
 // Last Visited
 LAST_VISITED: `${API_BASE}/members/last-visited-path`,
+
+// Member Profile
+MEMBER_PROFILE: `${API_BASE}/members/profile`,
+
+// File Upload
+FILES: `${API_BASE}/files`,
 
 };

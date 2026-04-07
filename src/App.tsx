@@ -20,8 +20,10 @@ import {
 import { useLastVisited, useUpdateLastVisited } from "@/hooks/useLastVisited";
 import PublicRoute from "./components/auth/PublicRoute";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
+import ProfileSetupRoute from "./components/auth/ProfileSetupRoute";
 import LandingPage from "./page/LandingPage";
 import OAuthCallbackPage from "./page/OAuthCallbackPage";
+import ProfileSetupPage from "./page/ProfileSetupPage";
 import { AlertTriangle, RefreshCw } from "lucide-react";
 
 const queryClient = new QueryClient({
@@ -565,6 +567,7 @@ const App = () => {
                         <Routes>
                             <Route path="/" element={<PublicRoute><LandingPage /></PublicRoute>} />
                             <Route path="/oauth/callback" element={<OAuthCallbackPage />} />
+                            <Route path="/profile-setup" element={<ProfileSetupRoute><ProfileSetupPage /></ProfileSetupRoute>} />
                             <Route path="/app/*" element={<ProtectedRoute><AppContent /></ProtectedRoute>} />
                         </Routes>
                     </ErrorBoundary>

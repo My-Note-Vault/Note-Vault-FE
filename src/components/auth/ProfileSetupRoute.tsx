@@ -4,7 +4,7 @@ import { useMemberProfile } from "@/hooks/useMember";
 import { Loader2 } from "lucide-react";
 import type { ReactNode } from "react";
 
-export default function ProtectedRoute({ children }: { children: ReactNode }) {
+export default function ProfileSetupRoute({ children }: { children: ReactNode }) {
   const { isLoggedIn } = useAuth();
   const { data: profile, isLoading } = useMemberProfile();
 
@@ -20,8 +20,8 @@ export default function ProtectedRoute({ children }: { children: ReactNode }) {
     );
   }
 
-  if (profile && profile.nickname === null) {
-    return <Navigate to="/profile-setup" replace />;
+  if (profile && profile.nickname !== null) {
+    return <Navigate to="/app" replace />;
   }
 
   return <>{children}</>;
