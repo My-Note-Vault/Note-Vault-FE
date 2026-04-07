@@ -140,7 +140,7 @@ function AppContent() {
     const [searchParams, setSearchParams] = useSearchParams();
 
     // Last visited
-    const { data: lastVisited } = useLastVisited();
+    const { data: lastVisited, isSuccess: lastVisitedLoaded } = useLastVisited();
     const updateLastVisitedMutation = useUpdateLastVisited();
     const hasRestoredLastVisited = useRef(false);
 
@@ -233,14 +233,19 @@ function AppContent() {
         });
     }, []);
 
-    // 마운트 시 최근 방문 문서 복원
+    // 마운트 시 최근 방문 문서 또는 Daily Note 복원
     useEffect(() => {
-        if (lastVisited && !hasRestoredLastVisited.current) {
+        if (!hasRestoredLastVisited.current && lastVisitedLoaded && !hasRestoredFromUrl.current) {
             hasRestoredLastVisited.current = true;
-            handleSelectDocument(lastVisited.documentId);
+            if (lastVisited) {
+                handleSelectDocument(lastVisited.documentId);
+            } else {
+                // 새 사용자: Daily Note 자동 열기
+                handleSelectDocument("daily-note");
+            }
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [lastVisited]);
+    }, [lastVisited, lastVisitedLoaded]);
 
     // 세션 종료 시 마지막 방문 문서 서버 전송
     useEffect(() => {
