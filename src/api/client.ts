@@ -16,11 +16,22 @@ apiClient.interceptors.request.use((config) => {
   return config;
 });
 
-// 응답 인터셉터: 401 시 토큰 제거
+// 응답 인터셉터: UNAUTHORIZED_ERROR 시 로그인 페이지로 이동
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    console.log("API Error:", {
+      status: error.response?.status,
+      code: error.response?.data?.code,
+      data: error.response?.data,
+    });
+
+    // HTTP 401 상태 코드 또는 응답 body의 code가 UNAUTHORIZED_ERROR인 경우
+    if (
+      error.response?.status === 401 ||
+      error.response?.data?.code === "UNAUTHORIZED_ERROR"
+    ) {
+      console.log("Redirecting to login page...");
       localStorage.removeItem("accessToken");
       window.location.href = "/";
     }
