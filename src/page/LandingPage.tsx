@@ -35,7 +35,7 @@ export default function LandingPage() {
 
   const handleDevLogin = () => {
     login("MOCK_DEV_JWT_TOKEN");
-    navigate("/app", { replace: true });
+    navigate("/profile-setup", { replace: true });
   };
 
   return (

@@ -25,7 +25,7 @@ export default function OAuthCallbackPage() {
     loginWithOAuthCode(code, state)
       .then(() => {
         window.history.replaceState({}, document.title, "/");
-        navigate("/", { replace: true });
+        navigate("/profile-setup", { replace: true });
       })
       .catch(() => {
         setError("로그인에 실패했습니다. 다시 시도해주세요.");
