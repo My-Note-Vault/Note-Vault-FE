@@ -47,8 +47,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         params: { code, state },
       });
 
-      const { accessToken, refreshToken } = response.data;
-      if (!accessToken) throw new Error("No access token returned");
+      const { token } = response.data;
+      if (!token?.accessToken) throw new Error("No access token returned");
+
+      const { accessToken, refreshToken } = token;
 
       // refreshToken 저장
       if (refreshToken) {
