@@ -29,6 +29,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = () => {
     localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
     setAccessToken(null);
   };
 
@@ -46,10 +47,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         params: { code, state },
       });
 
-      const token = response.data.token;
-      if (!token) throw new Error("No token returned");
+      const { accessToken, refreshToken } = response.data;
+      if (!accessToken) throw new Error("No access token returned");
 
-      login(token);
+      // refreshToken 저장
+      if (refreshToken) {
+        localStorage.setItem("refreshToken", refreshToken);
+      }
+
+      login(accessToken);
     } catch (error) {
       console.error("OAuth login failed:", error);
       throw error;

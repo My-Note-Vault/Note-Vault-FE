@@ -24,12 +24,17 @@ apiClient.interceptors.response.use(
       status: error.response?.status,
       code: error.response?.data?.code,
       data: error.response?.data,
+      url: error.config?.url,
     });
+
+    // profile 엔드포인트는 회원가입 직후 401이 정상일 수 있으므로 리디렉션 제외
+    const isProfileEndpoint = error.config?.url?.includes("/members/profile");
 
     // HTTP 401 상태 코드 또는 응답 body의 code가 UNAUTHORIZED_ERROR인 경우
     if (
-      error.response?.status === 401 ||
-      error.response?.data?.code === "UNAUTHORIZED_ERROR"
+      !isProfileEndpoint &&
+      (error.response?.status === 401 ||
+        error.response?.data?.code === "UNAUTHORIZED_ERROR")
     ) {
       console.log("Redirecting to login page...");
       localStorage.removeItem("accessToken");

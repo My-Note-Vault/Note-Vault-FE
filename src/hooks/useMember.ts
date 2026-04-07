@@ -17,7 +17,7 @@ export const useMemberProfile = () => {
     queryKey: memberKeys.profile(),
     queryFn: fetchMemberProfile,
     staleTime: 1000 * 60 * 5,
-    retry: 1,
+    retry: false, // 회원가입 직후 profile이 없을 수 있으므로 retry 하지 않음
   });
 };
 

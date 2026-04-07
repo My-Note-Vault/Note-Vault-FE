@@ -6,7 +6,7 @@ import type { ReactNode } from "react";
 
 export default function ProfileSetupRoute({ children }: { children: ReactNode }) {
   const { isLoggedIn } = useAuth();
-  const { data: profile, isLoading } = useMemberProfile();
+  const { data: profile, isLoading, isError } = useMemberProfile();
 
   if (!isLoggedIn) {
     return <Navigate to="/" replace />;
@@ -20,9 +20,10 @@ export default function ProfileSetupRoute({ children }: { children: ReactNode })
     );
   }
 
-  if (profile && profile.nickname !== null) {
-    return <Navigate to="/app" replace />;
+  // 회원가입 직후 profile이 없거나 에러인 경우 프로필 설정 페이지 표시
+  if (isError || !profile || profile.nickname === null) {
+    return <>{children}</>;
   }
 
-  return <>{children}</>;
+  return <Navigate to="/app" replace />;
 }
