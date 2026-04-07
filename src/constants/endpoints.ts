@@ -5,6 +5,7 @@ export const endpoints = {
 // Auth Endpoints
 LOGIN_GOOGLE: `${API_BASE}/oauth/login/google`,
 CALLBACK_FROM_GOOGLE: `${API_BASE}/oauth/callback/google`,
+REFRESH_TOKEN: `${API_BASE}/oauth/refresh`,
 
 // Space Endpoints
 SPACES: `${API_BASE}/workspaces`,
