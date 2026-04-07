@@ -18,9 +18,10 @@ import {
 } from "@/components/ui/select";
 import {
   useMemberProfile,
-  useUpdateMemberProfile,
+  useCompleteProfile,
   useUploadProfileImage,
 } from "@/hooks/useMember";
+import type { DayStartTime } from "@/types/member";
 
 const profileSchema = z.object({
   nickname: z
@@ -36,13 +37,13 @@ type ProfileFormValues = z.infer<typeof profileSchema>;
 export default function ProfileSetupPage() {
   const navigate = useNavigate();
   const { data: profile } = useMemberProfile();
-  const updateProfile = useUpdateMemberProfile();
+  const completeProfile = useCompleteProfile();
   const uploadImage = useUploadProfileImage();
 
-  const [profileImageUrl, setProfileImageUrl] = useState<string | null>(
+  const [profileImageKey, setProfileImageKey] = useState<string>("");
+  const [previewUrl, setPreviewUrl] = useState<string | null>(
     profile?.profileImageUrl ?? null
   );
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const {
@@ -72,8 +73,8 @@ export default function ProfileSetupPage() {
     reader.readAsDataURL(file);
 
     try {
-      const fileUrl = await uploadImage.mutateAsync({ file });
-      setProfileImageUrl(fileUrl);
+      const { fileKey } = await uploadImage.mutateAsync({ file });
+      setProfileImageKey(fileKey);
     } catch {
       toast.error("이미지 업로드에 실패했습니다");
       setPreviewUrl(null);
@@ -81,12 +82,21 @@ export default function ProfileSetupPage() {
   };
 
   const onSubmit = async (values: ProfileFormValues) => {
+    if (!profileImageKey) {
+      toast.error("프로필 이미지를 업로드해주세요");
+      return;
+    }
+
     try {
-      await updateProfile.mutateAsync({
+      const dayStartTime: DayStartTime = {
+        hour: values.dayStartHour,
+        minute: values.dayStartMinute,
+      };
+
+      await completeProfile.mutateAsync({
         nickname: values.nickname,
-        profileImageUrl,
-        dayStartHour: values.dayStartHour,
-        dayStartMinute: values.dayStartMinute,
+        profileImageKey,
+        dayStartTime,
       });
       toast.success("프로필이 설정되었습니다");
       navigate("/app", { replace: true });
@@ -95,8 +105,8 @@ export default function ProfileSetupPage() {
     }
   };
 
-  const avatarSrc = previewUrl ?? profileImageUrl ?? undefined;
-  const isSubmitting = updateProfile.isPending;
+  const avatarSrc = previewUrl ?? undefined;
+  const isSubmitting = completeProfile.isPending;
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">

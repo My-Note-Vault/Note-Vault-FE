@@ -40,6 +40,7 @@ LAST_VISITED: `${API_BASE}/members/last-visited-path`,
 
 // Member Profile
 MEMBER_PROFILE: `${API_BASE}/members/profile`,
+PROFILE_SETUP: `${API_BASE}/profile-setup`,
 
 // File Upload
 FILES: `${API_BASE}/files`,
