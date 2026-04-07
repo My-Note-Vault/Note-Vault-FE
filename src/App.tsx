@@ -146,13 +146,26 @@ function AppContent() {
 
     const [sidebarOpen, setSidebarOpen] = useState(true);
 
-    // localStorage에서 초기 상태 복원
+    // localStorage에서 초기 상태 복원 (tabs만 복원, activeTabId는 lastVisited에서 결정)
     const [splitState, setSplitState] = useState<SplitState>(() => {
         try {
             const saved = localStorage.getItem("splitState");
             if (saved) {
                 const parsed = JSON.parse(saved);
-                return parsed;
+                // 저장되지 않은 임시 탭(isNew: true)은 제거하고, activeTabId는 null로 초기화
+                return {
+                    ...parsed,
+                    panes: {
+                        left: {
+                            tabs: parsed.panes.left.tabs.filter((tab: { isNew?: boolean }) => !tab.isNew),
+                            activeTabId: null
+                        },
+                        right: {
+                            tabs: parsed.panes.right.tabs.filter((tab: { isNew?: boolean }) => !tab.isNew),
+                            activeTabId: null
+                        },
+                    },
+                };
             }
         } catch (e) {
             console.error("Failed to restore splitState:", e);
