@@ -1,6 +1,7 @@
-import { createContext, useContext, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import apiClient from "@/api/client";
 import { endpoints } from "@/constants/endpoints";
+import { authStorage } from "@/lib/authStorage";
 
 type AuthContextType = {
   accessToken: string | null;
@@ -16,21 +17,24 @@ const AuthContext = createContext<AuthContextType | null>(null);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [accessToken, setAccessToken] = useState<string | null>(
-    localStorage.getItem("accessToken")
+    authStorage.getAccessToken()
   );
   const [isOAuthLoading, setIsOAuthLoading] = useState(false);
 
   const isLoggedIn = !!accessToken;
 
+  useEffect(() => {
+    return authStorage.subscribe(() => {
+      setAccessToken(authStorage.getAccessToken());
+    });
+  }, []);
+
   const login = (token: string) => {
-    localStorage.setItem("accessToken", token);
-    setAccessToken(token);
+    authStorage.setTokens(token, authStorage.getRefreshToken());
   };
 
   const logout = () => {
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("refreshToken");
-    setAccessToken(null);
+    authStorage.clearTokens();
   };
 
   const redirectToGoogle = async () => {
@@ -51,13 +55,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (!token?.accessToken) throw new Error("No access token returned");
 
       const { accessToken, refreshToken } = token;
-
-      // refreshToken 저장
-      if (refreshToken) {
-        localStorage.setItem("refreshToken", refreshToken);
-      }
-
-      login(accessToken);
+      authStorage.setTokens(accessToken, refreshToken);
     } catch (error) {
       console.error("OAuth login failed:", error);
       throw error;

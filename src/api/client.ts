@@ -1,5 +1,6 @@
 import axios from "axios";
 import { endpoints } from "@/constants/endpoints";
+import { authStorage } from "@/lib/authStorage";
 
 // 인증 토큰이 자동으로 포함되는 axios 인스턴스
 const apiClient = axios.create({
@@ -28,7 +29,7 @@ const processQueue = (error: unknown = null) => {
 
 // 요청 인터셉터: localStorage에서 토큰을 읽어 Authorization 헤더에 추가
 apiClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem("accessToken");
+  const token = authStorage.getAccessToken();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -62,13 +63,12 @@ apiClient.interceptors.response.use(
         error.response?.data?.code === "UNAUTHORIZED_ERROR") &&
       !originalRequest._retry
     ) {
-      const refreshToken = localStorage.getItem("refreshToken");
+      const refreshToken = authStorage.getRefreshToken();
 
       // refreshToken이 없으면 바로 로그아웃
       if (!refreshToken) {
         console.log("No refresh token, redirecting to login page...");
-        localStorage.removeItem("accessToken");
-        localStorage.removeItem("refreshToken");
+        authStorage.clearTokens();
         window.location.href = "/";
         return Promise.reject(error);
       }
@@ -95,11 +95,16 @@ apiClient.interceptors.response.use(
           refreshToken,
         });
 
-        const { accessToken, refreshToken: newRefreshToken } = response.data;
+        const tokenPayload = response.data?.token ?? response.data;
+        const accessToken = tokenPayload?.accessToken;
+        const newRefreshToken = tokenPayload?.refreshToken ?? refreshToken;
+
+        if (!accessToken) {
+          throw new Error("No access token returned from refresh endpoint");
+        }
 
         // 새 토큰 저장
-        localStorage.setItem("accessToken", accessToken);
-        localStorage.setItem("refreshToken", newRefreshToken);
+        authStorage.setTokens(accessToken, newRefreshToken);
 
         console.log("Token refreshed successfully");
 
@@ -112,8 +117,7 @@ apiClient.interceptors.response.use(
       } catch (refreshError) {
         console.log("Token refresh failed, redirecting to login page...");
         processQueue(refreshError);
-        localStorage.removeItem("accessToken");
-        localStorage.removeItem("refreshToken");
+        authStorage.clearTokens();
         window.location.href = "/";
         return Promise.reject(refreshError);
       } finally {
@@ -124,8 +128,7 @@ apiClient.interceptors.response.use(
     // refresh 엔드포인트 자체의 에러는 로그아웃 처리
     if (isRefreshEndpoint && error.response?.status === 401) {
       console.log("Refresh token expired, redirecting to login page...");
-      localStorage.removeItem("accessToken");
-      localStorage.removeItem("refreshToken");
+      authStorage.clearTokens();
       window.location.href = "/";
     }
 
