@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
@@ -49,9 +49,8 @@ export default function ProfileSetupPage() {
     register,
     handleSubmit,
     formState: { errors },
-    setValue,
-    watch,
     reset,
+    control,
   } = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
@@ -71,9 +70,6 @@ export default function ProfileSetupPage() {
       setPreviewUrl(profile.profileImageUrl ?? null);
     }
   }, [profile, reset]);
-
-  const dayStartHour = watch("dayStartHour");
-  const dayStartMinute = watch("dayStartMinute");
 
   const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -173,37 +169,49 @@ export default function ProfileSetupPage() {
           <div className="space-y-2">
             <Label>하루 시작 시간</Label>
             <div className="flex gap-2">
-              <Select
-                value={String(dayStartHour)}
-                onValueChange={(v) => setValue("dayStartHour", Number(v))}
-              >
-                <SelectTrigger className="flex-1">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Array.from({ length: 24 }, (_, i) => (
-                    <SelectItem key={i} value={String(i)}>
-                      {i}시
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Controller
+                name="dayStartHour"
+                control={control}
+                render={({ field }) => (
+                  <Select
+                    value={String(field.value)}
+                    onValueChange={(value) => field.onChange(Number(value))}
+                  >
+                    <SelectTrigger className="flex-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 24 }, (_, i) => (
+                        <SelectItem key={i} value={String(i)}>
+                          {i}시
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
 
-              <Select
-                value={String(dayStartMinute)}
-                onValueChange={(v) => setValue("dayStartMinute", Number(v))}
-              >
-                <SelectTrigger className="flex-1">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {[0, 15, 30, 45].map((m) => (
-                    <SelectItem key={m} value={String(m)}>
-                      {String(m).padStart(2, "0")}분
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Controller
+                name="dayStartMinute"
+                control={control}
+                render={({ field }) => (
+                  <Select
+                    value={String(field.value)}
+                    onValueChange={(value) => field.onChange(Number(value))}
+                  >
+                    <SelectTrigger className="flex-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {[0, 15, 30, 45].map((m) => (
+                        <SelectItem key={m} value={String(m)}>
+                          {String(m).padStart(2, "0")}분
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
             </div>
           </div>
 
