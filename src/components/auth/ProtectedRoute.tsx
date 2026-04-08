@@ -20,8 +20,8 @@ export default function ProtectedRoute({ children }: { children: ReactNode }) {
     );
   }
 
-  // nickname이 null이거나 빈 문자열인 경우 프로필 설정으로 이동
-  if (profile && !profile.nickname) {
+  // profile이 없거나 nickname이 null/빈 문자열인 경우 프로필 설정으로 이동
+  if (!profile || !profile.nickname) {
     return <Navigate to="/profile-setup" replace />;
   }
 
