@@ -189,7 +189,9 @@ export default function ProfilePopover() {
                     onValueChange={(value) => field.onChange(Number(value))}
                   >
                     <SelectTrigger className="flex-1">
-                      <SelectValue />
+                      <SelectValue placeholder="시 선택">
+                        {`${Number(field.value ?? 6)}시`}
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       {Array.from({ length: 24 }, (_, i) => (
@@ -211,7 +213,9 @@ export default function ProfilePopover() {
                     onValueChange={(value) => field.onChange(Number(value))}
                   >
                     <SelectTrigger className="flex-1">
-                      <SelectValue />
+                      <SelectValue placeholder="분 선택">
+                        {`${String(Number(field.value ?? 0)).padStart(2, "0")}분`}
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       {[0, 15, 30, 45].map((m) => (
