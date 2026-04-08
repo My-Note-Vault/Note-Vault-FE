@@ -25,6 +25,6 @@ export interface DayStartTime {
 
 export interface CompleteProfileRequest {
   nickname: string;
-  profileImageKey: string;
-  dayStartTime: DayStartTime;
+  profileImageKey?: string;
+  dayStartTime?: DayStartTime;
 }

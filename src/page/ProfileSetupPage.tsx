@@ -21,7 +21,7 @@ import {
   useCompleteProfile,
   useUploadProfileImage,
 } from "@/hooks/useMember";
-import type { DayStartTime } from "@/types/member";
+
 
 const profileSchema = z.object({
   nickname: z
@@ -82,21 +82,18 @@ export default function ProfileSetupPage() {
   };
 
   const onSubmit = async (values: ProfileFormValues) => {
-    if (!profileImageKey) {
-      toast.error("프로필 이미지를 업로드해주세요");
-      return;
-    }
-
     try {
-      const dayStartTime: DayStartTime = {
-        hour: values.dayStartHour,
-        minute: values.dayStartMinute,
-      };
-
       await completeProfile.mutateAsync({
         nickname: values.nickname,
-        profileImageKey,
-        dayStartTime,
+        ...(profileImageKey ? { profileImageKey } : {}),
+        ...(values.dayStartHour !== undefined
+          ? {
+              dayStartTime: {
+                hour: values.dayStartHour,
+                minute: values.dayStartMinute,
+              },
+            }
+          : {}),
       });
       toast.success("프로필이 설정되었습니다");
       navigate("/app", { replace: true });
