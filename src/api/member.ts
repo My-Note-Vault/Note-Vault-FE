@@ -4,7 +4,6 @@ import type {
   MemberProfile,
   UpdateProfileRequest,
   PresignedUrlResponse,
-  CompleteProfileRequest,
 } from "@/types/member";
 
 export const fetchMemberProfile = async (): Promise<MemberProfile> => {
@@ -13,11 +12,7 @@ export const fetchMemberProfile = async (): Promise<MemberProfile> => {
 };
 
 export const updateMemberProfile = async (req: UpdateProfileRequest): Promise<void> => {
-  await apiClient.post(endpoints.MEMBER_PROFILE, req);
-};
-
-export const completeProfile = async (req: CompleteProfileRequest): Promise<void> => {
-  await apiClient.post(endpoints.PROFILE_SETUP, req);
+  await apiClient.patch(endpoints.MEMBER_PROFILE, req);
 };
 
 export const getPresignedUrl = async (fileName: string, contentType: string): Promise<PresignedUrlResponse> => {

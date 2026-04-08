@@ -2,11 +2,10 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   fetchMemberProfile,
   updateMemberProfile,
-  completeProfile,
   getPresignedUrl,
   uploadFileToPresignedUrl,
 } from "@/api/member";
-import type { UpdateProfileRequest, CompleteProfileRequest } from "@/types/member";
+import type { UpdateProfileRequest } from "@/types/member";
 
 export const memberKeys = {
   all: ["member"] as const,
@@ -32,15 +31,6 @@ export const useUpdateMemberProfile = () => {
   });
 };
 
-export const useCompleteProfile = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (req: CompleteProfileRequest) => completeProfile(req),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: memberKeys.profile() });
-    },
-  });
-};
 
 export const useUploadProfileImage = () => {
   return useMutation({

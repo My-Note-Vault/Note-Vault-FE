@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/select";
 import {
   useMemberProfile,
-  useCompleteProfile,
+  useUpdateMemberProfile,
   useUploadProfileImage,
 } from "@/hooks/useMember";
 
@@ -37,10 +37,9 @@ type ProfileFormValues = z.infer<typeof profileSchema>;
 export default function ProfileSetupPage() {
   const navigate = useNavigate();
   const { data: profile } = useMemberProfile();
-  const completeProfile = useCompleteProfile();
+  const updateProfile = useUpdateMemberProfile();
   const uploadImage = useUploadProfileImage();
 
-  const [profileImageKey, setProfileImageKey] = useState<string>("");
   const [previewUrl, setPreviewUrl] = useState<string | null>(
     profile?.profileImageUrl ?? null
   );
@@ -73,8 +72,7 @@ export default function ProfileSetupPage() {
     reader.readAsDataURL(file);
 
     try {
-      const { fileKey } = await uploadImage.mutateAsync({ file });
-      setProfileImageKey(fileKey);
+      await uploadImage.mutateAsync({ file });
     } catch {
       toast.error("이미지 업로드에 실패했습니다");
       setPreviewUrl(null);
@@ -83,17 +81,10 @@ export default function ProfileSetupPage() {
 
   const onSubmit = async (values: ProfileFormValues) => {
     try {
-      await completeProfile.mutateAsync({
+      await updateProfile.mutateAsync({
         nickname: values.nickname,
-        ...(profileImageKey ? { profileImageKey } : {}),
-        ...(values.dayStartHour !== undefined
-          ? {
-              dayStartTime: {
-                hour: values.dayStartHour,
-                minute: values.dayStartMinute,
-              },
-            }
-          : {}),
+        dayStartHour: values.dayStartHour,
+        dayStartMinute: values.dayStartMinute,
       });
       toast.success("프로필이 설정되었습니다");
       navigate("/app", { replace: true });
@@ -103,7 +94,7 @@ export default function ProfileSetupPage() {
   };
 
   const avatarSrc = previewUrl ?? undefined;
-  const isSubmitting = completeProfile.isPending;
+  const isSubmitting = updateProfile.isPending;
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
