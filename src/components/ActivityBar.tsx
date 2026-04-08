@@ -1,4 +1,5 @@
 import { CalendarDays, PanelLeft, PanelLeftClose } from "lucide-react";
+import ProfilePopover from "./ProfilePopover";
 
 interface ActivityBarProps {
   onSelectItem?: (id: string) => void;
@@ -25,6 +26,10 @@ export default function ActivityBar({ onSelectItem, sidebarOpen, onToggleSidebar
       >
         <CalendarDays className="h-5 w-5" />
       </button>
+
+      <div className="mt-auto">
+        <ProfilePopover />
+      </div>
     </aside>
   );
 }
