@@ -20,8 +20,8 @@ export default function ProfileSetupRoute({ children }: { children: ReactNode })
     );
   }
 
-  // 회원가입 직후 profile이 없거나 에러인 경우 프로필 설정 페이지 표시
-  if (isError || !profile || profile.nickname === null) {
+  // 회원가입 직후 profile이 없거나 nickname이 비어있는 경우 프로필 설정 페이지 표시
+  if (isError || !profile || !profile.nickname) {
     return <>{children}</>;
   }
 
