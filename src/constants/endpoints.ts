@@ -40,8 +40,7 @@ LAST_VISITED: `${API_BASE}/members/last-visited-path`,
 
 // Member Profile
 MEMBER_PROFILE: `${API_BASE}/members/profile`,
-
-// File Upload
-FILES: `${API_BASE}/files`,
+MEMBER_PROFILE_IMAGE_UPLOAD_URL: `${API_BASE}/members/profile-image/upload-url`,
+MEMBER_PROFILE_IMAGE: `${API_BASE}/members/profile-image`,
 
 };

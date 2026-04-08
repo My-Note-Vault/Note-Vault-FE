@@ -1,6 +1,5 @@
 export interface MemberProfile {
   nickname: string | null;
-  profileImageUrl: string | null;
   dayStartHour: number;
   dayStartMinute: number;
 }
@@ -11,8 +10,15 @@ export interface UpdateProfileRequest {
   dayStartMinute?: number;
 }
 
-export interface PresignedUrlResponse {
+export interface GenerateProfileImageUploadUrlResponse {
   presignedUrl: string;
-  fileUrl: string;
-  fileKey: string;
+  profileImageKey: string;
+}
+
+export interface ProfileImageResponse {
+  profileImageUrl: string | null;
+}
+
+export interface UpdateProfileImageRequest {
+  profileImageKey: string;
 }

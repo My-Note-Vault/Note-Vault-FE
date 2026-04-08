@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/select";
 import {
   useMemberProfile,
+  useProfileImage,
   useUpdateMemberProfile,
   useUploadProfileImage,
 } from "@/hooks/useMember";
@@ -37,11 +38,12 @@ type ProfileFormValues = z.infer<typeof profileSchema>;
 export default function ProfileSetupPage() {
   const navigate = useNavigate();
   const { data: profile } = useMemberProfile();
+  const { data: profileImage } = useProfileImage();
   const updateProfile = useUpdateMemberProfile();
   const uploadImage = useUploadProfileImage();
 
   const [previewUrl, setPreviewUrl] = useState<string | null>(
-    profile?.profileImageUrl ?? null
+    profileImage?.profileImageUrl ?? null
   );
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -67,9 +69,12 @@ export default function ProfileSetupPage() {
         dayStartHour: profile.dayStartHour,
         dayStartMinute: profile.dayStartMinute,
       });
-      setPreviewUrl(profile.profileImageUrl ?? null);
     }
   }, [profile, reset]);
+
+  useEffect(() => {
+    setPreviewUrl(profileImage?.profileImageUrl ?? null);
+  }, [profileImage]);
 
   const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -83,7 +88,7 @@ export default function ProfileSetupPage() {
       await uploadImage.mutateAsync({ file });
     } catch {
       toast.error("이미지 업로드에 실패했습니다");
-      setPreviewUrl(null);
+      setPreviewUrl(profileImage?.profileImageUrl ?? null);
     }
   };
 

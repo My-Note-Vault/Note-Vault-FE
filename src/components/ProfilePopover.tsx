@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/select";
 import {
   useMemberProfile,
+  useProfileImage,
   useUpdateMemberProfile,
   useUploadProfileImage,
 } from "@/hooks/useMember";
@@ -32,6 +33,7 @@ type ProfileFormValues = z.infer<typeof profileSchema>;
 
 export default function ProfilePopover() {
   const { data: profile } = useMemberProfile();
+  const { data: profileImage } = useProfileImage();
   const updateProfile = useUpdateMemberProfile();
   const uploadImage = useUploadProfileImage();
 
@@ -61,9 +63,12 @@ export default function ProfilePopover() {
         dayStartHour: profile.dayStartHour,
         dayStartMinute: profile.dayStartMinute,
       });
-      setPreviewUrl(profile.profileImageUrl ?? null);
     }
   }, [profile, reset]);
+
+  useEffect(() => {
+    setPreviewUrl(profileImage?.profileImageUrl ?? null);
+  }, [profileImage]);
 
   const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -77,7 +82,7 @@ export default function ProfilePopover() {
       await uploadImage.mutateAsync({ file });
     } catch {
       toast.error("이미지 업로드에 실패했습니다");
-      setPreviewUrl(profile?.profileImageUrl ?? null);
+      setPreviewUrl(profileImage?.profileImageUrl ?? null);
     }
   };
 
@@ -103,7 +108,9 @@ export default function ProfilePopover() {
         dayStartHour: profile.dayStartHour,
         dayStartMinute: profile.dayStartMinute,
       });
-      setPreviewUrl(profile.profileImageUrl ?? null);
+    }
+    if (!nextOpen) {
+      setPreviewUrl(profileImage?.profileImageUrl ?? null);
     }
   };
 
@@ -117,8 +124,8 @@ export default function ProfilePopover() {
           title="프로필"
         >
           <Avatar className="h-7 w-7">
-            {profile?.profileImageUrl ? (
-              <AvatarImage src={profile.profileImageUrl} alt="프로필" />
+            {profileImage?.profileImageUrl ? (
+              <AvatarImage src={profileImage.profileImageUrl} alt="프로필" />
             ) : null}
             <AvatarFallback className="bg-muted text-xs">
               <User className="h-4 w-4 text-muted-foreground" />

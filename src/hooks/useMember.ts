@@ -1,8 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   fetchMemberProfile,
+  fetchProfileImage,
   updateMemberProfile,
-  getPresignedUrl,
+  generateProfileImageUploadUrl,
+  updateProfileImage,
+  deleteProfileImage,
   uploadFileToPresignedUrl,
 } from "@/api/member";
 import type { UpdateProfileRequest } from "@/types/member";
@@ -10,6 +13,7 @@ import type { UpdateProfileRequest } from "@/types/member";
 export const memberKeys = {
   all: ["member"] as const,
   profile: () => [...memberKeys.all, "profile"] as const,
+  profileImage: () => [...memberKeys.all, "profile-image"] as const,
 };
 
 export const useMemberProfile = () => {
@@ -18,6 +22,15 @@ export const useMemberProfile = () => {
     queryFn: fetchMemberProfile,
     staleTime: 1000 * 60 * 5,
     retry: false, // 회원가입 직후 profile이 없을 수 있으므로 retry 하지 않음
+  });
+};
+
+export const useProfileImage = () => {
+  return useQuery({
+    queryKey: memberKeys.profileImage(),
+    queryFn: fetchProfileImage,
+    staleTime: 1000 * 60 * 5,
+    retry: false,
   });
 };
 
@@ -33,11 +46,29 @@ export const useUpdateMemberProfile = () => {
 
 
 export const useUploadProfileImage = () => {
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: async ({ file }: { file: File }) => {
-      const { presignedUrl, fileUrl, fileKey } = await getPresignedUrl(file.name, file.type);
+      const { presignedUrl, profileImageKey } = await generateProfileImageUploadUrl(file.type);
       await uploadFileToPresignedUrl(presignedUrl, file);
-      return { fileUrl, fileKey };
+      await updateProfileImage({ profileImageKey });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: memberKeys.profile() });
+      queryClient.invalidateQueries({ queryKey: memberKeys.profileImage() });
+    },
+  });
+};
+
+export const useDeleteProfileImage = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: deleteProfileImage,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: memberKeys.profile() });
+      queryClient.invalidateQueries({ queryKey: memberKeys.profileImage() });
     },
   });
 };
