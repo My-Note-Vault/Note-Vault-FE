@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -51,6 +51,7 @@ export default function ProfileSetupPage() {
     formState: { errors },
     setValue,
     watch,
+    reset,
   } = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
@@ -59,6 +60,17 @@ export default function ProfileSetupPage() {
       dayStartMinute: profile?.dayStartMinute ?? 0,
     },
   });
+
+  useEffect(() => {
+    if (profile) {
+      reset({
+        nickname: profile.nickname ?? "",
+        dayStartHour: profile.dayStartHour,
+        dayStartMinute: profile.dayStartMinute,
+      });
+      setPreviewUrl(profile.profileImageUrl ?? null);
+    }
+  }, [profile, reset]);
 
   const dayStartHour = watch("dayStartHour");
   const dayStartMinute = watch("dayStartMinute");
