@@ -49,15 +49,11 @@ apiClient.interceptors.response.use(
       url: error.config?.url,
     });
 
-    // profile 엔드포인트는 회원가입 직후 401이 정상일 수 있으므로 리디렉션 제외
-    const isProfileEndpoint = error.config?.url?.includes("/members/profile");
-
     // refresh 엔드포인트 자체의 에러는 재시도하지 않음
     const isRefreshEndpoint = error.config?.url?.includes("/oauth/refresh");
 
     // HTTP 401 상태 코드 또는 응답 body의 code가 UNAUTHORIZED_ERROR인 경우
     if (
-      !isProfileEndpoint &&
       !isRefreshEndpoint &&
       (error.response?.status === 401 ||
         error.response?.data?.code === "UNAUTHORIZED_ERROR") &&
