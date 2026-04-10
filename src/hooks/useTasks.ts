@@ -23,7 +23,7 @@ export const useCreateTask = () => {
   return useMutation({
     mutationFn: (req: CreateTaskRequest) => createTask(req),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: documentKeys.tree() });
+      queryClient.invalidateQueries({ queryKey: documentKeys.noteInfos() });
     },
   });
 };
@@ -35,7 +35,7 @@ export const useUpdateTask = () => {
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: taskKeys.detail(variables.id) });
       if (variables.name) {
-        queryClient.invalidateQueries({ queryKey: documentKeys.tree() });
+        queryClient.invalidateQueries({ queryKey: documentKeys.noteInfos() });
       }
       if (variables.metadata) {
         queryClient.invalidateQueries({
@@ -52,7 +52,7 @@ export const useDeleteTask = () => {
   return useMutation({
     mutationFn: (id: string) => deleteTask(id),
     onSuccess: (_data, id) => {
-      queryClient.invalidateQueries({ queryKey: documentKeys.tree() });
+      queryClient.invalidateQueries({ queryKey: documentKeys.noteInfos() });
       queryClient.removeQueries({ queryKey: taskKeys.detail(id) });
     },
   });

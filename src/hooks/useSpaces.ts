@@ -23,7 +23,7 @@ export const useCreateSpace = () => {
   return useMutation({
     mutationFn: (req: CreateSpaceRequest) => createSpace(req),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: documentKeys.tree() });
+      queryClient.invalidateQueries({ queryKey: documentKeys.noteInfos() });
     },
   });
 };
@@ -35,7 +35,7 @@ export const useUpdateSpace = () => {
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: spaceKeys.detail(variables.id) });
       if (variables.name) {
-        queryClient.invalidateQueries({ queryKey: documentKeys.tree() });
+        queryClient.invalidateQueries({ queryKey: documentKeys.noteInfos() });
       }
     },
   });
@@ -46,7 +46,7 @@ export const useDeleteSpace = () => {
   return useMutation({
     mutationFn: (id: string) => deleteSpace(id),
     onSuccess: (_data, id) => {
-      queryClient.invalidateQueries({ queryKey: documentKeys.tree() });
+      queryClient.invalidateQueries({ queryKey: documentKeys.noteInfos() });
       queryClient.removeQueries({ queryKey: spaceKeys.detail(id) });
     },
   });

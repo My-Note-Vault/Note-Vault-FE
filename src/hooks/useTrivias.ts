@@ -23,7 +23,7 @@ export const useCreateTrivia = () => {
   return useMutation({
     mutationFn: (req: CreateTriviaRequest) => createTrivia(req),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: documentKeys.tree() });
+      queryClient.invalidateQueries({ queryKey: documentKeys.noteInfos() });
     },
   });
 };
@@ -35,7 +35,7 @@ export const useUpdateTrivia = () => {
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: triviaKeys.detail(variables.id) });
       if (variables.name) {
-        queryClient.invalidateQueries({ queryKey: documentKeys.tree() });
+        queryClient.invalidateQueries({ queryKey: documentKeys.noteInfos() });
       }
     },
   });
@@ -46,7 +46,7 @@ export const useDeleteTrivia = () => {
   return useMutation({
     mutationFn: (id: string) => deleteTrivia(id),
     onSuccess: (_data, id) => {
-      queryClient.invalidateQueries({ queryKey: documentKeys.tree() });
+      queryClient.invalidateQueries({ queryKey: documentKeys.noteInfos() });
       queryClient.removeQueries({ queryKey: triviaKeys.detail(id) });
     },
   });

@@ -71,7 +71,7 @@ function buildUnfoldedSet(unfoldedNotes: UnfoldedNote[]): Set<string> {
 // Query key 팩토리
 export const documentKeys = {
   all: ["documents"] as const,
-  noteInfo: () => [...documentKeys.all, "note-info"] as const,
+  noteInfos: () => [...documentKeys.all, "note-info"] as const,
   unfolded: () => [...documentKeys.all, "unfolded"] as const,
   search: (query: string) => [...documentKeys.all, "search", query] as const,
   dailyNotes: () => ["daily-notes"] as const,
@@ -83,7 +83,7 @@ export const documentKeys = {
 // 사이드바 트리 조회 — note-info flat list를 받아 클라이언트에서 트리 구성
 export const useDocumentTree = () => {
   const noteInfoQuery = useQuery({
-    queryKey: documentKeys.noteInfo(),
+    queryKey: documentKeys.noteInfos(),
     queryFn: fetchNoteInfoList,
     staleTime: 1000 * 60,
     initialData: () => readCache<NoteInfo[]>(NOTES_CACHE_KEY),

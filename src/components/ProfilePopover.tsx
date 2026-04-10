@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect } from "react";
-import { Controller, useForm } from "react-hook-form";
+import { Controller, useForm, type SubmitErrorHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
@@ -31,6 +31,20 @@ const profileSchema = z.object({
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
 
+function normalizeProfileDefaults(profile?: {
+  nickname?: string | null;
+  dayStartHour?: number | null;
+  dayStartMinute?: number | null;
+} | null): ProfileFormValues {
+  return {
+    nickname: profile?.nickname ?? "",
+    dayStartHour:
+      typeof profile?.dayStartHour === "number" ? profile.dayStartHour : 6,
+    dayStartMinute:
+      typeof profile?.dayStartMinute === "number" ? profile.dayStartMinute : 0,
+  };
+}
+
 export default function ProfilePopover() {
   const { data: profile } = useMemberProfile();
   const { data: profileImage } = useProfileImage();
@@ -49,20 +63,12 @@ export default function ProfilePopover() {
     control,
   } = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
-    defaultValues: {
-      nickname: profile?.nickname ?? "",
-      dayStartHour: profile?.dayStartHour ?? 6,
-      dayStartMinute: profile?.dayStartMinute ?? 0,
-    },
+    defaultValues: normalizeProfileDefaults(profile),
   });
 
   useEffect(() => {
     if (profile) {
-      reset({
-        nickname: profile.nickname ?? "",
-        dayStartHour: profile.dayStartHour,
-        dayStartMinute: profile.dayStartMinute,
-      });
+      reset(normalizeProfileDefaults(profile));
     }
   }, [profile, reset]);
 
@@ -100,14 +106,19 @@ export default function ProfilePopover() {
     }
   };
 
+  const onInvalid: SubmitErrorHandler<ProfileFormValues> = (formErrors) => {
+    if (formErrors.nickname?.message) {
+      toast.error(formErrors.nickname.message);
+      return;
+    }
+
+    toast.error("프로필 정보를 다시 확인해 주세요");
+  };
+
   const handleOpenChange = (nextOpen: boolean) => {
     setOpen(nextOpen);
     if (!nextOpen && profile) {
-      reset({
-        nickname: profile.nickname ?? "",
-        dayStartHour: profile.dayStartHour,
-        dayStartMinute: profile.dayStartMinute,
-      });
+      reset(normalizeProfileDefaults(profile));
     }
     if (!nextOpen) {
       setPreviewUrl(profileImage?.profileImageUrl ?? null);
@@ -135,7 +146,7 @@ export default function ProfilePopover() {
       </PopoverTrigger>
 
       <PopoverContent side="right" align="end" className="w-72 p-0">
-        <form onSubmit={handleSubmit(onSubmit)} className="p-4 space-y-4">
+        <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="p-4 space-y-4">
           {/* 프로필 이미지 */}
           <div className="flex flex-col items-center gap-1">
             <button
@@ -235,6 +246,11 @@ export default function ProfilePopover() {
                 )}
               />
             </div>
+            {(errors.dayStartHour || errors.dayStartMinute) && (
+              <p className="text-xs text-destructive">
+                하루 시작 시간을 다시 선택해 주세요.
+              </p>
+            )}
           </div>
 
           {/* 저장 버튼 */}
