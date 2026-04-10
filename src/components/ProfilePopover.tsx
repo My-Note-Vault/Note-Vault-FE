@@ -242,7 +242,7 @@ export default function ProfilePopover() {
             type="submit"
             size="sm"
             className="w-full"
-            disabled={updateProfile.isPending || uploadImage.isPending}
+            disabled={updateProfile.isPending}
           >
             {updateProfile.isPending ? (
               <Loader2 className="h-3 w-3 animate-spin" />

@@ -228,7 +228,7 @@ export default function ProfileSetupPage() {
           <Button
             type="submit"
             className="w-full"
-            disabled={isSubmitting || uploadImage.isPending}
+            disabled={isSubmitting}
           >
             {isSubmitting ? (
               <>
@@ -236,7 +236,7 @@ export default function ProfileSetupPage() {
                 저장 중...
               </>
             ) : (
-              "시작하기"
+              "저장"
             )}
           </Button>
         </form>
