@@ -61,20 +61,11 @@ apiClient.interceptors.response.use(
       _retry: originalRequest?._retry,
     });
 
-    const isRefreshEndpoint = url.includes("/oauth/refresh");
-    const is401 =
-      error.response?.status === 401 ||
-      error.response?.data?.code === "UNAUTHORIZED_ERROR";
-
-    // refresh 엔드포인트 자체의 401은 로그아웃 처리
-    if (isRefreshEndpoint && is401) {
-      console.log("[auth] Refresh token expired, logging out");
-      authStorage.clearTokens();
-      window.location.href = "/";
-      return Promise.reject(error);
-    }
+    const is401 = error.response?.status === 401;
 
     // 401이 아니거나, config가 없거나, 이미 한번 재시도한 요청은 그대로 reject
+    // (refresh 엔드포인트 자체는 raw axios로 호출되므로 이 인터셉터를 타지 않고,
+    //  실패 시 아래 catch 블록의 refreshStatus === 401 분기에서 처리된다.)
     if (!is401 || !originalRequest) {
       return Promise.reject(error);
     }
@@ -104,9 +95,22 @@ apiClient.interceptors.response.use(
       console.log("[auth] Retrying original request:", url);
       return apiClient(originalRequest);
     } catch (refreshError) {
-      console.log("[auth] Token refresh failed, logging out:", refreshError);
-      authStorage.clearTokens();
-      window.location.href = "/";
+      // refresh 엔드포인트가 401이거나 refresh token이 아예 없는 경우에만 로그아웃.
+      // 네트워크/서버 일시 장애에서는 토큰을 유지해 다음 요청에서 재시도할 수 있게 한다.
+      const refreshStatus = (refreshError as { response?: { status?: number } })
+        ?.response?.status;
+      const hasRefreshToken = !!authStorage.getRefreshToken();
+
+      if (refreshStatus === 401 || !hasRefreshToken) {
+        console.log("[auth] Refresh unrecoverable, logging out:", refreshError);
+        authStorage.clearTokens();
+        window.location.href = "/";
+      } else {
+        console.log(
+          "[auth] Refresh failed (transient), keeping tokens:",
+          refreshError,
+        );
+      }
       return Promise.reject(refreshError);
     }
   },
