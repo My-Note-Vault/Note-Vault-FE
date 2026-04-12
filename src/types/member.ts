@@ -12,7 +12,7 @@ export interface UpdateProfileRequest {
 
 export interface GenerateProfileImageUploadUrlResponse {
   presignedUrl: string;
-  profileImageKey: string;
+  key: string;
 }
 
 export interface ProfileImageResponse {

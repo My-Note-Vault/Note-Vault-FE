@@ -51,11 +51,9 @@ export const useUploadProfileImage = () => {
   return useMutation({
     mutationFn: async ({ file }: { file: File }) => {
       const uploadUrlResponse = await generateProfileImageUploadUrl(file.type);
-      console.log("[profile-image] upload-url response:", uploadUrlResponse);
-      const { presignedUrl, profileImageKey } = uploadUrlResponse;
-      console.log("[profile-image] profileImageKey:", profileImageKey);
+      const { presignedUrl, key } = uploadUrlResponse;
       await uploadFileToPresignedUrl(presignedUrl, file);
-      await updateProfileImage({ profileImageKey });
+      await updateProfileImage({ profileImageKey: key });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: memberKeys.profile() });
