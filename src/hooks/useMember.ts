@@ -50,7 +50,10 @@ export const useUploadProfileImage = () => {
 
   return useMutation({
     mutationFn: async ({ file }: { file: File }) => {
-      const { presignedUrl, profileImageKey } = await generateProfileImageUploadUrl(file.type);
+      const uploadUrlResponse = await generateProfileImageUploadUrl(file.type);
+      console.log("[profile-image] upload-url response:", uploadUrlResponse);
+      const { presignedUrl, profileImageKey } = uploadUrlResponse;
+      console.log("[profile-image] profileImageKey:", profileImageKey);
       await uploadFileToPresignedUrl(presignedUrl, file);
       await updateProfileImage({ profileImageKey });
     },
