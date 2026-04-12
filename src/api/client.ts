@@ -20,9 +20,17 @@ const refreshAccessToken = async (): Promise<string> => {
 
   console.log("[auth] Attempting to refresh access token...");
 
-  const response = await axios.post(endpoints.REFRESH_TOKEN, {
-    refreshToken,
-  });
+  const currentAccessToken = authStorage.getAccessToken();
+
+  const response = await axios.post(
+    endpoints.REFRESH_TOKEN,
+    { refreshToken },
+    {
+      headers: {
+        ...(currentAccessToken ? { Authorization: `Bearer ${currentAccessToken}` } : {}),
+      },
+    },
+  );
 
   const tokenPayload = response.data?.token ?? response.data;
   const accessToken = tokenPayload?.accessToken;
