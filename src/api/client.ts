@@ -20,16 +20,9 @@ const refreshAccessToken = async (): Promise<string> => {
 
   console.log("[auth] Attempting to refresh access token...");
 
-  const currentAccessToken = authStorage.getAccessToken();
-
   const response = await axios.post(
     endpoints.REFRESH_TOKEN,
     { refreshToken },
-    {
-      headers: {
-        ...(currentAccessToken ? { Authorization: `Bearer ${currentAccessToken}` } : {}),
-      },
-    },
   );
 
   const tokenPayload = response.data?.token ?? response.data;
@@ -105,12 +98,21 @@ apiClient.interceptors.response.use(
     } catch (refreshError) {
       // refresh 엔드포인트가 401이거나 refresh token이 아예 없는 경우에만 로그아웃.
       // 네트워크/서버 일시 장애에서는 토큰을 유지해 다음 요청에서 재시도할 수 있게 한다.
-      const refreshStatus = (refreshError as { response?: { status?: number } })
+      const refreshStatus = (refreshError as { response?: { status?: number; data?: unknown } })
         ?.response?.status;
+      const refreshData = (refreshError as { response?: { data?: unknown } })
+        ?.response?.data;
       const hasRefreshToken = !!authStorage.getRefreshToken();
 
+      console.log("[auth] Refresh failed detail:", {
+        refreshStatus,
+        refreshData,
+        hasRefreshToken,
+        errorMessage: refreshError instanceof Error ? refreshError.message : refreshError,
+      });
+
       if (refreshStatus === 401 || !hasRefreshToken) {
-        console.log("[auth] Refresh unrecoverable, logging out:", refreshError);
+        console.log("[auth] Refresh unrecoverable, logging out");
         authStorage.clearTokens();
         window.location.href = "/";
       } else {
