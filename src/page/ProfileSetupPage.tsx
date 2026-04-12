@@ -94,7 +94,6 @@ export default function ProfileSetupPage() {
       await uploadImage.mutateAsync({ file });
     } catch {
       toast.error("이미지 업로드에 실패했습니다");
-      setPreviewUrl(profileImage?.profileImageUrl ?? null);
     }
   };
 
