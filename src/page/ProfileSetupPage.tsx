@@ -169,6 +169,19 @@ export default function ProfileSetupPage() {
             </span>
           </div>
 
+          {/* 이름 (읽기 전용) */}
+          {profile?.name && (
+            <div className="space-y-2">
+              <Label htmlFor="name">이름</Label>
+              <Input
+                id="name"
+                value={profile.name}
+                disabled
+                className="disabled:opacity-70"
+              />
+            </div>
+          )}
+
           {/* 닉네임 */}
           <div className="space-y-2">
             <Label htmlFor="nickname">닉네임</Label>

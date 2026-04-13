@@ -178,6 +178,19 @@ export default function ProfilePopover() {
             />
           </div>
 
+          {/* 이름 (읽기 전용) */}
+          {profile?.name && (
+            <div className="space-y-1">
+              <Label htmlFor="popover-name" className="text-xs">이름</Label>
+              <Input
+                id="popover-name"
+                value={profile.name}
+                disabled
+                className="disabled:opacity-70"
+              />
+            </div>
+          )}
+
           {/* 닉네임 */}
           <div className="space-y-1">
             <Label htmlFor="popover-nickname" className="text-xs">닉네임</Label>

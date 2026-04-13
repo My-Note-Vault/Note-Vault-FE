@@ -1,4 +1,5 @@
 export interface MemberProfile {
+  name: string | null;
   nickname: string | null;
   dayStartHour: number;
   dayStartMinute: number;
