@@ -8,7 +8,7 @@ import ActivityBar from "./components/ActivityBar";
 import Sidebar from "./components/Sidebar";
 import type { SidebarItem, DocType } from "@/types/common";
 import type { DailyNoteDetail } from "@/api/documents";
-import { fetchDailyNoteByDate } from "@/api/documents";
+import { fetchDailyNoteByDate, fetchDailyNoteDetail } from "@/api/documents";
 import { pathToTabId, tabIdToPath } from "@/api/lastVisited";
 import TabPane, { type PaneId, type PaneState } from "./components/TabPane";
 import {
@@ -264,8 +264,8 @@ function AppContent() {
                     if (todayNote) {
                         handleSelectDocument(`daily-${todayNote.dailyNoteId}`);
                     } else {
-                        // 목록에 없으면 날짜로 조회 후 PK 획득
-                        fetchDailyNoteByDate(today).then((detail) => {
+                        // 목록에 없으면 오늘 Daily Note 조회 후 PK 획득
+                        fetchDailyNoteDetail().then((detail) => {
                             handleSelectDocument(`daily-${detail.dailyNoteId}`);
                         }).catch(() => {});
                     }
@@ -274,8 +274,7 @@ function AppContent() {
                 }
             } else {
                 // 새 사용자: 오늘의 Daily Note 열기
-                const today = new Date().toISOString().slice(0, 10);
-                fetchDailyNoteByDate(today).then((detail) => {
+                fetchDailyNoteDetail().then((detail) => {
                     handleSelectDocument(`daily-${detail.dailyNoteId}`);
                 }).catch(() => {});
             }
