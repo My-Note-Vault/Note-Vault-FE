@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect, Component, type ReactNode, type ErrorInfo } from "react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useSearchParams } from "react-router-dom";
 import { Toaster, toast } from "sonner";
 import { AuthProvider } from "./context/AuthContext";
@@ -7,10 +7,14 @@ import { PanelGroup, Panel, PanelResizeHandle } from "react-resizable-panels";
 import ActivityBar from "./components/ActivityBar";
 import Sidebar from "./components/Sidebar";
 import type { SidebarItem, DocType } from "@/types/common";
+import type { DailyNoteDetail } from "@/api/documents";
+import { fetchDailyNoteByDate } from "@/api/documents";
+import { pathToTabId, tabIdToPath } from "@/api/lastVisited";
 import TabPane, { type PaneId, type PaneState } from "./components/TabPane";
 import {
     useDocumentTree,
     useDailyNotes,
+    documentKeys,
 } from "@/hooks/useDocuments";
 import {
     useCreateEntity,
@@ -132,6 +136,7 @@ interface SplitState {
 }
 
 function AppContent() {
+    const appQueryClient = useQueryClient();
     const { data: docs = [], unfoldedIds, isLoading } = useDocumentTree();
     const { data: dailyNotes } = useDailyNotes();
     const createEntityMutation = useCreateEntity();
@@ -251,20 +256,38 @@ function AppContent() {
         if (!hasRestoredLastVisited.current && lastVisitedLoaded && !hasRestoredFromUrl.current) {
             hasRestoredLastVisited.current = true;
             if (lastVisited) {
-                handleSelectDocument(lastVisited.documentId);
+                const tabId = pathToTabId(lastVisited);
+                if (tabId === "daily-note") {
+                    // /api/v1/daily-notes (오늘) → dailyNotes 목록에서 오늘 날짜 PK 검색
+                    const today = new Date().toISOString().slice(0, 10);
+                    const todayNote = dailyNotesRef.current?.find((dn: DailyNoteDetail) => dn.date === today);
+                    if (todayNote) {
+                        handleSelectDocument(`daily-${todayNote.dailyNoteId}`);
+                    } else {
+                        // 목록에 없으면 날짜로 조회 후 PK 획득
+                        fetchDailyNoteByDate(today).then((detail) => {
+                            handleSelectDocument(`daily-${detail.dailyNoteId}`);
+                        }).catch(() => {});
+                    }
+                } else {
+                    handleSelectDocument(tabId);
+                }
             } else {
-                // 새 사용자: Daily Note 자동 열기
-                handleSelectDocument("daily-note");
+                // 새 사용자: 오늘의 Daily Note 열기
+                const today = new Date().toISOString().slice(0, 10);
+                fetchDailyNoteByDate(today).then((detail) => {
+                    handleSelectDocument(`daily-${detail.dailyNoteId}`);
+                }).catch(() => {});
             }
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [lastVisited, lastVisitedLoaded]);
 
-    // 세션 종료 시 마지막 방문 문서 서버 전송
+    // 세션 종료 시 마지막 방문 경로 서버 전송
     useEffect(() => {
         const handleBeforeUnload = () => {
-            const raw = localStorage.getItem("last_visited");
-            if (!raw) return;
+            const path = localStorage.getItem("last_visited");
+            if (!path) return;
             const token = localStorage.getItem("accessToken");
             if (!token) return;
 
@@ -274,7 +297,7 @@ function AppContent() {
                     "Content-Type": "application/json",
                     Authorization: `Bearer ${token}`,
                 },
-                body: raw,
+                body: JSON.stringify(path),
                 keepalive: true,
             });
         };
@@ -286,8 +309,8 @@ function AppContent() {
     const handleSelectDocument = useCallback((id: string) => {
         const isCalendar = id === "calendar-view";
         const isKanban = id === "kanban-view";
-        const isDaily = id === "daily-note"
-            || !!dailyNotesRef.current?.children?.some(c => c.id === id);
+        const dailyPkMatch = id.match(/^daily-(\d+)$/);
+        const isDaily = !!dailyPkMatch;
 
         let name: string;
         let docType: DocType | undefined;
@@ -297,11 +320,12 @@ function AppContent() {
             name = "Calendar";
         } else if (isKanban) {
             name = "Kanban";
+        } else if (isDaily) {
+            const pk = Number(dailyPkMatch[1]);
+            const dailyNote = dailyNotesRef.current?.find((dn: DailyNoteDetail) => dn.dailyNoteId === pk);
+            name = dailyNote?.date ?? id;
         } else {
-            const allDocs = dailyNotesRef.current
-                ? [dailyNotesRef.current, ...docsRef.current]
-                : docsRef.current;
-            const doc = findDocById(allDocs, id);
+            const doc = findDocById(docsRef.current, id);
             name = doc?.name ?? id;
             docType = doc?.type;
             children = doc?.children
@@ -555,14 +579,45 @@ function AppContent() {
 
     // 문서 선택 + 최근 방문 기록
     const handleSelectDocumentWithTracking = useCallback((id: string) => {
-        handleSelectDocument(id);
-        const isSpecial = id === "calendar-view" || id === "kanban-view" || id === "daily-note"
-            || !!dailyNotesRef.current?.children?.some(c => c.id === id);
-        if (!isSpecial) {
-            const doc = findDocById(docsRef.current, id);
-            if (doc?.type) {
-                updateLastVisitedMutation.mutate({ documentId: id, docType: doc.type });
+        // CalendarPage/ActivityBar에서 날짜 형식으로 올 수 있음 (daily-YYYY-MM-DD)
+        const dailyDateMatch = id.match(/^daily-(\d{4}-\d{2}-\d{2})$/);
+        if (dailyDateMatch) {
+            const date = dailyDateMatch[1];
+            const found = dailyNotesRef.current?.find((dn: DailyNoteDetail) => dn.date === date);
+            if (found) {
+                const dailyId = `daily-${found.dailyNoteId}`;
+                handleSelectDocument(dailyId);
+                updateLastVisitedMutation.mutate(tabIdToPath(dailyId));
+            } else {
+                fetchDailyNoteByDate(date).then((detail) => {
+                    const dailyId = `daily-${detail.dailyNoteId}`;
+                    handleSelectDocument(dailyId);
+                    updateLastVisitedMutation.mutate(tabIdToPath(dailyId));
+                    appQueryClient.invalidateQueries({ queryKey: documentKeys.dailyNotes() });
+                }).catch(() => {});
             }
+            return;
+        }
+
+        // daily-{PK} 패턴
+        const dailyPkMatch = id.match(/^daily-(\d+)$/);
+        if (dailyPkMatch) {
+            handleSelectDocument(id);
+            updateLastVisitedMutation.mutate(tabIdToPath(id));
+            return;
+        }
+
+        // calendar-view, kanban-view 등 특수 탭은 추적하지 않음
+        if (id === "calendar-view" || id === "kanban-view") {
+            handleSelectDocument(id);
+            return;
+        }
+
+        // 일반 엔티티
+        handleSelectDocument(id);
+        const doc = findDocById(docsRef.current, id);
+        if (doc?.type) {
+            updateLastVisitedMutation.mutate(tabIdToPath(id, doc.type));
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [handleSelectDocument]);

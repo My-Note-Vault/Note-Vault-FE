@@ -55,6 +55,12 @@ export default function Editor({
     endDate: undefined,
   });
 
+  // daily-{PK} 형식에서 PK 추출
+  const dailyPk = isDailyNote ? (() => {
+    const match = documentId.match(/^daily-(\d+)$/);
+    return match ? Number(match[1]) : null;
+  })() : null;
+
   // 엔티티 상세 조회
   const {
     data: entityDetail,
@@ -68,15 +74,14 @@ export default function Editor({
     isLoading: isDailyLoading,
     isError: isDailyError,
     refetch: refetchDaily,
-  } = useDailyNoteDetail(isDailyNote);
+  } = useDailyNoteDetail(dailyPk);
 
   const detail = isDailyNote ? dailyDetail : entityDetail;
   const loading = isNew ? false : isDailyNote ? isDailyLoading : isEntityLoading;
   const isError = isNew ? false : isDailyNote ? isDailyError : isEntityError;
   const refetch = isDailyNote ? refetchDaily : refetchEntity;
 
-  // daily note id는 상세 조회 결과에서 가져옴
-  const dailyNoteId = dailyDetail?.dailyNoteId;
+  const dailyNoteId = dailyPk ?? dailyDetail?.dailyNoteId;
 
   // 서버에서 받은 메타데이터 반영
   useEffect(() => {

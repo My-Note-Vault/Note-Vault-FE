@@ -5,7 +5,7 @@ import {
   fetchUnfoldedNotes,
   searchDocuments,
   fetchDailyNotes,
-  fetchDailyNoteDetail,
+  fetchDailyNoteByPk,
   updateDailyNote,
   fetchCalendarStats,
 } from "@/api/documents";
@@ -75,7 +75,7 @@ export const documentKeys = {
   unfolded: () => [...documentKeys.all, "unfolded"] as const,
   search: (query: string) => [...documentKeys.all, "search", query] as const,
   dailyNotes: () => ["daily-notes"] as const,
-  dailyNoteDetail: () => ["daily-notes", "detail"] as const,
+  dailyNoteDetail: (pk: number) => ["daily-notes", "detail", pk] as const,
   calendarStats: (year: number, month: number) =>
     [...documentKeys.all, "calendar-stats", year, month] as const,
 };
@@ -130,13 +130,13 @@ export const useDocumentTree = () => {
   };
 };
 
-// Daily Notes 트리 조회 — localStorage 캐시 우선 로드
+// Daily Notes 목록 조회 — localStorage 캐시 우선 로드
 export const useDailyNotes = () => {
   const query = useQuery({
     queryKey: documentKeys.dailyNotes(),
     queryFn: fetchDailyNotes,
     staleTime: 1000 * 60 * 5,
-    initialData: () => readCache<SidebarItem>(DAILY_CACHE_KEY),
+    initialData: () => readCache<DailyNoteDetail[]>(DAILY_CACHE_KEY),
     initialDataUpdatedAt: () =>
       Number(localStorage.getItem(DAILY_CACHE_TS_KEY)) || undefined,
   });
@@ -150,12 +150,12 @@ export const useDailyNotes = () => {
   return query;
 };
 
-// Daily Note 상세 조회 (오늘 날짜 기준)
-export const useDailyNoteDetail = (enabled: boolean) => {
+// Daily Note 상세 조회 (PK 기반)
+export const useDailyNoteDetail = (pk: number | null) => {
   return useQuery({
-    queryKey: documentKeys.dailyNoteDetail(),
-    queryFn: fetchDailyNoteDetail,
-    enabled,
+    queryKey: documentKeys.dailyNoteDetail(pk!),
+    queryFn: () => fetchDailyNoteByPk(pk!),
+    enabled: pk !== null,
     staleTime: 1000 * 30,
   });
 };
@@ -173,7 +173,6 @@ export const useUpdateDailyNote = () => {
     mutationFn: ({dailyNoteId, body}: UpdateDailyNoteRequest) =>
       updateDailyNote(dailyNoteId, body),
     onSuccess: () => {
-      // DailyNote 수정 성공 시 사이드바의 dailyNotes 목록을 갱신
       queryClient.invalidateQueries({ queryKey: documentKeys.dailyNotes() });
     },
   });

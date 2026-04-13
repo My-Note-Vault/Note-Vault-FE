@@ -31,6 +31,7 @@ DOCUMENT_SEARCH: `${API_BASE}/search`,
 // Daily Note Endpoints
 DAILY_NOTES_ALL: `${API_BASE}/daily-notes/all`,
 DAILY_NOTE: `${API_BASE}/daily-notes`,
+DAILY_NOTE_DETAIL: (id: string | number) => `${API_BASE}/daily-notes/${id}`,
 
 // Calendar Endpoints
 CALENDAR_STATS: `${API_BASE}/calendar/stats`,

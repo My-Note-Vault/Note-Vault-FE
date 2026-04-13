@@ -3,7 +3,6 @@ import { endpoints } from "@/constants/endpoints";
 import type {
   NoteInfo,
   UnfoldedNote,
-  SidebarItem,
   SearchResult,
   CalendarStatsResponse,
 } from "@/types/common";
@@ -11,6 +10,7 @@ import type {
 // DailyNote 상세 타입
 export interface DailyNoteDetail {
   dailyNoteId: number;
+  date: string;
   todayTodo: string;
   tomorrowTodo: string;
   memo: string;
@@ -40,15 +40,27 @@ export const searchDocuments = async (
   return data;
 };
 
-// Daily Notes 트리 조회
-export const fetchDailyNotes = async (): Promise<SidebarItem> => {
-  const { data } = await apiClient.get<SidebarItem>(endpoints.DAILY_NOTES_ALL);
+// Daily Notes 목록 조회
+export const fetchDailyNotes = async (): Promise<DailyNoteDetail[]> => {
+  const { data } = await apiClient.get<DailyNoteDetail[]>(endpoints.DAILY_NOTES_ALL);
   return data;
 };
 
 // Daily Note 상세 조회 (오늘 날짜 기준)
 export const fetchDailyNoteDetail = async (): Promise<DailyNoteDetail> => {
   const { data } = await apiClient.get<DailyNoteDetail>(endpoints.DAILY_NOTE);
+  return data;
+};
+
+// Daily Note PK로 조회
+export const fetchDailyNoteByPk = async (pk: number): Promise<DailyNoteDetail> => {
+  const { data } = await apiClient.get<DailyNoteDetail>(endpoints.DAILY_NOTE_DETAIL(pk));
+  return data;
+};
+
+// Daily Note 날짜로 조회
+export const fetchDailyNoteByDate = async (date: string): Promise<DailyNoteDetail> => {
+  const { data } = await apiClient.get<DailyNoteDetail>(endpoints.DAILY_NOTE_DETAIL(date));
   return data;
 };
 

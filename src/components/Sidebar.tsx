@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { ChevronRight, FileText, CalendarDays, FolderClosed, Plus, Layout, ListChecks, ListTodo, Sparkles, Search, X, Loader2, Trash2, Columns3 } from "lucide-react";
 import { useSearchDocuments } from "@/hooks/useDocuments";
+import type { DailyNoteDetail } from "@/api/documents";
 
 export type { DocType, SidebarItem, SearchResult } from "@/types/common";
 import type { DocType, SidebarItem, SearchResult } from "@/types/common";
@@ -189,10 +190,68 @@ function DocItem({ doc, depth, selectedId, onSelect, onAddItem, onDeleteItem, ic
   );
 }
 
+function DailyNotesSection({
+  dailyNotes,
+  selectedId,
+  onSelect,
+}: {
+  dailyNotes: DailyNoteDetail[];
+  selectedId: string | null;
+  onSelect: (id: string) => void;
+}) {
+  const [expanded, setExpanded] = useState(true);
+
+  return (
+    <div>
+      <div
+        className="flex items-center gap-1 px-2 py-1.5 rounded-md cursor-pointer text-sm text-sidebar-foreground hover:bg-sidebar-accent/50 transition-colors"
+        onClick={() => setExpanded(!expanded)}
+      >
+        <button
+          className="p-0.5 rounded hover:bg-sidebar-border transition-colors"
+          onClick={(e) => {
+            e.stopPropagation();
+            setExpanded(!expanded);
+          }}
+        >
+          <ChevronRight
+            className={`h-3.5 w-3.5 transition-transform ${expanded ? "rotate-90" : ""}`}
+          />
+        </button>
+        <CalendarDays className="h-4 w-4 shrink-0 opacity-60" />
+        <span className="truncate flex-1">Daily Notes</span>
+      </div>
+
+      {expanded && (
+        <div>
+          {dailyNotes.map((dn) => {
+            const tabId = `daily-${dn.dailyNoteId}`;
+            return (
+              <div
+                key={dn.dailyNoteId}
+                className={`flex items-center gap-1 px-2 py-1.5 rounded-md cursor-pointer text-sm transition-colors
+                  ${selectedId === tabId
+                    ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                    : "text-sidebar-foreground hover:bg-sidebar-accent/50"}`}
+                style={{ paddingLeft: "20px" }}
+                onClick={() => onSelect(tabId)}
+              >
+                <span className="w-4.5" />
+                <CalendarDays className="h-4 w-4 shrink-0 opacity-60" />
+                <span className="truncate flex-1">{dn.date}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 interface SidebarProps {
   onSelectSidebarItem?: (id: string) => void;
   docs: SidebarItem[];
-  dailyNotes?: SidebarItem;
+  dailyNotes?: DailyNoteDetail[];
   onAddItem?: (parentId: string) => void;
   onAddSpace?: () => void;
   onDeleteItem?: (id: string) => void;
@@ -288,13 +347,11 @@ export default function Sidebar({ onSelectSidebarItem, docs, dailyNotes, onAddIt
             /* 기본 문서 트리 */
             <>
               <div className="space-y-0.5">
-                {dailyNotes?.children && dailyNotes.children.length > 0 && (
-                  <DocItem
-                    doc={dailyNotes}
-                    depth={0}
+                {dailyNotes && dailyNotes.length > 0 && (
+                  <DailyNotesSection
+                    dailyNotes={dailyNotes}
                     selectedId={selectedId}
                     onSelect={handleSelect}
-                    icon="calendar"
                   />
                 )}
                 <div
