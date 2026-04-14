@@ -12,7 +12,7 @@ export const fetchLastVisited = async (): Promise<string | null> => {
 };
 
 export const updateLastVisited = async (path: string): Promise<void> => {
-  await apiClient.put(endpoints.LAST_VISITED, path);
+  await apiClient.put(endpoints.LAST_VISITED, { path });
 };
 
 const PATH_TO_DOCTYPE: Record<string, DocType> = {
