@@ -1,17 +1,137 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import MarkdownEditor, { type MarkdownEditorHandle } from "@/components/MarkdownEditor";
-import { ChevronRight, Loader2, AlertTriangle, RefreshCw } from "lucide-react";
+import { ChevronRight, Loader2, AlertTriangle, RefreshCw, Check, Undo2, ArrowUp, ArrowDown, Plus, Trash2 } from "lucide-react";
 import type { DocType } from "@/types/common";
 import TaskMetadata, { type TaskMetadataValues } from "@/components/TaskMetadata";
-import { useDailyNoteDetail, useUpdateDailyNote, documentKeys } from "@/hooks/useDocuments";
-import type { DailyNoteDetail } from "@/api/documents";
+import { useDailyNoteDetail, useUpdateDailyNote, useAddDailyNoteItem, useUpdateDailyNoteItem, useDeleteDailyNoteItem, documentKeys } from "@/hooks/useDocuments";
+import type { DailyNoteDetail, DailyNoteItem } from "@/api/documents";
 import { useEntityDetail, useAutoSaveEntity, useUpdateEntity, type EntityDetail } from "@/hooks/useEntity";
 import type { TaskDetail } from "@/types/task";
 import type { SubTaskDetail } from "@/types/subtask";
 
 function hasMetadata(detail: EntityDetail): detail is TaskDetail | SubTaskDetail {
   return "metadata" in detail && detail.metadata != null;
+}
+
+interface DailyNoteItemListProps {
+  label: string;
+  items: DailyNoteItem[];
+  dailyNoteId: number;
+  itemType: "PENDING" | "TODO";
+  promoteLabel: string;
+  promoteIcon: React.ReactNode;
+  onToggleComplete: (item: DailyNoteItem) => void;
+  onChangeType: (item: DailyNoteItem) => void;
+  onDelete: (item: DailyNoteItem) => void;
+  onAdd: (content: string) => void;
+}
+
+function DailyNoteItemList({
+  label,
+  items,
+  promoteLabel,
+  promoteIcon,
+  onToggleComplete,
+  onChangeType,
+  onDelete,
+  onAdd,
+}: DailyNoteItemListProps) {
+  const [adding, setAdding] = useState(false);
+  const [newContent, setNewContent] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (adding) inputRef.current?.focus();
+  }, [adding]);
+
+  const handleSubmit = () => {
+    const trimmed = newContent.trim();
+    if (!trimmed) return;
+    onAdd(trimmed);
+    setNewContent("");
+  };
+
+  return (
+    <div className="px-12 pt-4 pb-1">
+      <div className="border-t border-border mb-4" />
+      <h3 className="text-sm font-medium text-muted-foreground mb-2">{label}</h3>
+      <div className="space-y-1">
+        {items.map((item, idx) => (
+          <div
+            key={item.id}
+            className="group/item flex items-center gap-2 py-1 rounded-md text-sm"
+          >
+            <span className="w-5 text-right text-muted-foreground/60 shrink-0 text-xs">{idx + 1}.</span>
+            <span className={`flex-1 min-w-0 truncate ${item.completed ? "line-through text-muted-foreground/50" : ""}`}>
+              {item.content}
+            </span>
+            <div className="flex items-center gap-0.5 opacity-0 group-hover/item:opacity-100 transition-opacity shrink-0">
+              {item.completed ? (
+                <button
+                  onClick={() => onToggleComplete(item)}
+                  className="p-1 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+                  title="되돌리기"
+                >
+                  <Undo2 className="h-3.5 w-3.5" />
+                </button>
+              ) : (
+                <>
+                  <button
+                    onClick={() => onChangeType(item)}
+                    className="p-1 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+                    title={`${promoteLabel}(으)로 이동`}
+                  >
+                    {promoteIcon}
+                  </button>
+                  <button
+                    onClick={() => onToggleComplete(item)}
+                    className="p-1 rounded hover:bg-green-500/20 text-muted-foreground hover:text-green-600 transition-colors"
+                    title="완료"
+                  >
+                    <Check className="h-3.5 w-3.5" />
+                  </button>
+                </>
+              )}
+              <button
+                onClick={() => onDelete(item)}
+                className="p-1 rounded hover:bg-red-500/20 text-muted-foreground hover:text-red-500 transition-colors"
+                title="삭제"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {adding ? (
+        <div className="flex items-center gap-2 mt-1">
+          <input
+            ref={inputRef}
+            type="text"
+            value={newContent}
+            onChange={(e) => setNewContent(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") { e.preventDefault(); handleSubmit(); }
+              if (e.key === "Escape") { setAdding(false); setNewContent(""); }
+            }}
+            onBlur={() => { if (!newContent.trim()) { setAdding(false); setNewContent(""); } }}
+            placeholder="내용 입력 후 Enter"
+            className="flex-1 px-2 py-1 text-sm bg-transparent border border-border rounded-md outline-none focus:border-primary/50"
+          />
+        </div>
+      ) : (
+        <button
+          onClick={() => setAdding(true)}
+          className="flex items-center gap-1 mt-1 px-1 py-1 text-sm text-muted-foreground/60 hover:text-foreground transition-colors"
+        >
+          <Plus className="h-3.5 w-3.5" />
+          <span>추가</span>
+        </button>
+      )}
+    </div>
+  );
 }
 
 interface EditorProps {
@@ -36,7 +156,7 @@ export default function Editor({
   isNew,
 }: EditorProps) {
   const queryClient = useQueryClient();
-  const [title, setTitle] = useState(isDailyNote ? "TODO" : documentName);
+  const [title, setTitle] = useState(isDailyNote ? documentName : documentName);
   const editorRef = useRef<MarkdownEditorHandle>(null);
   const renameTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onRenameDocumentRef = useRef(onRenameDocument);
@@ -96,7 +216,7 @@ export default function Editor({
   }, [detail, isDailyNote]);
 
   useEffect(() => {
-    setTitle(isDailyNote ? "TODO" : documentName);
+    setTitle(documentName);
   }, [isDailyNote, documentName]);
 
   // DailyNote 조회 성공 시 사이드바 갱신 (처음 열었을 때도 사이드바에 나타나도록)
@@ -119,22 +239,21 @@ export default function Editor({
     [documentId, docType, autoSaveMutation],
   );
 
-  // 자동 저장 (DailyNote)
+  // 자동 저장 (DailyNote content)
   const dailyUpdateMutation = useUpdateDailyNote();
 
-  const handleDailyAutoSave = useCallback(
-    (field: "todayTodo" | "tomorrowTodo" | "memo", content: string) => {
+  const handleDailyContentAutoSave = useCallback(
+    (content: string) => {
       if (!isDailyNote || !dailyNoteId) return;
-
-      dailyUpdateMutation.mutate({
-        dailyNoteId,
-        body: {
-          [field]: content,
-        },
-      });
+      dailyUpdateMutation.mutate({ dailyNoteId, body: { content } });
     },
     [isDailyNote, dailyNoteId, dailyUpdateMutation],
   );
+
+  // DailyNote 아이템 mutations
+  const addItemMutation = useAddDailyNoteItem();
+  const updateItemMutation = useUpdateDailyNoteItem();
+  const deleteItemMutation = useDeleteDailyNoteItem();
 
   // 메타데이터 변경 저장
   const updateMutation = useUpdateEntity();
@@ -190,41 +309,72 @@ export default function Editor({
 
   if (isDailyNote) {
     const daily = dailyDetail as DailyNoteDetail | undefined;
+    const pendingItems = daily?.items?.filter((i) => i.type === "PENDING") ?? [];
+    const todoItems = daily?.items?.filter((i) => i.type === "TODO") ?? [];
 
     return (
       <div className="min-h-screen bg-background">
         <div className="max-w-[54.4rem] mx-auto p-6">
+          {/* Title */}
           <input
             type="text"
-            value={title}
+            value={daily?.date ?? ""}
             readOnly
             className="w-full px-12 pt-4 pb-0 text-xl font-semibold bg-transparent outline-none"
           />
 
-          <div className="px-12 pt-6 pb-1">
-            <h3 className="text-sm font-medium text-muted-foreground">오늘 할 일</h3>
-          </div>
-          <MarkdownEditor
-            initialContent={daily?.todayTodo ?? ""}
-            onAutoSave={(content) => handleDailyAutoSave("todayTodo", content)}
+          {/* Pending */}
+          <DailyNoteItemList
+            label="Pending"
+            items={pendingItems}
+            dailyNoteId={dailyNoteId!}
+            itemType="PENDING"
+            promoteLabel="Todo"
+            promoteIcon={<ArrowDown className="h-3.5 w-3.5" />}
+            onToggleComplete={(item) =>
+              updateItemMutation.mutate({ dailyNoteId: dailyNoteId!, itemId: item.id, body: { completed: !item.completed } })
+            }
+            onChangeType={(item) =>
+              updateItemMutation.mutate({ dailyNoteId: dailyNoteId!, itemId: item.id, body: { type: "TODO" } })
+            }
+            onDelete={(item) =>
+              deleteItemMutation.mutate({ dailyNoteId: dailyNoteId!, itemId: item.id })
+            }
+            onAdd={(content) =>
+              addItemMutation.mutate({ dailyNoteId: dailyNoteId!, body: { type: "PENDING", content } })
+            }
           />
 
-          <div className="px-12 pt-4 pb-1">
-            <div className="border-t border-border mb-4" />
-            <h3 className="text-sm font-medium text-muted-foreground">내일 할 일</h3>
-          </div>
-          <MarkdownEditor
-            initialContent={daily?.tomorrowTodo ?? ""}
-            onAutoSave={(content) => handleDailyAutoSave("tomorrowTodo", content)}
+          {/* Todo */}
+          <DailyNoteItemList
+            label="Todo"
+            items={todoItems}
+            dailyNoteId={dailyNoteId!}
+            itemType="TODO"
+            promoteLabel="Pending"
+            promoteIcon={<ArrowUp className="h-3.5 w-3.5" />}
+            onToggleComplete={(item) =>
+              updateItemMutation.mutate({ dailyNoteId: dailyNoteId!, itemId: item.id, body: { completed: !item.completed } })
+            }
+            onChangeType={(item) =>
+              updateItemMutation.mutate({ dailyNoteId: dailyNoteId!, itemId: item.id, body: { type: "PENDING" } })
+            }
+            onDelete={(item) =>
+              deleteItemMutation.mutate({ dailyNoteId: dailyNoteId!, itemId: item.id })
+            }
+            onAdd={(content) =>
+              addItemMutation.mutate({ dailyNoteId: dailyNoteId!, body: { type: "TODO", content } })
+            }
           />
 
+          {/* Content */}
           <div className="px-12 pt-4 pb-1">
             <div className="border-t border-border mb-4" />
-            <h3 className="text-sm font-medium text-muted-foreground">메모</h3>
+            <h3 className="text-sm font-medium text-muted-foreground">Content</h3>
           </div>
           <MarkdownEditor
-            initialContent={daily?.memo ?? ""}
-            onAutoSave={(content) => handleDailyAutoSave("memo", content)}
+            initialContent={daily?.content ?? ""}
+            onAutoSave={handleDailyContentAutoSave}
           />
         </div>
       </div>

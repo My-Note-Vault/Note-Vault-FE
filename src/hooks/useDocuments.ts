@@ -7,9 +7,12 @@ import {
   fetchDailyNotes,
   fetchDailyNoteByPk,
   updateDailyNote,
+  addDailyNoteItem,
+  updateDailyNoteItem,
+  deleteDailyNoteItem,
   fetchCalendarStats,
 } from "@/api/documents";
-import type { DailyNoteDetail } from "@/api/documents";
+import type { DailyNoteDetail, DailyNoteItem } from "@/api/documents";
 import type { NoteInfo, UnfoldedNote, SidebarItem } from "@/types/common";
 import { noteTypeToDocType } from "@/types/common";
 
@@ -162,10 +165,10 @@ export const useDailyNoteDetail = (pk: number | null) => {
 
 type UpdateDailyNoteRequest = {
   dailyNoteId: number;
-  body: Partial<Pick<DailyNoteDetail, "todayTodo" | "tomorrowTodo" | "memo">>;
+  body: { content: string };
 };
 
-// Daily Note 수정
+// Daily Note content 수정
 export const useUpdateDailyNote = () => {
   const queryClient = useQueryClient();
 
@@ -174,6 +177,48 @@ export const useUpdateDailyNote = () => {
       updateDailyNote(dailyNoteId, body),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: documentKeys.dailyNotes() });
+    },
+  });
+};
+
+// Daily Note 아이템 추가
+export const useAddDailyNoteItem = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ dailyNoteId, body }: { dailyNoteId: number; body: { type: "PENDING" | "TODO"; content: string } }) =>
+      addDailyNoteItem(dailyNoteId, body),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: documentKeys.dailyNoteDetail(variables.dailyNoteId) });
+    },
+  });
+};
+
+// Daily Note 아이템 수정 (완료 토글, 타입 변경, 내용 수정)
+export const useUpdateDailyNoteItem = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ dailyNoteId, itemId, body }: {
+      dailyNoteId: number;
+      itemId: number;
+      body: Partial<Pick<DailyNoteItem, "type" | "content" | "completed">>;
+    }) => updateDailyNoteItem(dailyNoteId, itemId, body),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: documentKeys.dailyNoteDetail(variables.dailyNoteId) });
+    },
+  });
+};
+
+// Daily Note 아이템 삭제
+export const useDeleteDailyNoteItem = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ dailyNoteId, itemId }: { dailyNoteId: number; itemId: number }) =>
+      deleteDailyNoteItem(dailyNoteId, itemId),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: documentKeys.dailyNoteDetail(variables.dailyNoteId) });
     },
   });
 };

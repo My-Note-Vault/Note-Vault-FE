@@ -7,13 +7,20 @@ import type {
   CalendarStatsResponse,
 } from "@/types/common";
 
+// DailyNote 아이템 타입
+export interface DailyNoteItem {
+  id: number;
+  type: "PENDING" | "TODO";
+  content: string;
+  completed: boolean;
+}
+
 // DailyNote 상세 타입
 export interface DailyNoteDetail {
   dailyNoteId: number;
   date: string;
-  todayTodo: string;
-  tomorrowTodo: string;
-  memo: string;
+  items: DailyNoteItem[];
+  content: string;
 }
 
 // 전체 NoteInfo 조회 (flat list)
@@ -64,13 +71,40 @@ export const fetchDailyNoteByDate = async (date: string): Promise<DailyNoteDetai
   return data;
 };
 
-// Daily Note 수정
+// Daily Note content 수정
 export const updateDailyNote = async (
   dailyNoteId: number,
-  body: Partial<Pick<DailyNoteDetail, "todayTodo" | "tomorrowTodo" | "memo">>,
+  body: { content: string },
 ): Promise<DailyNoteDetail> => {
   const { data } = await apiClient.patch<DailyNoteDetail>(`${endpoints.DAILY_NOTE}/${dailyNoteId}`, body);
   return data;
+};
+
+// Daily Note 아이템 추가
+export const addDailyNoteItem = async (
+  dailyNoteId: number,
+  body: { type: "PENDING" | "TODO"; content: string },
+): Promise<DailyNoteItem> => {
+  const { data } = await apiClient.post<DailyNoteItem>(endpoints.DAILY_NOTE_ITEMS(dailyNoteId), body);
+  return data;
+};
+
+// Daily Note 아이템 수정 (완료 토글, 타입 변경, 내용 수정)
+export const updateDailyNoteItem = async (
+  dailyNoteId: number,
+  itemId: number,
+  body: Partial<Pick<DailyNoteItem, "type" | "content" | "completed">>,
+): Promise<DailyNoteItem> => {
+  const { data } = await apiClient.patch<DailyNoteItem>(endpoints.DAILY_NOTE_ITEM(dailyNoteId, itemId), body);
+  return data;
+};
+
+// Daily Note 아이템 삭제
+export const deleteDailyNoteItem = async (
+  dailyNoteId: number,
+  itemId: number,
+): Promise<void> => {
+  await apiClient.delete(endpoints.DAILY_NOTE_ITEM(dailyNoteId, itemId));
 };
 
 // 캘린더 월별 통계 조회
