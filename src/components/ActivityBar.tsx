@@ -8,8 +8,6 @@ interface ActivityBarProps {
 }
 
 export default function ActivityBar({ onSelectItem, sidebarOpen, onToggleSidebar }: ActivityBarProps) {
-  const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-
   return (
     <aside className="h-screen w-12 bg-sidebar-background border-r border-sidebar-border flex flex-col items-center py-3 gap-2 shrink-0">
       <button
@@ -20,7 +18,7 @@ export default function ActivityBar({ onSelectItem, sidebarOpen, onToggleSidebar
         {sidebarOpen ? <PanelLeftClose className="h-5 w-5" /> : <PanelLeft className="h-5 w-5" />}
       </button>
       <button
-        onClick={() => onSelectItem?.(`daily-${today}`)}
+        onClick={() => onSelectItem?.("daily-notes")}
         className="p-2 rounded-md hover:bg-sidebar-accent transition-colors text-sidebar-foreground"
         title="오늘의 DailyNote"
       >

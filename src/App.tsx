@@ -578,7 +578,18 @@ function AppContent() {
 
     // 문서 선택 + 최근 방문 기록
     const handleSelectDocumentWithTracking = useCallback((id: string) => {
-        // CalendarPage/ActivityBar에서 날짜 형식으로 올 수 있음 (daily-YYYY-MM-DD)
+        // "daily-notes" → 오늘자 DailyNote 조회(없으면 생성) 후 열기
+        if (id === "daily-notes") {
+            fetchDailyNoteDetail().then((detail) => {
+                const dailyId = `daily-${detail.dailyNoteId}`;
+                handleSelectDocument(dailyId);
+                updateLastVisitedMutation.mutate(tabIdToPath(dailyId));
+                appQueryClient.invalidateQueries({ queryKey: documentKeys.dailyNotes() });
+            }).catch(() => {});
+            return;
+        }
+
+        // CalendarPage에서 날짜 형식으로 올 수 있음 (daily-YYYY-MM-DD)
         const dailyDateMatch = id.match(/^daily-(\d{4}-\d{2}-\d{2})$/);
         if (dailyDateMatch) {
             const date = dailyDateMatch[1];
