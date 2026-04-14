@@ -43,7 +43,7 @@ function normalizeProfileDefaults(profile?: {
   return {
     nickname: profile?.nickname ?? "",
     dayStartHour:
-      typeof profile?.dayStartHour === "number" ? profile.dayStartHour : 6,
+      typeof profile?.dayStartHour === "number" ? profile.dayStartHour : 0,
     dayStartMinute:
       typeof profile?.dayStartMinute === "number" ? profile.dayStartMinute : 0,
   };
@@ -211,7 +211,7 @@ export default function ProfileSetupPage() {
                   >
                     <SelectTrigger className="flex-1">
                       <SelectValue placeholder="시 선택">
-                        {`${Number(field.value ?? 6)}시`}
+                        {`${Number(field.value ?? 0)}시`}
                       </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
