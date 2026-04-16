@@ -370,9 +370,13 @@ export default function Editor({
               />
             </div>
 
+            {/* Divider */}
+            <div className="px-12 lg:px-0">
+              <div className="border-t border-border lg:border-t-0 lg:border-l lg:self-stretch lg:mx-0" />
+            </div>
+
             {/* Right: Content (no label) */}
             <div className="lg:w-1/2 pt-4">
-              <div className="px-12 border-t border-border mb-4 lg:hidden" />
               <MarkdownEditor
                 initialContent={daily?.content ?? ""}
                 onAutoSave={handleDailyContentAutoSave}
