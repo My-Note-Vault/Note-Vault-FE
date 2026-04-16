@@ -29,6 +29,7 @@ import LandingPage from "./page/LandingPage";
 import OAuthCallbackPage from "./page/OAuthCallbackPage";
 import ProfileSetupPage from "./page/ProfileSetupPage";
 import { AlertTriangle, RefreshCw } from "lucide-react";
+import { ThemeProvider } from "next-themes";
 
 const queryClient = new QueryClient({
     defaultOptions: {
@@ -688,6 +689,7 @@ function AppContent() {
 
 const App = () => {
     return (
+        <ThemeProvider attribute="class" defaultTheme="dark">
         <QueryClientProvider client={queryClient}>
             <BrowserRouter>
                 <AuthProvider>
@@ -703,6 +705,7 @@ const App = () => {
                 </AuthProvider>
             </BrowserRouter>
         </QueryClientProvider>
+        </ThemeProvider>
     );
 };
 

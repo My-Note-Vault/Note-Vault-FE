@@ -371,9 +371,7 @@ export default function Editor({
             </div>
 
             {/* Divider */}
-            <div className="px-12 lg:px-0">
-              <div className="border-t border-border lg:border-t-0 lg:border-l lg:self-stretch lg:mx-0" />
-            </div>
+            <div className="border-t border-border/50 lg:border-t-0 lg:border-l lg:border-border/50" />
 
             {/* Right: Content (no label) */}
             <div className="lg:w-1/2 pt-4">
