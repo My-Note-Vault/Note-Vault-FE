@@ -490,29 +490,32 @@ export default function Sidebar({ onSelectSidebarItem, docs, dailyNotes, onAddIt
               <div className="my-2 border-t border-sidebar-border" />
 
               <div className="space-y-0.5">
-                {selectedWorkspace?.children && sortFoldersFirst(selectedWorkspace.children).map((doc) => (
-                  <DocItem
-                    key={doc.id}
-                    doc={doc}
-                    depth={0}
-                    selectedId={selectedId}
-                    onSelect={handleSelect}
-                    onAddItem={onAddItem}
-                    onDeleteItem={onDeleteItem}
-                    unfoldedIds={unfoldedIds}
-                  />
-                ))}
+                {selectedWorkspace && (
+                  <>
+                    <DocItem
+                      doc={{ ...selectedWorkspace, children: undefined }}
+                      depth={0}
+                      selectedId={selectedId}
+                      onSelect={handleSelect}
+                      onAddItem={onAddItem}
+                      onDeleteItem={onDeleteItem}
+                      unfoldedIds={unfoldedIds}
+                    />
+                    {selectedWorkspace.children && sortFoldersFirst(selectedWorkspace.children).map((doc) => (
+                      <DocItem
+                        key={doc.id}
+                        doc={doc}
+                        depth={0}
+                        selectedId={selectedId}
+                        onSelect={handleSelect}
+                        onAddItem={onAddItem}
+                        onDeleteItem={onDeleteItem}
+                        unfoldedIds={unfoldedIds}
+                      />
+                    ))}
+                  </>
+                )}
               </div>
-
-              {selectedWorkspaceId && onAddItem && (
-                <button
-                  onClick={() => onAddItem(selectedWorkspaceId)}
-                  className="flex items-center gap-1 w-full px-2 py-1.5 mt-1 rounded-md text-sm text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent/50 transition-colors"
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                  <span>Task 추가</span>
-                </button>
-              )}
             </>
           )}
         </nav>
