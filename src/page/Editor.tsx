@@ -55,7 +55,7 @@ function DailyNoteItemList({
   return (
     <div className="px-12 pt-4 pb-1">
       <div className="border-t border-border mb-4" />
-      <h3 className="text-sm font-medium text-muted-foreground mb-2">{label}</h3>
+      <h3 className="text-base font-semibold text-foreground mb-2">{label}</h3>
       <div className="space-y-1">
         {items.map((item, idx) => (
           <div
@@ -314,7 +314,7 @@ export default function Editor({
 
     return (
       <div className="min-h-screen bg-background">
-        <div className="max-w-[54.4rem] mx-auto p-6">
+        <div className="mx-auto p-6">
           {/* Title */}
           <input
             type="text"
@@ -323,59 +323,62 @@ export default function Editor({
             className="w-full px-12 pt-4 pb-0 text-xl font-semibold bg-transparent outline-none"
           />
 
-          {/* Pending */}
-          <DailyNoteItemList
-            label="Pending"
-            items={pendingItems}
-            dailyNoteId={dailyNoteId!}
-            itemType="PENDING"
-            promoteLabel="Todo"
-            promoteIcon={<ArrowDown className="h-3.5 w-3.5" />}
-            onToggleComplete={(item) =>
-              updateItemMutation.mutate({ dailyNoteId: dailyNoteId!, itemId: item.id, body: { completed: !item.completed } })
-            }
-            onChangeType={(item) =>
-              updateItemMutation.mutate({ dailyNoteId: dailyNoteId!, itemId: item.id, body: { type: "TODO" } })
-            }
-            onDelete={(item) =>
-              deleteItemMutation.mutate({ dailyNoteId: dailyNoteId!, itemId: item.id })
-            }
-            onAdd={(content) =>
-              addItemMutation.mutate({ dailyNoteId: dailyNoteId!, body: { type: "PENDING", content } })
-            }
-          />
+          {/* Split: left(Pending+Todo) / right(Content) */}
+          <div className="flex flex-col lg:flex-row lg:gap-6">
+            {/* Left: Pending + Todo */}
+            <div className="lg:w-1/2 shrink-0">
+              <DailyNoteItemList
+                label="Pending"
+                items={pendingItems}
+                dailyNoteId={dailyNoteId!}
+                itemType="PENDING"
+                promoteLabel="Todo"
+                promoteIcon={<ArrowDown className="h-3.5 w-3.5" />}
+                onToggleComplete={(item) =>
+                  updateItemMutation.mutate({ dailyNoteId: dailyNoteId!, itemId: item.id, body: { completed: !item.completed } })
+                }
+                onChangeType={(item) =>
+                  updateItemMutation.mutate({ dailyNoteId: dailyNoteId!, itemId: item.id, body: { type: "TODO" } })
+                }
+                onDelete={(item) =>
+                  deleteItemMutation.mutate({ dailyNoteId: dailyNoteId!, itemId: item.id })
+                }
+                onAdd={(content) =>
+                  addItemMutation.mutate({ dailyNoteId: dailyNoteId!, body: { type: "PENDING", content } })
+                }
+              />
 
-          {/* Todo */}
-          <DailyNoteItemList
-            label="Todo"
-            items={todoItems}
-            dailyNoteId={dailyNoteId!}
-            itemType="TODO"
-            promoteLabel="Pending"
-            promoteIcon={<ArrowUp className="h-3.5 w-3.5" />}
-            onToggleComplete={(item) =>
-              updateItemMutation.mutate({ dailyNoteId: dailyNoteId!, itemId: item.id, body: { completed: !item.completed } })
-            }
-            onChangeType={(item) =>
-              updateItemMutation.mutate({ dailyNoteId: dailyNoteId!, itemId: item.id, body: { type: "PENDING" } })
-            }
-            onDelete={(item) =>
-              deleteItemMutation.mutate({ dailyNoteId: dailyNoteId!, itemId: item.id })
-            }
-            onAdd={(content) =>
-              addItemMutation.mutate({ dailyNoteId: dailyNoteId!, body: { type: "TODO", content } })
-            }
-          />
+              <DailyNoteItemList
+                label="Todo"
+                items={todoItems}
+                dailyNoteId={dailyNoteId!}
+                itemType="TODO"
+                promoteLabel="Pending"
+                promoteIcon={<ArrowUp className="h-3.5 w-3.5" />}
+                onToggleComplete={(item) =>
+                  updateItemMutation.mutate({ dailyNoteId: dailyNoteId!, itemId: item.id, body: { completed: !item.completed } })
+                }
+                onChangeType={(item) =>
+                  updateItemMutation.mutate({ dailyNoteId: dailyNoteId!, itemId: item.id, body: { type: "PENDING" } })
+                }
+                onDelete={(item) =>
+                  deleteItemMutation.mutate({ dailyNoteId: dailyNoteId!, itemId: item.id })
+                }
+                onAdd={(content) =>
+                  addItemMutation.mutate({ dailyNoteId: dailyNoteId!, body: { type: "TODO", content } })
+                }
+              />
+            </div>
 
-          {/* Content */}
-          <div className="px-12 pt-4 pb-1">
-            <div className="border-t border-border mb-4" />
-            <h3 className="text-sm font-medium text-muted-foreground">Content</h3>
+            {/* Right: Content (no label) */}
+            <div className="lg:w-1/2 pt-4">
+              <div className="px-12 border-t border-border mb-4 lg:hidden" />
+              <MarkdownEditor
+                initialContent={daily?.content ?? ""}
+                onAutoSave={handleDailyContentAutoSave}
+              />
+            </div>
           </div>
-          <MarkdownEditor
-            initialContent={daily?.content ?? ""}
-            onAutoSave={handleDailyContentAutoSave}
-          />
         </div>
       </div>
     );
