@@ -263,6 +263,22 @@ function WorkspaceSelector({
   const [open, setOpen] = useState(false);
   const selected = workspaces.find((w) => w.id === selectedId);
 
+  if (workspaces.length === 0) {
+    return (
+      <div className="border-t border-sidebar-border p-2">
+        {onAddSpace && (
+          <button
+            onClick={onAddSpace}
+            className="flex items-center gap-2 w-full px-2 py-2 rounded-md text-sm text-muted-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent/50 transition-colors"
+          >
+            <Plus className="h-4 w-4 shrink-0" />
+            <span>Workspace 생성하기</span>
+          </button>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="border-t border-sidebar-border p-2">
       <Popover open={open} onOpenChange={setOpen}>
@@ -502,7 +518,7 @@ export default function Sidebar({ onSelectSidebarItem, docs, dailyNotes, onAddIt
         </nav>
 
         {/* 하단 Workspace 선택기 */}
-        {!isSearchMode && !isLoading && docs.length > 0 && (
+        {!isSearchMode && !isLoading && (
           <WorkspaceSelector
             workspaces={docs}
             selectedId={selectedWorkspaceId}
