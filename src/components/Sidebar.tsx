@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
-import { ChevronRight, FileText, CalendarDays, FolderClosed, Plus, Layout, ListChecks, ListTodo, Sparkles, Search, X, Loader2, Trash2, Columns3 } from "lucide-react";
+import { ChevronRight, ChevronUp, FileText, CalendarDays, FolderClosed, Plus, Layout, ListChecks, ListTodo, Sparkles, Search, X, Loader2, Trash2, Columns3, Check } from "lucide-react";
 import { useSearchDocuments } from "@/hooks/useDocuments";
 import type { DailyNoteDetail } from "@/api/documents";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 
 export type { DocType, SidebarItem, SearchResult } from "@/types/common";
 import type { DocType, SidebarItem, SearchResult } from "@/types/common";
@@ -248,6 +249,69 @@ function DailyNotesSection({
   );
 }
 
+function WorkspaceSelector({
+  workspaces,
+  selectedId,
+  onSelect,
+  onAddSpace,
+}: {
+  workspaces: SidebarItem[];
+  selectedId: string | null;
+  onSelect: (id: string) => void;
+  onAddSpace?: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const selected = workspaces.find((w) => w.id === selectedId);
+
+  return (
+    <div className="border-t border-sidebar-border p-2">
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <button className="flex items-center gap-2 w-full px-2 py-2 rounded-md text-sm text-sidebar-foreground hover:bg-sidebar-accent/50 transition-colors">
+            <Layout className="h-4 w-4 shrink-0 opacity-60" />
+            <span className="truncate flex-1 text-left">{selected?.name ?? "Workspace 선택"}</span>
+            <ChevronUp className={`h-3.5 w-3.5 shrink-0 opacity-50 transition-transform ${open ? "" : "rotate-180"}`} />
+          </button>
+        </PopoverTrigger>
+        <PopoverContent side="top" align="start" className="w-52 p-1">
+          <div className="space-y-0.5">
+            {workspaces.map((ws) => (
+              <button
+                key={ws.id}
+                onClick={() => {
+                  onSelect(ws.id);
+                  setOpen(false);
+                }}
+                className={`flex items-center gap-2 w-full px-2 py-1.5 rounded-md text-sm transition-colors
+                  ${ws.id === selectedId ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium" : "text-popover-foreground hover:bg-accent/50"}`}
+              >
+                <Layout className="h-4 w-4 shrink-0 opacity-60" />
+                <span className="truncate flex-1 text-left">{ws.name}</span>
+                {ws.id === selectedId && <Check className="h-3.5 w-3.5 shrink-0" />}
+              </button>
+            ))}
+          </div>
+          {onAddSpace && (
+            <>
+              <div className="my-1 border-t border-border" />
+              <button
+                onClick={() => {
+                  onAddSpace();
+                  setOpen(false);
+                }}
+                className="flex items-center gap-2 w-full px-2 py-1.5 rounded-md text-sm text-muted-foreground hover:text-popover-foreground hover:bg-accent/50 transition-colors"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                <span>Work Space 추가</span>
+              </button>
+            </>
+          )}
+        </PopoverContent>
+      </Popover>
+    </div>
+  );
+}
+
 interface SidebarProps {
   onSelectSidebarItem?: (id: string) => void;
   docs: SidebarItem[];
@@ -263,6 +327,33 @@ interface SidebarProps {
 export default function Sidebar({ onSelectSidebarItem, docs, dailyNotes, onAddItem, onAddSpace, onDeleteItem, isLoading, unfoldedIds, open }: SidebarProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Workspace 선택 상태 (localStorage persist)
+  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem("selected_workspace");
+    } catch {
+      return null;
+    }
+  });
+
+  // 선택된 workspace가 유효하지 않으면 첫 번째로 자동 선택
+  useEffect(() => {
+    if (docs.length === 0) return;
+    const valid = docs.some((d) => d.id === selectedWorkspaceId);
+    if (!valid) {
+      setSelectedWorkspaceId(docs[0].id);
+    }
+  }, [docs, selectedWorkspaceId]);
+
+  // localStorage 동기화
+  useEffect(() => {
+    if (selectedWorkspaceId) {
+      localStorage.setItem("selected_workspace", selectedWorkspaceId);
+    }
+  }, [selectedWorkspaceId]);
+
+  const selectedWorkspace = docs.find((d) => d.id === selectedWorkspaceId);
 
   // 1초 디바운스 후 검색
   const [debouncedQuery, setDebouncedQuery] = useState("");
@@ -383,7 +474,7 @@ export default function Sidebar({ onSelectSidebarItem, docs, dailyNotes, onAddIt
               <div className="my-2 border-t border-sidebar-border" />
 
               <div className="space-y-0.5">
-                {sortFoldersFirst(docs).map((doc) => (
+                {selectedWorkspace?.children && sortFoldersFirst(selectedWorkspace.children).map((doc) => (
                   <DocItem
                     key={doc.id}
                     doc={doc}
@@ -397,18 +488,28 @@ export default function Sidebar({ onSelectSidebarItem, docs, dailyNotes, onAddIt
                 ))}
               </div>
 
-              {onAddSpace && (
+              {selectedWorkspaceId && onAddItem && (
                 <button
-                  onClick={onAddSpace}
+                  onClick={() => onAddItem(selectedWorkspaceId)}
                   className="flex items-center gap-1 w-full px-2 py-1.5 mt-1 rounded-md text-sm text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent/50 transition-colors"
                 >
                   <Plus className="h-3.5 w-3.5" />
-                  <span>Work Space 추가</span>
+                  <span>Task 추가</span>
                 </button>
               )}
             </>
           )}
         </nav>
+
+        {/* 하단 Workspace 선택기 */}
+        {!isSearchMode && !isLoading && docs.length > 0 && (
+          <WorkspaceSelector
+            workspaces={docs}
+            selectedId={selectedWorkspaceId}
+            onSelect={setSelectedWorkspaceId}
+            onAddSpace={onAddSpace}
+          />
+        )}
       </aside>
     </>
   );
