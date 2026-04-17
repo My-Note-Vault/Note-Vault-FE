@@ -19,6 +19,7 @@ export interface DailyNoteItem {
 export interface DailyNoteDetail {
   dailyNoteId: number;
   date: string;
+  logicalDate: string;
   items: DailyNoteItem[];
   content: string;
 }

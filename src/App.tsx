@@ -323,7 +323,7 @@ function AppContent() {
         } else if (isDaily) {
             const pk = Number(dailyPkMatch[1]);
             const dailyNote = dailyNotesRef.current?.find((dn: DailyNoteDetail) => dn.dailyNoteId === pk);
-            name = dailyNote?.date ?? id;
+            name = dailyNote?.logicalDate ?? id;
         } else {
             const doc = findDocById(docsRef.current, id);
             name = doc?.name ?? id;

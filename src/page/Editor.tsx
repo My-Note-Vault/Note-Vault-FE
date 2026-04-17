@@ -318,7 +318,7 @@ export default function Editor({
           {/* Title */}
           <input
             type="text"
-            value={daily?.date ?? ""}
+            value={daily?.logicalDate ?? ""}
             readOnly
             className="w-full px-12 pt-4 pb-0 text-xl font-semibold bg-transparent outline-none"
           />
