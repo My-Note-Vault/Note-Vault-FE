@@ -3,7 +3,7 @@ import { Controller, useForm, type SubmitErrorHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { Loader2, Camera, User } from "lucide-react";
+import { Loader2, Camera, User, LogOut } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,7 @@ import {
   useUpdateMemberProfile,
   useUploadProfileImage,
 } from "@/hooks/useMember";
+import { useAuth } from "@/context/AuthContext";
 
 const profileSchema = z.object({
   nickname: z.string().min(1, "닉네임을 입력해 주세요"),
@@ -46,6 +47,7 @@ function normalizeProfileDefaults(profile?: {
 }
 
 export default function ProfilePopover() {
+  const { logout } = useAuth();
   const { data: profile } = useMemberProfile();
   const { data: profileImage } = useProfileImage();
   const updateProfile = useUpdateMemberProfile();
@@ -177,6 +179,21 @@ export default function ProfilePopover() {
               onChange={handleImageSelect}
             />
           </div>
+
+          {/* 로그아웃 */}
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="w-full text-destructive hover:text-destructive hover:bg-destructive/10"
+            onClick={() => {
+              logout();
+              window.location.href = "/";
+            }}
+          >
+            <LogOut className="h-4 w-4 mr-2" />
+            로그아웃
+          </Button>
 
           {/* 이름 (읽기 전용) */}
           {profile?.name && (
