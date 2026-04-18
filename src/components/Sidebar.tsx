@@ -239,7 +239,7 @@ function DailyNotesSection({
               >
                 <span className="w-4.5" />
                 <CalendarDays className="h-4 w-4 shrink-0 opacity-60" />
-                <span className="truncate flex-1">{dn.date}</span>
+                <span className="truncate flex-1">{dn.logicalDate}</span>
               </div>
             );
           })}

@@ -306,6 +306,30 @@ function AppContent() {
         return () => window.removeEventListener("beforeunload", handleBeforeUnload);
     }, []);
 
+    // dailyNotes 로드 후 탭 이름 갱신 (복원 시 데이터 미로드 대응)
+    useEffect(() => {
+        if (!dailyNotes?.length) return;
+        setSplitState((prev) => {
+            let changed = false;
+            const updated = { ...prev.panes };
+            for (const pid of ["left", "right"] as PaneId[]) {
+                const pane = prev.panes[pid];
+                const newTabs = pane.tabs.map((tab) => {
+                    const m = tab.id.match(/^daily-(\d+)$/);
+                    if (!m) return tab;
+                    const dn = dailyNotes.find((d) => d.dailyNoteId === Number(m[1]));
+                    if (dn && tab.name !== dn.logicalDate) {
+                        changed = true;
+                        return { ...tab, name: dn.logicalDate };
+                    }
+                    return tab;
+                });
+                updated[pid] = { ...pane, tabs: newTabs };
+            }
+            return changed ? { ...prev, panes: updated } : prev;
+        });
+    }, [dailyNotes]);
+
     const handleSelectDocument = useCallback((id: string) => {
         const isCalendar = id === "calendar-view";
         const isKanban = id === "kanban-view";
