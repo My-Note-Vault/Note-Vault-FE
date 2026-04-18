@@ -28,7 +28,7 @@ import ProfileSetupRoute from "./components/auth/ProfileSetupRoute";
 import LandingPage from "./page/LandingPage";
 import OAuthCallbackPage from "./page/OAuthCallbackPage";
 import ProfileSetupPage from "./page/ProfileSetupPage";
-import { AlertTriangle, RefreshCw } from "lucide-react";
+import { AlertTriangle, RefreshCw, Columns2, Rows2 } from "lucide-react";
 import { ThemeProvider } from "next-themes";
 
 const queryClient = new QueryClient({
@@ -132,6 +132,7 @@ const TYPE_LABELS: Record<DocType, string> = {
 
 interface SplitState {
     mode: "single" | "split";
+    direction: "horizontal" | "vertical";
     focusedPane: PaneId;
     panes: Record<PaneId, PaneState>;
 }
@@ -161,6 +162,7 @@ function AppContent() {
                 // 저장되지 않은 임시 탭(isNew: true)은 제거하고, activeTabId는 null로 초기화
                 return {
                     ...parsed,
+                    direction: parsed.direction ?? "horizontal",
                     panes: {
                         left: {
                             tabs: parsed.panes.left.tabs.filter((tab: { isNew?: boolean }) => !tab.isNew),
@@ -178,6 +180,7 @@ function AppContent() {
         }
         return {
             mode: "single",
+            direction: "horizontal",
             focusedPane: "left",
             panes: {
                 left: { tabs: [], activeTabId: null },
@@ -437,6 +440,7 @@ function AppContent() {
             if (newTabs.length === 0 && prev.mode === "split") {
                 return {
                     mode: "single",
+                    direction: prev.direction,
                     focusedPane: "left",
                     panes: {
                         left: prev.panes[otherPaneId],
@@ -496,6 +500,7 @@ function AppContent() {
             if (newMode === "single" && sourceEmpty) {
                 return {
                     mode: "single" as const,
+                    direction: prev.direction,
                     focusedPane: "left" as PaneId,
                     panes: {
                         left: newPanes[targetPane],
@@ -506,6 +511,7 @@ function AppContent() {
 
             return {
                 mode: newMode,
+                direction: prev.direction,
                 focusedPane: targetPane,
                 panes: newPanes,
             };
@@ -537,6 +543,7 @@ function AppContent() {
             if (prev.mode === "split" && (leftEmpty || rightEmpty)) {
                 return {
                     mode: "single",
+                    direction: prev.direction,
                     focusedPane: "left",
                     panes: {
                         left: leftEmpty ? newPanes.right : newPanes.left,
@@ -692,15 +699,45 @@ function AppContent() {
                 unfoldedIds={unfoldedIds}
                 open={sidebarOpen}
             />
-            <main className="flex-1 overflow-hidden flex">
+            <main className="flex-1 overflow-hidden flex relative">
+                {splitState.mode === "split" && (
+                    <div className="absolute top-1 right-1 z-10 flex gap-0.5 rounded-md border border-border bg-background/80 backdrop-blur-sm p-0.5">
+                        <button
+                            onClick={() => setSplitState((prev) => ({ ...prev, direction: "horizontal" }))}
+                            className={`p-1 rounded transition-colors ${
+                                splitState.direction === "horizontal"
+                                    ? "bg-primary text-primary-foreground"
+                                    : "text-muted-foreground hover:bg-muted"
+                            }`}
+                            title="좌우 분할"
+                        >
+                            <Columns2 className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                            onClick={() => setSplitState((prev) => ({ ...prev, direction: "vertical" }))}
+                            className={`p-1 rounded transition-colors ${
+                                splitState.direction === "vertical"
+                                    ? "bg-primary text-primary-foreground"
+                                    : "text-muted-foreground hover:bg-muted"
+                            }`}
+                            title="상하 분할"
+                        >
+                            <Rows2 className="h-3.5 w-3.5" />
+                        </button>
+                    </div>
+                )}
                 {splitState.mode === "single" ? (
                     <TabPane {...paneProps("left")} />
                 ) : (
-                    <PanelGroup direction="horizontal">
+                    <PanelGroup direction={splitState.direction}>
                         <Panel defaultSize={50} minSize={30}>
                             <TabPane {...paneProps("left")} />
                         </Panel>
-                        <PanelResizeHandle className="w-1 bg-border hover:bg-primary/30 transition-colors" />
+                        <PanelResizeHandle className={`${
+                            splitState.direction === "horizontal"
+                                ? "w-1"
+                                : "h-1"
+                        } bg-border hover:bg-primary/30 transition-colors`} />
                         <Panel defaultSize={50} minSize={30}>
                             <TabPane {...paneProps("right")} />
                         </Panel>
