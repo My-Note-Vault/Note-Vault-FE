@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ChevronRight, ChevronUp, FileText, CalendarDays, FolderClosed, Plus, Layout, ListChecks, ListTodo, Sparkles, Search, X, Loader2, Trash2, Columns3, Check } from "lucide-react";
+import { ChevronRight, ChevronUp, FileText, CalendarDays, NotebookPen, FolderClosed, Plus, Layout, ListChecks, ListTodo, Sparkles, Search, X, Loader2, Trash2, Columns3, Check } from "lucide-react";
 import { useSearchDocuments } from "@/hooks/useDocuments";
 import type { DailyNoteDetail } from "@/api/documents";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
@@ -115,7 +115,7 @@ function DocItem({ doc, depth, selectedId, onSelect, onAddItem, onDeleteItem, ic
   } else if (hasChildren) {
     ItemIcon = FolderClosed;
   } else if (icon === "calendar") {
-    ItemIcon = CalendarDays;
+    ItemIcon = NotebookPen;
   } else {
     ItemIcon = FileText;
   }
@@ -219,7 +219,7 @@ function DailyNotesSection({
             className={`h-3.5 w-3.5 transition-transform ${expanded ? "rotate-90" : ""}`}
           />
         </button>
-        <CalendarDays className="h-4 w-4 shrink-0 opacity-60" />
+        <NotebookPen className="h-4 w-4 shrink-0 opacity-60" />
         <span className="truncate flex-1">Daily Notes</span>
       </div>
 
@@ -238,7 +238,7 @@ function DailyNotesSection({
                 onClick={() => onSelect(tabId)}
               >
                 <span className="w-4.5" />
-                <CalendarDays className="h-4 w-4 shrink-0 opacity-60" />
+                <NotebookPen className="h-4 w-4 shrink-0 opacity-60" />
                 <span className="truncate flex-1">{dn.logicalDate}</span>
               </div>
             );

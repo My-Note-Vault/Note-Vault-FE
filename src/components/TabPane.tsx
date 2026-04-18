@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { X, FileText, CalendarDays, Columns3, Plus } from "lucide-react";
+import { X, FileText, CalendarDays, NotebookPen, Columns3, Plus } from "lucide-react";
 import Editor from "@/page/Editor";
 import CalendarPage from "@/page/CalendarPage";
 import KanbanPage from "@/page/KanbanPage";
@@ -163,9 +163,11 @@ export default function TabPane({
             >
               {tab.id === "kanban-view"
                 ? <Columns3 className="h-3.5 w-3.5 shrink-0 opacity-60" />
-                : tab.isDaily
+                : tab.id === "calendar-view"
                   ? <CalendarDays className="h-3.5 w-3.5 shrink-0 opacity-60" />
-                  : <FileText className="h-3.5 w-3.5 shrink-0 opacity-60" />}
+                  : tab.isDaily
+                    ? <NotebookPen className="h-3.5 w-3.5 shrink-0 opacity-60" />
+                    : <FileText className="h-3.5 w-3.5 shrink-0 opacity-60" />}
               <span className="truncate">{tab.name}</span>
               <button
                 onClick={(e) => {
@@ -251,7 +253,7 @@ export default function TabPane({
                 onClick={() => onOpenDocument("daily-notes")}
                 className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors"
               >
-                <CalendarDays className="h-4 w-4" />
+                <NotebookPen className="h-4 w-4" />
                 <span className="underline underline-offset-4">Daily Note 작성하기</span>
               </button>
             </div>
