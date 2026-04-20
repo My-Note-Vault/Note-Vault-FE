@@ -19,9 +19,15 @@ export interface DailyNoteItem {
 export interface DailyNoteDetail {
   dailyNoteId: number;
   date: string;
-  logicalDate: string;
+  logicalDate: number[]; // [year, month, day] from Java LocalDate
   items: DailyNoteItem[];
   content: string;
+}
+
+// logicalDate 배열을 YYYY-MM-DD 문자열로 변환
+export function formatLogicalDate(logicalDate: number[]): string {
+  const [y, m, d] = logicalDate;
+  return `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
 }
 
 // 전체 NoteInfo 조회 (flat list)

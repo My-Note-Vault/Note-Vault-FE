@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { ChevronRight, ChevronUp, FileText, CalendarDays, NotebookPen, FolderClosed, Plus, Layout, ListChecks, ListTodo, Sparkles, Search, X, Loader2, Trash2, Columns3, Check } from "lucide-react";
 import { useSearchDocuments } from "@/hooks/useDocuments";
-import type { DailyNoteDetail } from "@/api/documents";
+import { formatLogicalDate, type DailyNoteDetail } from "@/api/documents";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 
 export type { DocType, SidebarItem, SearchResult } from "@/types/common";
@@ -241,12 +241,12 @@ function DailyNotesSection({
               >
                 <span className="w-4.5" />
                 <NotebookPen className="h-4 w-4 shrink-0 opacity-60" />
-                <span className="truncate flex-1">{dn.date}</span>
+                <span className="truncate flex-1">{formatLogicalDate(dn.logicalDate)}</span>
                 {onDelete && (
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      if (window.confirm(`"${dn.date}" 데일리 노트를 삭제하시겠습니까?`)) {
+                      if (window.confirm(`"${formatLogicalDate(dn.logicalDate)}" 데일리 노트를 삭제하시겠습니까?`)) {
                         onDelete(dn.dailyNoteId);
                       }
                     }}

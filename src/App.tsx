@@ -8,7 +8,7 @@ import ActivityBar from "./components/ActivityBar";
 import Sidebar from "./components/Sidebar";
 import type { SidebarItem, DocType } from "@/types/common";
 import type { DailyNoteDetail } from "@/api/documents";
-import { fetchDailyNoteByDate, fetchDailyNoteDetail } from "@/api/documents";
+import { fetchDailyNoteByDate, fetchDailyNoteDetail, formatLogicalDate } from "@/api/documents";
 import { pathToTabId, tabIdToPath } from "@/api/lastVisited";
 import TabPane, { type PaneId, type PaneState } from "./components/TabPane";
 import {
@@ -263,7 +263,7 @@ function AppContent() {
                 if (tabId === "daily-note") {
                     // /api/v1/daily-notes (오늘) → dailyNotes 목록에서 오늘 날짜 PK 검색
                     const today = new Date().toISOString().slice(0, 10);
-                    const todayNote = dailyNotesRef.current?.find((dn: DailyNoteDetail) => dn.date === today);
+                    const todayNote = dailyNotesRef.current?.find((dn: DailyNoteDetail) => formatLogicalDate(dn.logicalDate) === today);
                     if (todayNote) {
                         handleSelectDocument(`daily-${todayNote.dailyNoteId}`);
                     } else {
@@ -320,9 +320,9 @@ function AppContent() {
                     const m = tab.id.match(/^daily-(\d+)$/);
                     if (!m) return tab;
                     const dn = dailyNotes.find((d) => d.dailyNoteId === Number(m[1]));
-                    if (dn && tab.name !== dn.date) {
+                    if (dn && tab.name !== formatLogicalDate(dn.logicalDate)) {
                         changed = true;
-                        return { ...tab, name: dn.date };
+                        return { ...tab, name: formatLogicalDate(dn.logicalDate) };
                     }
                     return tab;
                 });
@@ -349,7 +349,7 @@ function AppContent() {
         } else if (isDaily) {
             const pk = Number(dailyPkMatch[1]);
             const dailyNote = dailyNotesRef.current?.find((dn: DailyNoteDetail) => dn.dailyNoteId === pk);
-            name = dailyNote?.date ?? id;
+            name = dailyNote ? formatLogicalDate(dailyNote.logicalDate) : id;
         } else {
             const doc = findDocById(docsRef.current, id);
             name = doc?.name ?? id;
@@ -661,7 +661,7 @@ function AppContent() {
         const dailyDateMatch = id.match(/^daily-(\d{4}-\d{2}-\d{2})$/);
         if (dailyDateMatch) {
             const date = dailyDateMatch[1];
-            const found = dailyNotesRef.current?.find((dn: DailyNoteDetail) => dn.date === date);
+            const found = dailyNotesRef.current?.find((dn: DailyNoteDetail) => formatLogicalDate(dn.logicalDate) === date);
             if (found) {
                 const dailyId = `daily-${found.dailyNoteId}`;
                 handleSelectDocument(dailyId);

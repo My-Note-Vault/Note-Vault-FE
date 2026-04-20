@@ -5,7 +5,7 @@ import { ChevronRight, Loader2, AlertTriangle, RefreshCw, Check, Undo2, ArrowUp,
 import type { DocType } from "@/types/common";
 import TaskMetadata, { type TaskMetadataValues } from "@/components/TaskMetadata";
 import { useDailyNoteDetail, useUpdateDailyNote, useAddDailyNoteItem, useUpdateDailyNoteItem, useDeleteDailyNoteItem, documentKeys } from "@/hooks/useDocuments";
-import type { DailyNoteDetail, DailyNoteItem } from "@/api/documents";
+import { formatLogicalDate, type DailyNoteDetail, type DailyNoteItem } from "@/api/documents";
 import { useEntityDetail, useAutoSaveEntity, useUpdateEntity, type EntityDetail } from "@/hooks/useEntity";
 import type { TaskDetail } from "@/types/task";
 import type { SubTaskDetail } from "@/types/subtask";
@@ -326,7 +326,7 @@ export default function Editor({
           {/* Title */}
           <input
             type="text"
-            value={daily?.date ?? ""}
+            value={daily?.logicalDate ? formatLogicalDate(daily.logicalDate) : ""}
             readOnly
             className="w-full px-12 pt-4 pb-0 text-xl font-semibold bg-transparent outline-none"
           />
