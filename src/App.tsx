@@ -320,9 +320,9 @@ function AppContent() {
                     const m = tab.id.match(/^daily-(\d+)$/);
                     if (!m) return tab;
                     const dn = dailyNotes.find((d) => d.dailyNoteId === Number(m[1]));
-                    if (dn && tab.name !== dn.logicalDate) {
+                    if (dn && tab.name !== dn.date) {
                         changed = true;
-                        return { ...tab, name: dn.logicalDate };
+                        return { ...tab, name: dn.date };
                     }
                     return tab;
                 });
@@ -349,7 +349,7 @@ function AppContent() {
         } else if (isDaily) {
             const pk = Number(dailyPkMatch[1]);
             const dailyNote = dailyNotesRef.current?.find((dn: DailyNoteDetail) => dn.dailyNoteId === pk);
-            name = dailyNote?.logicalDate ?? id;
+            name = dailyNote?.date ?? id;
         } else {
             const doc = findDocById(docsRef.current, id);
             name = doc?.name ?? id;

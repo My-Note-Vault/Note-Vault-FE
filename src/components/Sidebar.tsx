@@ -241,12 +241,12 @@ function DailyNotesSection({
               >
                 <span className="w-4.5" />
                 <NotebookPen className="h-4 w-4 shrink-0 opacity-60" />
-                <span className="truncate flex-1">{dn.logicalDate}</span>
+                <span className="truncate flex-1">{dn.date}</span>
                 {onDelete && (
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      if (window.confirm(`"${dn.logicalDate}" 데일리 노트를 삭제하시겠습니까?`)) {
+                      if (window.confirm(`"${dn.date}" 데일리 노트를 삭제하시겠습니까?`)) {
                         onDelete(dn.dailyNoteId);
                       }
                     }}
