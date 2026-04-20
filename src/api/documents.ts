@@ -100,6 +100,11 @@ export const updateDailyNoteItem = async (
   return data;
 };
 
+// Daily Note 삭제
+export const deleteDailyNote = async (dailyNoteId: number): Promise<void> => {
+  await apiClient.delete(endpoints.DAILY_NOTE_DETAIL(dailyNoteId));
+};
+
 // Daily Note 아이템 삭제
 export const deleteDailyNoteItem = async (
   dailyNoteId: number,

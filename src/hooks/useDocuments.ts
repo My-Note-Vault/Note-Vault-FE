@@ -7,6 +7,7 @@ import {
   fetchDailyNotes,
   fetchDailyNoteByPk,
   updateDailyNote,
+  deleteDailyNote,
   addDailyNoteItem,
   updateDailyNoteItem,
   deleteDailyNoteItem,
@@ -166,6 +167,18 @@ export const useDailyNoteDetail = (pk: number | null) => {
 type UpdateDailyNoteRequest = {
   dailyNoteId: number;
   body: { content: string };
+};
+
+// Daily Note 삭제
+export const useDeleteDailyNote = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (dailyNoteId: number) => deleteDailyNote(dailyNoteId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: documentKeys.dailyNotes() });
+    },
+  });
 };
 
 // Daily Note content 수정

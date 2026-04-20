@@ -14,6 +14,7 @@ import TabPane, { type PaneId, type PaneState } from "./components/TabPane";
 import {
     useDocumentTree,
     useDailyNotes,
+    useDeleteDailyNote,
     documentKeys,
 } from "@/hooks/useDocuments";
 import {
@@ -143,6 +144,7 @@ function AppContent() {
     const createEntityMutation = useCreateEntity();
     const deleteEntityMutation = useDeleteEntity();
     const updateEntityMutation = useUpdateEntity();
+    const deleteDailyNoteMutation = useDeleteDailyNote();
     const [searchParams, setSearchParams] = useSearchParams();
 
     // Last visited
@@ -558,6 +560,44 @@ function AppContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
+    const handleDeleteDailyNote = useCallback((dailyNoteId: number) => {
+        const tabId = `daily-${dailyNoteId}`;
+
+        // 열린 탭에서 제거
+        setSplitState((prev) => {
+            const newPanes = Object.fromEntries(
+                (["left", "right"] as PaneId[]).map((pid) => {
+                    const pane = prev.panes[pid];
+                    const newTabs = pane.tabs.filter((t) => t.id !== tabId);
+                    const newActiveTabId = pane.activeTabId === tabId
+                        ? (newTabs[0]?.id ?? null)
+                        : pane.activeTabId;
+                    return [pid, { tabs: newTabs, activeTabId: newActiveTabId }];
+                }),
+            ) as Record<PaneId, PaneState>;
+
+            const leftEmpty = newPanes.left.tabs.length === 0;
+            const rightEmpty = newPanes.right.tabs.length === 0;
+
+            if (prev.mode === "split" && (leftEmpty || rightEmpty)) {
+                return {
+                    mode: "single",
+                    focusedPane: "left",
+                    panes: {
+                        left: leftEmpty ? newPanes.right : newPanes.left,
+                        right: { tabs: [], activeTabId: null },
+                    },
+                };
+            }
+
+            return { ...prev, panes: newPanes };
+        });
+
+        // API 호출
+        deleteDailyNoteMutation.mutate(dailyNoteId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
     const handleRenameDocument = useCallback((id: string, newName: string) => {
         // 트리에서 docType 찾기 (트리에 없으면 탭에서 fallback)
         const doc = findDocById(docsRef.current, id);
@@ -691,6 +731,7 @@ function AppContent() {
                 onAddItem={handleAddItem}
                 onAddSpace={handleAddSpace}
                 onDeleteItem={handleDeleteDocument}
+                onDeleteDailyNote={handleDeleteDailyNote}
                 isLoading={isLoading}
                 unfoldedIds={unfoldedIds}
                 open={sidebarOpen}

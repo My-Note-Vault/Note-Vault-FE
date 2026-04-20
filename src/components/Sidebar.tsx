@@ -195,10 +195,12 @@ function DailyNotesSection({
   dailyNotes,
   selectedId,
   onSelect,
+  onDelete,
 }: {
   dailyNotes: DailyNoteDetail[];
   selectedId: string | null;
   onSelect: (id: string) => void;
+  onDelete?: (dailyNoteId: number) => void;
 }) {
   const [expanded, setExpanded] = useState(true);
 
@@ -230,7 +232,7 @@ function DailyNotesSection({
             return (
               <div
                 key={dn.dailyNoteId}
-                className={`flex items-center gap-1 px-2 py-1.5 rounded-md cursor-pointer text-sm transition-colors
+                className={`group/daily flex items-center gap-1 px-2 py-1.5 rounded-md cursor-pointer text-sm transition-colors
                   ${selectedId === tabId
                     ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
                     : "text-sidebar-foreground hover:bg-sidebar-accent/50"}`}
@@ -240,6 +242,20 @@ function DailyNotesSection({
                 <span className="w-4.5" />
                 <NotebookPen className="h-4 w-4 shrink-0 opacity-60" />
                 <span className="truncate flex-1">{dn.logicalDate}</span>
+                {onDelete && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (window.confirm(`"${dn.logicalDate}" 데일리 노트를 삭제하시겠습니까?`)) {
+                        onDelete(dn.dailyNoteId);
+                      }
+                    }}
+                    className="p-0.5 rounded opacity-0 group-hover/daily:opacity-100 hover:bg-red-500/20 text-muted-foreground hover:text-red-500 transition-all shrink-0"
+                    title="삭제"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
               </div>
             );
           })}
@@ -335,12 +351,13 @@ interface SidebarProps {
   onAddItem?: (parentId: string) => void;
   onAddSpace?: () => void;
   onDeleteItem?: (id: string) => void;
+  onDeleteDailyNote?: (dailyNoteId: number) => void;
   isLoading?: boolean;
   unfoldedIds?: Set<string>;
   open: boolean;
 }
 
-export default function Sidebar({ onSelectSidebarItem, docs, dailyNotes, onAddItem, onAddSpace, onDeleteItem, isLoading, unfoldedIds, open }: SidebarProps) {
+export default function Sidebar({ onSelectSidebarItem, docs, dailyNotes, onAddItem, onAddSpace, onDeleteItem, onDeleteDailyNote, isLoading, unfoldedIds, open }: SidebarProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -459,6 +476,7 @@ export default function Sidebar({ onSelectSidebarItem, docs, dailyNotes, onAddIt
                     dailyNotes={dailyNotes}
                     selectedId={selectedId}
                     onSelect={handleSelect}
+                    onDelete={onDeleteDailyNote}
                   />
                 )}
                 <div
