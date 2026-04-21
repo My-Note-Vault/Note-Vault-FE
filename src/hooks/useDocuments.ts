@@ -8,12 +8,12 @@ import {
   fetchDailyNoteByPk,
   updateDailyNote,
   deleteDailyNote,
-  addDailyNoteItem,
-  updateDailyNoteItem,
-  deleteDailyNoteItem,
   fetchCalendarStats,
+  addPlan,
+  updatePlan,
+  deletePlan,
 } from "@/api/documents";
-import type { DailyNoteDetail, DailyNoteItem } from "@/api/documents";
+import type { DailyNoteDetail } from "@/api/documents";
 import type { NoteInfo, UnfoldedNote, SidebarItem } from "@/types/common";
 import { noteTypeToDocType } from "@/types/common";
 
@@ -194,42 +194,41 @@ export const useUpdateDailyNote = () => {
   });
 };
 
-// Daily Note 아이템 추가
-export const useAddDailyNoteItem = () => {
+// Plan 추가
+export const useAddPlan = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ dailyNoteId, body }: { dailyNoteId: number; body: { type: "PENDING" | "TODO"; content: string } }) =>
-      addDailyNoteItem(dailyNoteId, body),
+    mutationFn: ({ dailyNoteId, body }: { dailyNoteId: number; body: { type: "TODO" | "PENDING"; content: string } }) =>
+      addPlan(dailyNoteId, body),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: documentKeys.dailyNoteDetail(variables.dailyNoteId) });
     },
   });
 };
 
-// Daily Note 아이템 수정 (완료 토글, 타입 변경, 내용 수정)
-export const useUpdateDailyNoteItem = () => {
+// Plan 수정
+export const useUpdatePlan = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ dailyNoteId, itemId, body }: {
+    mutationFn: ({ dailyNoteId, body }: {
       dailyNoteId: number;
-      itemId: number;
-      body: Partial<Pick<DailyNoteItem, "type" | "content" | "completed">>;
-    }) => updateDailyNoteItem(dailyNoteId, itemId, body),
+      body: { planId: number; type?: "TODO" | "PENDING"; content?: string; isDone?: boolean };
+    }) => updatePlan(dailyNoteId, body),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: documentKeys.dailyNoteDetail(variables.dailyNoteId) });
     },
   });
 };
 
-// Daily Note 아이템 삭제
-export const useDeleteDailyNoteItem = () => {
+// Plan 삭제
+export const useDeletePlan = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ dailyNoteId, itemId }: { dailyNoteId: number; itemId: number }) =>
-      deleteDailyNoteItem(dailyNoteId, itemId),
+    mutationFn: ({ dailyNoteId, planId }: { dailyNoteId: number; planId: number }) =>
+      deletePlan(dailyNoteId, { planId }),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: documentKeys.dailyNoteDetail(variables.dailyNoteId) });
     },

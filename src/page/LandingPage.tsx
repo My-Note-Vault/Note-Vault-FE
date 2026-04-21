@@ -26,16 +26,20 @@ const FEATURES = [
 ];
 
 export default function LandingPage() {
-  const { login, redirectToGoogle } = useAuth();
+  const { devLogin, redirectToGoogle } = useAuth();
   const navigate = useNavigate();
 
   const handleGoogleLogin = () => {
     redirectToGoogle();
   };
 
-  const handleDevLogin = () => {
-    login("MOCK_DEV_JWT_TOKEN");
-    navigate("/profile-setup", { replace: true });
+  const handleDevLogin = async () => {
+    try {
+      await devLogin();
+      navigate("/profile-setup", { replace: true });
+    } catch {
+      // 에러는 인터셉터/toast에서 처리
+    }
   };
 
   return (

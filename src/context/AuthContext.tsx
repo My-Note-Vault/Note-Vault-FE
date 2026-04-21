@@ -11,6 +11,7 @@ type AuthContextType = {
   logout: () => void;
   redirectToGoogle: () => Promise<void>;
   loginWithOAuthCode: (code: string, state: string) => Promise<void>;
+  devLogin: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -64,8 +65,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const devLogin = async () => {
+    const response = await apiClient.get(endpoints.DEV_LOGIN);
+    const { token } = response.data;
+    if (!token?.accessToken) throw new Error("No access token returned");
+    authStorage.setTokens(token.accessToken, token.refreshToken);
+  };
+
   return (
-    <AuthContext.Provider value={{ accessToken, isLoggedIn, isOAuthLoading, login, logout, redirectToGoogle, loginWithOAuthCode }}>
+    <AuthContext.Provider value={{ accessToken, isLoggedIn, isOAuthLoading, login, logout, redirectToGoogle, loginWithOAuthCode, devLogin }}>
       {children}
     </AuthContext.Provider>
   );

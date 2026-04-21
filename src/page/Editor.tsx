@@ -4,7 +4,7 @@ import MarkdownEditor, { type MarkdownEditorHandle } from "@/components/Markdown
 import { ChevronRight, Loader2, AlertTriangle, RefreshCw, Check, Undo2, ArrowUp, ArrowDown, Plus, Trash2, Columns2, Rows2 } from "lucide-react";
 import type { DocType } from "@/types/common";
 import TaskMetadata, { type TaskMetadataValues } from "@/components/TaskMetadata";
-import { useDailyNoteDetail, useUpdateDailyNote, useAddDailyNoteItem, useUpdateDailyNoteItem, useDeleteDailyNoteItem, documentKeys } from "@/hooks/useDocuments";
+import { useDailyNoteDetail, useUpdateDailyNote, useAddPlan, useUpdatePlan, useDeletePlan, documentKeys } from "@/hooks/useDocuments";
 import { formatLogicalDate, type DailyNoteDetail, type DailyNoteItem } from "@/api/documents";
 import { useEntityDetail, useAutoSaveEntity, useUpdateEntity, type EntityDetail } from "@/hooks/useEntity";
 import type { TaskDetail } from "@/types/task";
@@ -258,10 +258,10 @@ export default function Editor({
     [isDailyNote, dailyNoteId, dailyUpdateMutation],
   );
 
-  // DailyNote 아이템 mutations
-  const addItemMutation = useAddDailyNoteItem();
-  const updateItemMutation = useUpdateDailyNoteItem();
-  const deleteItemMutation = useDeleteDailyNoteItem();
+  // DailyNote plan mutations
+  const addItemMutation = useAddPlan();
+  const updateItemMutation = useUpdatePlan();
+  const deleteItemMutation = useDeletePlan();
 
   // 메타데이터 변경 저장
   const updateMutation = useUpdateEntity();
@@ -371,13 +371,13 @@ export default function Editor({
                 promoteLabel="Todo"
                 promoteIcon={<ArrowDown className="h-3.5 w-3.5" />}
                 onToggleComplete={(item) =>
-                  updateItemMutation.mutate({ dailyNoteId: dailyNoteId!, itemId: item.id, body: { completed: !item.completed } })
+                  updateItemMutation.mutate({ dailyNoteId: dailyNoteId!, body: { planId: item.id, isDone: !item.completed } })
                 }
                 onChangeType={(item) =>
-                  updateItemMutation.mutate({ dailyNoteId: dailyNoteId!, itemId: item.id, body: { type: "TODO" } })
+                  updateItemMutation.mutate({ dailyNoteId: dailyNoteId!, body: { planId: item.id, type: "TODO" } })
                 }
                 onDelete={(item) =>
-                  deleteItemMutation.mutate({ dailyNoteId: dailyNoteId!, itemId: item.id })
+                  deleteItemMutation.mutate({ dailyNoteId: dailyNoteId!, planId: item.id })
                 }
                 onAdd={(content) =>
                   addItemMutation.mutate({ dailyNoteId: dailyNoteId!, body: { type: "PENDING", content } })
@@ -392,13 +392,13 @@ export default function Editor({
                 promoteLabel="Pending"
                 promoteIcon={<ArrowUp className="h-3.5 w-3.5" />}
                 onToggleComplete={(item) =>
-                  updateItemMutation.mutate({ dailyNoteId: dailyNoteId!, itemId: item.id, body: { completed: !item.completed } })
+                  updateItemMutation.mutate({ dailyNoteId: dailyNoteId!, body: { planId: item.id, isDone: !item.completed } })
                 }
                 onChangeType={(item) =>
-                  updateItemMutation.mutate({ dailyNoteId: dailyNoteId!, itemId: item.id, body: { type: "PENDING" } })
+                  updateItemMutation.mutate({ dailyNoteId: dailyNoteId!, body: { planId: item.id, type: "PENDING" } })
                 }
                 onDelete={(item) =>
-                  deleteItemMutation.mutate({ dailyNoteId: dailyNoteId!, itemId: item.id })
+                  deleteItemMutation.mutate({ dailyNoteId: dailyNoteId!, planId: item.id })
                 }
                 onAdd={(content) =>
                   addItemMutation.mutate({ dailyNoteId: dailyNoteId!, body: { type: "TODO", content } })

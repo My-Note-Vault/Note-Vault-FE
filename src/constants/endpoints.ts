@@ -6,6 +6,7 @@ export const endpoints = {
 LOGIN_GOOGLE: `${API_BASE}/oauth/login/google`,
 CALLBACK_FROM_GOOGLE: `${API_BASE}/oauth/callback/google`,
 REFRESH_TOKEN: `${API_BASE}/oauth/refresh`,
+DEV_LOGIN: `${API_BASE}/oauth/dev`,
 
 // Space Endpoints
 SPACES: `${API_BASE}/workspaces`,
@@ -32,8 +33,7 @@ DOCUMENT_SEARCH: `${API_BASE}/search`,
 DAILY_NOTES_ALL: `${API_BASE}/daily-notes/all`,
 DAILY_NOTE: `${API_BASE}/daily-notes`,
 DAILY_NOTE_DETAIL: (id: string | number) => `${API_BASE}/daily-notes/${id}`,
-DAILY_NOTE_ITEMS: (dailyNoteId: number) => `${API_BASE}/daily-notes/${dailyNoteId}/items`,
-DAILY_NOTE_ITEM: (dailyNoteId: number, itemId: number) => `${API_BASE}/daily-notes/${dailyNoteId}/items/${itemId}`,
+DAILY_NOTE_PLANS: (dailyNoteId: number) => `${API_BASE}/daily-notes/${dailyNoteId}/plans`,
 
 // Calendar Endpoints
 CALENDAR_STATS: `${API_BASE}/calendar/stats`,

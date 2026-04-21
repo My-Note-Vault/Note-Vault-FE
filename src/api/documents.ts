@@ -87,36 +87,41 @@ export const updateDailyNote = async (
   return data;
 };
 
-// Daily Note 아이템 추가
-export const addDailyNoteItem = async (
-  dailyNoteId: number,
-  body: { type: "PENDING" | "TODO"; content: string },
-): Promise<DailyNoteItem> => {
-  const { data } = await apiClient.post<DailyNoteItem>(endpoints.DAILY_NOTE_ITEMS(dailyNoteId), body);
-  return data;
-};
-
-// Daily Note 아이템 수정 (완료 토글, 타입 변경, 내용 수정)
-export const updateDailyNoteItem = async (
-  dailyNoteId: number,
-  itemId: number,
-  body: Partial<Pick<DailyNoteItem, "type" | "content" | "completed">>,
-): Promise<DailyNoteItem> => {
-  const { data } = await apiClient.patch<DailyNoteItem>(endpoints.DAILY_NOTE_ITEM(dailyNoteId, itemId), body);
-  return data;
-};
-
 // Daily Note 삭제
 export const deleteDailyNote = async (dailyNoteId: number): Promise<void> => {
   await apiClient.delete(endpoints.DAILY_NOTE_DETAIL(dailyNoteId));
 };
 
-// Daily Note 아이템 삭제
-export const deleteDailyNoteItem = async (
+// Plan 타입
+export interface PlanResponse {
+  planId: number;
+  type: "TODO" | "PENDING";
+  content: string;
+}
+
+// Plan 추가
+export const addPlan = async (
   dailyNoteId: number,
-  itemId: number,
+  body: { type: "TODO" | "PENDING"; content: string },
+): Promise<number> => {
+  const { data } = await apiClient.post<number>(endpoints.DAILY_NOTE_PLANS(dailyNoteId), body);
+  return data;
+};
+
+// Plan 수정
+export const updatePlan = async (
+  dailyNoteId: number,
+  body: { planId: number; type?: "TODO" | "PENDING"; content?: string; isDone?: boolean },
 ): Promise<void> => {
-  await apiClient.delete(endpoints.DAILY_NOTE_ITEM(dailyNoteId, itemId));
+  await apiClient.patch(endpoints.DAILY_NOTE_PLANS(dailyNoteId), body);
+};
+
+// Plan 삭제
+export const deletePlan = async (
+  dailyNoteId: number,
+  body: { planId: number },
+): Promise<void> => {
+  await apiClient.delete(endpoints.DAILY_NOTE_PLANS(dailyNoteId), { data: body });
 };
 
 // 캘린더 월별 통계 조회
