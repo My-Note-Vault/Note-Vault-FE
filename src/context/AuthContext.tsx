@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import axios from "axios";
 import apiClient from "@/api/client";
 import { endpoints } from "@/constants/endpoints";
 import { authStorage } from "@/lib/authStorage";
@@ -66,7 +67,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const devLogin = async () => {
-    const response = await apiClient.get(endpoints.DEV_LOGIN);
+    const response = await axios.get(endpoints.DEV_LOGIN);
     const { token } = response.data;
     if (!token?.accessToken) throw new Error("No access token returned");
     authStorage.setTokens(token.accessToken, token.refreshToken);

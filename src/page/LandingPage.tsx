@@ -1,5 +1,6 @@
 import { useAuth } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import { FileText, Columns3, CalendarDays, Search, ArrowRight } from "lucide-react";
 
 const FEATURES = [
@@ -38,7 +39,7 @@ export default function LandingPage() {
       await devLogin();
       navigate("/profile-setup", { replace: true });
     } catch {
-      // 에러는 인터셉터/toast에서 처리
+      toast.error("Dev 로그인에 실패했습니다");
     }
   };
 

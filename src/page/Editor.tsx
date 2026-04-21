@@ -5,7 +5,7 @@ import { ChevronRight, Loader2, AlertTriangle, RefreshCw, Check, Undo2, ArrowUp,
 import type { DocType } from "@/types/common";
 import TaskMetadata, { type TaskMetadataValues } from "@/components/TaskMetadata";
 import { useDailyNoteDetail, useUpdateDailyNote, useAddPlan, useUpdatePlan, useDeletePlan, documentKeys } from "@/hooks/useDocuments";
-import { formatLogicalDate, type DailyNoteDetail, type DailyNoteItem } from "@/api/documents";
+import { formatLogicalDate, type DailyNoteDetail, type DailyNotePlan } from "@/api/documents";
 import { useEntityDetail, useAutoSaveEntity, useUpdateEntity, type EntityDetail } from "@/hooks/useEntity";
 import type { TaskDetail } from "@/types/task";
 import type { SubTaskDetail } from "@/types/subtask";
@@ -16,14 +16,14 @@ function hasMetadata(detail: EntityDetail): detail is TaskDetail | SubTaskDetail
 
 interface DailyNoteItemListProps {
   label: string;
-  items: DailyNoteItem[];
+  items: DailyNotePlan[];
   dailyNoteId: number;
   itemType: "PENDING" | "TODO";
   promoteLabel: string;
   promoteIcon: React.ReactNode;
-  onToggleComplete: (item: DailyNoteItem) => void;
-  onChangeType: (item: DailyNoteItem) => void;
-  onDelete: (item: DailyNoteItem) => void;
+  onToggleComplete: (item: DailyNotePlan) => void;
+  onChangeType: (item: DailyNotePlan) => void;
+  onDelete: (item: DailyNotePlan) => void;
   onAdd: (content: string) => void;
 }
 
@@ -63,11 +63,11 @@ function DailyNoteItemList({
             className="group/item flex items-center gap-2 py-1 rounded-md text-sm"
           >
             <span className="w-5 text-right text-muted-foreground/60 shrink-0 text-xs">{idx + 1}.</span>
-            <span className={`flex-1 min-w-0 truncate ${item.completed ? "line-through text-muted-foreground/50" : ""}`}>
+            <span className={`flex-1 min-w-0 truncate ${item.isDone ? "line-through text-muted-foreground/50" : ""}`}>
               {item.content}
             </span>
             <div className="flex items-center gap-0.5 opacity-0 group-hover/item:opacity-100 transition-opacity shrink-0">
-              {item.completed ? (
+              {item.isDone ? (
                 <button
                   onClick={() => onToggleComplete(item)}
                   className="p-1 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
@@ -317,8 +317,8 @@ export default function Editor({
 
   if (isDailyNote) {
     const daily = dailyDetail as DailyNoteDetail | undefined;
-    const pendingItems = daily?.items?.filter((i) => i.type === "PENDING") ?? [];
-    const todoItems = daily?.items?.filter((i) => i.type === "TODO") ?? [];
+    const pendingItems = daily?.plans?.filter((i) => i.type === "PENDING") ?? [];
+    const todoItems = daily?.plans?.filter((i) => i.type === "TODO") ?? [];
 
     return (
       <div className="min-h-screen bg-background">
@@ -371,7 +371,7 @@ export default function Editor({
                 promoteLabel="Todo"
                 promoteIcon={<ArrowDown className="h-3.5 w-3.5" />}
                 onToggleComplete={(item) =>
-                  updateItemMutation.mutate({ dailyNoteId: dailyNoteId!, body: { planId: item.id, isDone: !item.completed } })
+                  updateItemMutation.mutate({ dailyNoteId: dailyNoteId!, body: { planId: item.id, isDone: !item.isDone } })
                 }
                 onChangeType={(item) =>
                   updateItemMutation.mutate({ dailyNoteId: dailyNoteId!, body: { planId: item.id, type: "TODO" } })
@@ -392,7 +392,7 @@ export default function Editor({
                 promoteLabel="Pending"
                 promoteIcon={<ArrowUp className="h-3.5 w-3.5" />}
                 onToggleComplete={(item) =>
-                  updateItemMutation.mutate({ dailyNoteId: dailyNoteId!, body: { planId: item.id, isDone: !item.completed } })
+                  updateItemMutation.mutate({ dailyNoteId: dailyNoteId!, body: { planId: item.id, isDone: !item.isDone } })
                 }
                 onChangeType={(item) =>
                   updateItemMutation.mutate({ dailyNoteId: dailyNoteId!, body: { planId: item.id, type: "PENDING" } })

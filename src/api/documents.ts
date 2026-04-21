@@ -7,12 +7,12 @@ import type {
   CalendarStatsResponse,
 } from "@/types/common";
 
-// DailyNote 아이템 타입
-export interface DailyNoteItem {
+// DailyNote Plan 타입
+export interface DailyNotePlan {
   id: number;
   type: "PENDING" | "TODO";
   content: string;
-  completed: boolean;
+  isDone: boolean;
 }
 
 // DailyNote 상세 타입
@@ -20,7 +20,7 @@ export interface DailyNoteDetail {
   dailyNoteId: number;
   date: string;
   logicalDate: number[]; // [year, month, day] from Java LocalDate
-  items: DailyNoteItem[];
+  plans: DailyNotePlan[];
   content: string;
 }
 
