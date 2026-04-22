@@ -9,7 +9,7 @@ import type {
 
 // DailyNote Plan 타입
 export interface DailyNotePlan {
-  id: number;
+  planId: number;
   type: "PENDING" | "TODO";
   content: string;
   isDone: boolean;

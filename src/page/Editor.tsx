@@ -40,16 +40,20 @@ function DailyNoteItemList({
   const [adding, setAdding] = useState(false);
   const [newContent, setNewContent] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+  const submittingRef = useRef(false);
 
   useEffect(() => {
     if (adding) inputRef.current?.focus();
   }, [adding]);
 
   const handleSubmit = () => {
+    if (submittingRef.current) return;
     const trimmed = newContent.trim();
     if (!trimmed) return;
+    submittingRef.current = true;
     onAdd(trimmed);
     setNewContent("");
+    requestAnimationFrame(() => { submittingRef.current = false; });
   };
 
   return (
@@ -59,7 +63,7 @@ function DailyNoteItemList({
       <div className="space-y-1">
         {items.map((item, idx) => (
           <div
-            key={item.id}
+            key={item.planId}
             className="group/item flex items-center gap-2 py-1 rounded-md text-sm"
           >
             <span className="w-5 text-right text-muted-foreground/60 shrink-0 text-xs">{idx + 1}.</span>
@@ -113,7 +117,7 @@ function DailyNoteItemList({
             value={newContent}
             onChange={(e) => setNewContent(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter") { e.preventDefault(); handleSubmit(); }
+              if (e.key === "Enter" && !e.nativeEvent.isComposing) { e.preventDefault(); handleSubmit(); }
               if (e.key === "Escape") { setAdding(false); setNewContent(""); }
             }}
             onBlur={() => { if (!newContent.trim()) { setAdding(false); setNewContent(""); } }}
@@ -370,14 +374,14 @@ export default function Editor({
                 itemType="PENDING"
                 promoteLabel="Todo"
                 promoteIcon={<ArrowDown className="h-3.5 w-3.5" />}
-                onToggleComplete={(item) =>
-                  updateItemMutation.mutate({ dailyNoteId: dailyNoteId!, body: { planId: item.id, isDone: !item.isDone } })
+                onToggleComplete={(plan) =>
+                  updateItemMutation.mutate({ dailyNoteId: dailyNoteId!, body: { planId: plan.planId, isDone: !plan.isDone } })
                 }
-                onChangeType={(item) =>
-                  updateItemMutation.mutate({ dailyNoteId: dailyNoteId!, body: { planId: item.id, type: "TODO" } })
+                onChangeType={(plan) =>
+                  updateItemMutation.mutate({ dailyNoteId: dailyNoteId!, body: { planId: plan.planId, type: "TODO" } })
                 }
-                onDelete={(item) =>
-                  deleteItemMutation.mutate({ dailyNoteId: dailyNoteId!, planId: item.id })
+                onDelete={(plan) =>
+                  deleteItemMutation.mutate({ dailyNoteId: dailyNoteId!, planId: plan.planId })
                 }
                 onAdd={(content) =>
                   addItemMutation.mutate({ dailyNoteId: dailyNoteId!, body: { type: "PENDING", content } })
@@ -391,14 +395,14 @@ export default function Editor({
                 itemType="TODO"
                 promoteLabel="Pending"
                 promoteIcon={<ArrowUp className="h-3.5 w-3.5" />}
-                onToggleComplete={(item) =>
-                  updateItemMutation.mutate({ dailyNoteId: dailyNoteId!, body: { planId: item.id, isDone: !item.isDone } })
+                onToggleComplete={(plan) =>
+                  updateItemMutation.mutate({ dailyNoteId: dailyNoteId!, body: { planId: plan.planId, isDone: !plan.isDone } })
                 }
-                onChangeType={(item) =>
-                  updateItemMutation.mutate({ dailyNoteId: dailyNoteId!, body: { planId: item.id, type: "PENDING" } })
+                onChangeType={(plan) =>
+                  updateItemMutation.mutate({ dailyNoteId: dailyNoteId!, body: { planId: plan.planId, type: "PENDING" } })
                 }
-                onDelete={(item) =>
-                  deleteItemMutation.mutate({ dailyNoteId: dailyNoteId!, planId: item.id })
+                onDelete={(plan) =>
+                  deleteItemMutation.mutate({ dailyNoteId: dailyNoteId!, planId: plan.planId })
                 }
                 onAdd={(content) =>
                   addItemMutation.mutate({ dailyNoteId: dailyNoteId!, body: { type: "TODO", content } })
