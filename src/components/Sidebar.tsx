@@ -355,10 +355,10 @@ interface SidebarProps {
   isLoading?: boolean;
   unfoldedIds?: Set<string>;
   open: boolean;
+  activeTabId?: string | null;
 }
 
-export default function Sidebar({ onSelectSidebarItem, docs, dailyNotes, onAddItem, onAddSpace, onDeleteItem, onDeleteDailyNote, isLoading, unfoldedIds, open }: SidebarProps) {
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+export default function Sidebar({ onSelectSidebarItem, docs, dailyNotes, onAddItem, onAddSpace, onDeleteItem, onDeleteDailyNote, isLoading, unfoldedIds, open, activeTabId }: SidebarProps) {
   const [searchQuery, setSearchQuery] = useState("");
 
   // Workspace 선택 상태 (localStorage persist)
@@ -378,6 +378,15 @@ export default function Sidebar({ onSelectSidebarItem, docs, dailyNotes, onAddIt
       setSelectedWorkspaceId(docs[0].id);
     }
   }, [docs, selectedWorkspaceId]);
+
+  // 활성 탭이 workspace이면 자동 선택
+  useEffect(() => {
+    if (!activeTabId || docs.length === 0) return;
+    const ws = docs.find((d) => d.id === activeTabId);
+    if (ws) {
+      setSelectedWorkspaceId(ws.id);
+    }
+  }, [activeTabId, docs]);
 
   // localStorage 동기화
   useEffect(() => {
@@ -401,7 +410,6 @@ export default function Sidebar({ onSelectSidebarItem, docs, dailyNotes, onAddIt
   const { data: searchResults = [], isLoading: isSearching } = useSearchDocuments(debouncedQuery);
 
   const handleSelect = (id: string) => {
-    setSelectedId(id);
     setSearchQuery("");
     setDebouncedQuery("");
     onSelectSidebarItem?.(id);
@@ -474,14 +482,14 @@ export default function Sidebar({ onSelectSidebarItem, docs, dailyNotes, onAddIt
                 {dailyNotes && dailyNotes.length > 0 && (
                   <DailyNotesSection
                     dailyNotes={dailyNotes}
-                    selectedId={selectedId}
+                    selectedId={activeTabId ?? null}
                     onSelect={handleSelect}
                     onDelete={onDeleteDailyNote}
                   />
                 )}
                 <div
                   className={`flex items-center gap-1 px-2 py-1.5 rounded-md cursor-pointer text-sm transition-colors
-                    ${selectedId === "calendar-view"
+                    ${activeTabId === "calendar-view"
                       ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
                       : "text-sidebar-foreground hover:bg-sidebar-accent/50"}`}
                   style={{ paddingLeft: "20px" }}
@@ -493,7 +501,7 @@ export default function Sidebar({ onSelectSidebarItem, docs, dailyNotes, onAddIt
                 </div>
                 <div
                   className={`flex items-center gap-1 px-2 py-1.5 rounded-md cursor-pointer text-sm transition-colors
-                    ${selectedId === "kanban-view"
+                    ${activeTabId === "kanban-view"
                       ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
                       : "text-sidebar-foreground hover:bg-sidebar-accent/50"}`}
                   style={{ paddingLeft: "20px" }}
@@ -513,7 +521,7 @@ export default function Sidebar({ onSelectSidebarItem, docs, dailyNotes, onAddIt
                     <DocItem
                       doc={{ ...selectedWorkspace, children: undefined }}
                       depth={0}
-                      selectedId={selectedId}
+                      selectedId={activeTabId ?? null}
                       onSelect={handleSelect}
                       onAddItem={onAddItem}
                       onDeleteItem={onDeleteItem}
@@ -524,7 +532,7 @@ export default function Sidebar({ onSelectSidebarItem, docs, dailyNotes, onAddIt
                         key={doc.id}
                         doc={doc}
                         depth={0}
-                        selectedId={selectedId}
+                        selectedId={activeTabId ?? null}
                         onSelect={handleSelect}
                         onAddItem={onAddItem}
                         onDeleteItem={onDeleteItem}

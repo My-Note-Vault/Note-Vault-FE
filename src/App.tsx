@@ -236,17 +236,28 @@ function AppContent() {
         setSplitState((prev) => {
             const targetPaneId = prev.focusedPane;
             const pane = prev.panes[targetPaneId];
-            if (pane.tabs.length >= 4) return prev;
+            const newTab = { id, name, isDaily: false, docType, children: [] as { id: string; name: string }[], isNew: true };
+
+            if (pane.tabs.length >= 4) {
+                const replaceId = pane.activeTabId ?? pane.tabs[pane.tabs.length - 1].id;
+                return {
+                    ...prev,
+                    panes: {
+                        ...prev.panes,
+                        [targetPaneId]: {
+                            tabs: pane.tabs.map((t) => (t.id === replaceId ? newTab : t)),
+                            activeTabId: id,
+                        },
+                    },
+                };
+            }
 
             return {
                 ...prev,
                 panes: {
                     ...prev.panes,
                     [targetPaneId]: {
-                        tabs: [
-                            { id, name, isDaily: false, docType, children: [], isNew: true },
-                            ...pane.tabs,
-                        ].slice(0, 4),
+                        tabs: [newTab, ...pane.tabs].slice(0, 4),
                         activeTabId: id,
                     },
                 },
@@ -376,15 +387,28 @@ function AppContent() {
 
             const targetPaneId = prev.focusedPane;
             const pane = prev.panes[targetPaneId];
+            const newTab = { id, name, isDaily: isDaily || isCalendar, docType, children };
 
-            if (pane.tabs.length >= 4) return prev;
+            if (pane.tabs.length >= 4) {
+                const replaceId = pane.activeTabId ?? pane.tabs[pane.tabs.length - 1].id;
+                return {
+                    ...prev,
+                    panes: {
+                        ...prev.panes,
+                        [targetPaneId]: {
+                            tabs: pane.tabs.map((t) => (t.id === replaceId ? newTab : t)),
+                            activeTabId: id,
+                        },
+                    },
+                };
+            }
 
             return {
                 ...prev,
                 panes: {
                     ...prev.panes,
                     [targetPaneId]: {
-                        tabs: [{ id, name, isDaily: isDaily || isCalendar, docType, children }, ...pane.tabs].slice(0, 4),
+                        tabs: [newTab, ...pane.tabs].slice(0, 4),
                         activeTabId: id,
                     },
                 },
@@ -735,6 +759,7 @@ function AppContent() {
                 isLoading={isLoading}
                 unfoldedIds={unfoldedIds}
                 open={sidebarOpen}
+                activeTabId={splitState.panes[splitState.focusedPane].activeTabId}
             />
             <main className="flex-1 overflow-hidden flex">
                 {splitState.mode === "single" ? (
