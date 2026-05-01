@@ -6,9 +6,10 @@ import { AuthProvider } from "./context/AuthContext";
 import { PanelGroup, Panel, PanelResizeHandle } from "react-resizable-panels";
 import ActivityBar from "./components/ActivityBar";
 import Sidebar from "./components/Sidebar";
-import type { SidebarItem, DocType } from "@/types/common";
+import type { SidebarItem, DocType, TaskOverview } from "@/types/common";
 import type { DailyNoteDetail } from "@/api/documents";
 import { fetchDailyNoteByDate, fetchDailyNoteDetail, formatLogicalDate } from "@/api/documents";
+import { createSpace } from "@/api/spaces";
 import { pathToTabId, tabIdToPath } from "@/api/lastVisited";
 import TabPane, { type PaneId, type PaneState } from "./components/TabPane";
 import {
@@ -22,6 +23,8 @@ import {
     useDeleteEntity,
     useUpdateEntity,
 } from "@/hooks/useEntity";
+import { useSpaceList, spaceKeys } from "@/hooks/useSpaces";
+import type { SpaceListItem } from "@/types/space";
 import { useLastVisited, useUpdateLastVisited } from "@/hooks/useLastVisited";
 import PublicRoute from "./components/auth/PublicRoute";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
@@ -125,7 +128,7 @@ const CHILD_TYPE_MAP: Record<DocType, DocType | null> = {
 };
 
 const TYPE_LABELS: Record<DocType, string> = {
-    space: "새 Work Space",
+    space: "새 Workspace",
     task: "새 Task",
     subtask: "새 Sub Task",
     trivia: "새 Trivia",
@@ -139,7 +142,35 @@ interface SplitState {
 
 function AppContent() {
     const appQueryClient = useQueryClient();
-    const { data: docs = [], unfoldedIds, isLoading } = useDocumentTree();
+    const { data: workspaces = [] } = useSpaceList();
+
+    // Workspace 선택 상태 (Sidebar에서 끌어올림)
+    const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | null>(() => {
+        try {
+            return localStorage.getItem("selected_workspace");
+        } catch {
+            return null;
+        }
+    });
+
+    // 선택된 workspace가 유효하지 않으면 첫 번째로 자동 선택
+    useEffect(() => {
+        if (workspaces.length === 0) return;
+        const valid = workspaces.some((w) => String(w.id) === selectedWorkspaceId);
+        if (!valid) {
+            setSelectedWorkspaceId(String(workspaces[0].id));
+        }
+    }, [workspaces, selectedWorkspaceId]);
+
+    // localStorage 동기화
+    useEffect(() => {
+        if (selectedWorkspaceId) {
+            localStorage.setItem("selected_workspace", selectedWorkspaceId);
+        }
+    }, [selectedWorkspaceId]);
+
+    const workspaceIdNum = selectedWorkspaceId ? Number(selectedWorkspaceId) : null;
+    const { data: docs = [], unfoldedIds, isLoading } = useDocumentTree(workspaceIdNum);
     const { data: dailyNotes } = useDailyNotes();
     const createEntityMutation = useCreateEntity();
     const deleteEntityMutation = useDeleteEntity();
@@ -153,6 +184,7 @@ function AppContent() {
     const hasRestoredLastVisited = useRef(false);
 
     const [sidebarOpen, setSidebarOpen] = useState(true);
+    const [searchMode, setSearchMode] = useState(false);
 
     // localStorage에서 초기 상태 복원 (tabs만 복원, activeTabId는 lastVisited에서 결정)
     const [splitState, setSplitState] = useState<SplitState>(() => {
@@ -195,6 +227,9 @@ function AppContent() {
 
     const docsRef = useRef(docs);
     docsRef.current = docs;
+
+    const workspacesRef = useRef(workspaces);
+    workspacesRef.current = workspaces;
 
     const dailyNotesRef = useRef(dailyNotes);
     dailyNotesRef.current = dailyNotes;
@@ -319,6 +354,34 @@ function AppContent() {
         return () => window.removeEventListener("beforeunload", handleBeforeUnload);
     }, []);
 
+    // docs 로드 후 탭 docType/name/children 갱신 (초기 복원 시 docs 미로드 대응)
+    useEffect(() => {
+        if (!docs.length) return;
+        setSplitState((prev) => {
+            let changed = false;
+            const updated = { ...prev.panes };
+            for (const pid of ["left", "right"] as PaneId[]) {
+                const pane = prev.panes[pid];
+                const newTabs = pane.tabs.map((tab) => {
+                    if (tab.isDaily || tab.id === "calendar-view" || tab.id === "kanban-view" || tab.isNew) return tab;
+                    const doc = findDocById(docs, tab.id);
+                    if (doc && (!tab.docType || tab.name === tab.id)) {
+                        changed = true;
+                        return {
+                            ...tab,
+                            docType: doc.type,
+                            name: doc.name,
+                            children: doc.children?.filter((c) => !c.children || c.type)?.map((c) => ({ id: c.id, name: c.name })) ?? [],
+                        };
+                    }
+                    return tab;
+                });
+                updated[pid] = { ...pane, tabs: newTabs };
+            }
+            return changed ? { ...prev, panes: updated } : prev;
+        });
+    }, [docs]);
+
     // dailyNotes 로드 후 탭 이름 갱신 (복원 시 데이터 미로드 대응)
     useEffect(() => {
         if (!dailyNotes?.length) return;
@@ -343,14 +406,14 @@ function AppContent() {
         });
     }, [dailyNotes]);
 
-    const handleSelectDocument = useCallback((id: string) => {
+    const handleSelectDocument = useCallback((id: string, passedDocType?: DocType) => {
         const isCalendar = id === "calendar-view";
         const isKanban = id === "kanban-view";
         const dailyPkMatch = id.match(/^daily-(\d+)$/);
         const isDaily = !!dailyPkMatch;
 
         let name: string;
-        let docType: DocType | undefined;
+        let docType: DocType | undefined = passedDocType;
         let children: { id: string; name: string }[] = [];
 
         if (isCalendar) {
@@ -363,11 +426,22 @@ function AppContent() {
             name = dailyNote ? formatLogicalDate(dailyNote.logicalDate) : id;
         } else {
             const doc = findDocById(docsRef.current, id);
-            name = doc?.name ?? id;
-            docType = doc?.type;
-            children = doc?.children
-                ?.filter((c) => !c.children || c.type)
-                ?.map((c) => ({ id: c.id, name: c.name })) ?? [];
+            if (doc) {
+                name = doc.name;
+                docType = passedDocType ?? doc.type;
+                children = doc.children
+                    ?.filter((c) => !c.children || c.type)
+                    ?.map((c) => ({ id: c.id, name: c.name })) ?? [];
+            } else {
+                const ws = workspacesRef.current?.find((w) => String(w.id) === id);
+                if (ws) {
+                    name = ws.name;
+                    docType = passedDocType ?? ("space" as DocType);
+                } else {
+                    name = id;
+                    docType = passedDocType;
+                }
+            }
         }
 
         setSplitState((prev) => {
@@ -430,11 +504,17 @@ function AppContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    const handleAddSpace = useCallback(() => {
-        createEntityMutation.mutate(
-            { type: "space" as DocType, name: TYPE_LABELS["space"] },
-            { onSuccess: (result) => openNewTab(result.id, result.name, "space" as DocType) },
-        );
+    const handleAddSpace = useCallback(async () => {
+        try {
+            const result = await createSpace({ parentId: null, name: TYPE_LABELS["space"], content: null, isPublic: false });
+            openNewTab(result.id, result.name, "space" as DocType);
+            appQueryClient.setQueryData<SpaceListItem[]>(
+                spaceKeys.list(),
+                (old) => [...(old ?? []), { id: Number(result.id), name: result.name }],
+            );
+        } catch {
+            toast.error("생성에 실패했습니다");
+        }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -654,6 +734,37 @@ function AppContent() {
             ) as Record<PaneId, PaneState>,
         }));
 
+        // 사이드바 트리 즉시 반영
+        if (docType && docType !== "space") {
+            const numId = Number(id);
+            appQueryClient.setQueryData<TaskOverview[]>(
+                documentKeys.noteInfos(workspaceIdNum),
+                (old) => old?.map((task) => {
+                    if (docType === "task" && task.id === numId) return { ...task, title: newName };
+                    return {
+                        ...task,
+                        subTaskSummaries: task.subTaskSummaries.map((sub) => {
+                            if (docType === "subtask" && sub.id === numId) return { ...sub, title: newName };
+                            return {
+                                ...sub,
+                                triviaSummaries: sub.triviaSummaries.map((t) =>
+                                    docType === "trivia" && t.id === numId ? { ...t, title: newName } : t,
+                                ),
+                            };
+                        }),
+                    };
+                }),
+            );
+        }
+
+        // workspace인 경우 하단 선택기도 즉시 반영
+        if (docType === "space") {
+            appQueryClient.setQueryData<SpaceListItem[]>(
+                spaceKeys.list(),
+                (old) => old?.map((w) => w.id === Number(id) ? { ...w, name: newName } : w),
+            );
+        }
+
         // API 호출
         if (docType) {
             updateEntityMutation.mutate({ id, type: docType, name: newName });
@@ -669,7 +780,7 @@ function AppContent() {
     }, []);
 
     // 문서 선택 + 최근 방문 기록
-    const handleSelectDocumentWithTracking = useCallback((id: string) => {
+    const handleSelectDocumentWithTracking = useCallback((id: string, docType?: DocType) => {
         // "daily-notes" → 오늘자 DailyNote 조회(없으면 생성) 후 열기
         if (id === "daily-notes") {
             fetchDailyNoteDetail().then((detail) => {
@@ -715,20 +826,63 @@ function AppContent() {
             return;
         }
 
-        // 일반 엔티티
-        handleSelectDocument(id);
+        // docType이 전달되었으면 바로 사용
+        if (docType) {
+            handleSelectDocument(id, docType);
+            updateLastVisitedMutation.mutate(tabIdToPath(id, docType));
+            return;
+        }
+
+        // fallback: 트리 탐색
         const doc = findDocById(docsRef.current, id);
         if (doc?.type) {
+            handleSelectDocument(id, doc.type);
             updateLastVisitedMutation.mutate(tabIdToPath(id, doc.type));
+            return;
         }
+
+        const ws = workspacesRef.current?.find((w) => String(w.id) === id);
+        if (ws) {
+            handleSelectDocument(id, "space" as DocType);
+            updateLastVisitedMutation.mutate(tabIdToPath(id, "space"));
+            return;
+        }
+
+        handleSelectDocument(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [handleSelectDocument]);
 
+    // docs 로드 시 docType 없는 탭을 렌더 단계에서 즉시 해결 (effect 대기 없이)
+    const resolvePane = (pane: PaneState): PaneState => {
+        if (!docs.length || isLoading) return pane;
+        const needsResolve = pane.tabs.some((tab) =>
+            !tab.isDaily && tab.id !== "calendar-view" && tab.id !== "kanban-view" && !tab.isNew && !tab.docType,
+        );
+        if (!needsResolve) return pane;
+        return {
+            ...pane,
+            tabs: pane.tabs.map((tab) => {
+                if (tab.isDaily || tab.id === "calendar-view" || tab.id === "kanban-view" || tab.isNew || tab.docType) return tab;
+                const doc = findDocById(docs, tab.id);
+                if (doc) {
+                    return {
+                        ...tab,
+                        docType: doc.type,
+                        name: doc.name,
+                        children: doc.children?.filter((c) => !c.children || c.type)?.map((c) => ({ id: c.id, name: c.name })) ?? [],
+                    };
+                }
+                return tab;
+            }),
+        };
+    };
+
     const paneProps = (paneId: PaneId) => ({
         paneId,
-        paneState: splitState.panes[paneId],
+        paneState: resolvePane(splitState.panes[paneId]),
         isFocused: splitState.focusedPane === paneId,
         isSplit: splitState.mode === "split",
+        isTreeLoaded: !isLoading,
         onClickTab: (tabId: string) => handleClickTab(paneId, tabId),
         onCloseTab: (tabId: string) => handleCloseTab(paneId, tabId),
         onDropTab: handleDropTab,
@@ -747,10 +901,19 @@ function AppContent() {
                 onSelectItem={handleSelectDocumentWithTracking}
                 sidebarOpen={sidebarOpen}
                 onToggleSidebar={() => setSidebarOpen((v) => !v)}
+                searchMode={searchMode}
+                onToggleSearch={() => {
+                    setSearchMode((v) => {
+                        const next = !v;
+                        if (next && !sidebarOpen) setSidebarOpen(true);
+                        return next;
+                    });
+                }}
             />
             <Sidebar
                 onSelectSidebarItem={handleSelectDocumentWithTracking}
                 docs={docs}
+                workspaces={workspaces}
                 dailyNotes={dailyNotes}
                 onAddItem={handleAddItem}
                 onAddSpace={handleAddSpace}
@@ -760,6 +923,13 @@ function AppContent() {
                 unfoldedIds={unfoldedIds}
                 open={sidebarOpen}
                 activeTabId={splitState.panes[splitState.focusedPane].activeTabId}
+                searchMode={searchMode}
+                onCloseSearch={() => setSearchMode(false)}
+                selectedWorkspaceId={selectedWorkspaceId}
+                onSelectWorkspace={(id) => {
+                    setSelectedWorkspaceId(id);
+                    handleSelectDocumentWithTracking(id, "space" as DocType);
+                }}
             />
             <main className="flex-1 overflow-hidden flex">
                 {splitState.mode === "single" ? (

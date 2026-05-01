@@ -10,6 +10,7 @@ DEV_LOGIN: `${API_BASE}/oauth/dev`,
 
 // Space Endpoints
 SPACES: `${API_BASE}/workspaces`,
+SPACES_ALL: `${API_BASE}/workspaces/all`,
 SPACE_DETAIL: (id: string) => `${API_BASE}/workspaces/${id}`,
 
 // Task Endpoints
@@ -36,7 +37,7 @@ DAILY_NOTE_DETAIL: (id: string | number) => `${API_BASE}/daily-notes/${id}`,
 DAILY_NOTE_PLANS: (dailyNoteId: number) => `${API_BASE}/daily-notes/${dailyNoteId}/plans`,
 
 // Calendar Endpoints
-CALENDAR_STATS: `${API_BASE}/calendar/stats`,
+CALENDAR_SCHEDULES: `${API_BASE}/calendar/schedules`,
 
 // Last Visited
 LAST_VISITED: `${API_BASE}/members/last-visited-path`,

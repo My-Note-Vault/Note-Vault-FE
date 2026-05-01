@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import {
   fetchNoteInfoList,
   fetchUnfoldedNotes,
@@ -14,8 +14,7 @@ import {
   deletePlan,
 } from "@/api/documents";
 import type { DailyNoteDetail } from "@/api/documents";
-import type { NoteInfo, UnfoldedNote, SidebarItem } from "@/types/common";
-import { noteTypeToDocType } from "@/types/common";
+import type { TaskOverview, UnfoldedNote, SidebarItem, DocType } from "@/types/common";
 
 // localStorage 캐시 키
 const NOTES_CACHE_KEY = "sidebar_notes";
@@ -41,30 +40,24 @@ function writeCache(key: string, tsKey: string, data: unknown) {
   } catch { /* quota exceeded 등 무시 */ }
 }
 
-// flat NoteInfo[] → SidebarItem[] 트리 구성
-function buildTree(notes: NoteInfo[]): SidebarItem[] {
-  const map = new Map<number, SidebarItem & { _parentId: number | null }>();
-
-  for (const note of notes) {
-    map.set(note.id, {
-      id: String(note.id),
-      name: note.title,
-      type: noteTypeToDocType(note.type),
-      children: [],
-      _parentId: note.parentId,
-    });
-  }
-
-  const roots: SidebarItem[] = [];
-  for (const [, item] of map) {
-    if (item._parentId === null) {
-      roots.push(item);
-    } else {
-      map.get(item._parentId)?.children?.push(item);
-    }
-    delete (item as any)._parentId;
-  }
-  return roots;
+// TaskOverview[] → SidebarItem[] 변환
+function buildTree(overviews: TaskOverview[]): SidebarItem[] {
+  return overviews.map((task) => ({
+    id: String(task.id),
+    name: task.title,
+    type: "task" as DocType,
+    children: (task.subTaskSummaries ?? []).map((sub) => ({
+      id: String(sub.id),
+      name: sub.title,
+      type: "subtask" as DocType,
+      children: (sub.triviaSummaries ?? []).map((trivia) => ({
+        id: String(trivia.id),
+        name: trivia.title,
+        type: "trivia" as DocType,
+        children: [],
+      })),
+    })),
+  }));
 }
 
 // UnfoldedNote[] → Set<string> (펼쳐진 노트 ID 집합)
@@ -75,7 +68,7 @@ function buildUnfoldedSet(unfoldedNotes: UnfoldedNote[]): Set<string> {
 // Query key 팩토리
 export const documentKeys = {
   all: ["documents"] as const,
-  noteInfos: () => [...documentKeys.all, "note-info"] as const,
+  noteInfos: (workspaceId?: number | null) => [...documentKeys.all, "note-info", workspaceId] as const,
   unfolded: () => [...documentKeys.all, "unfolded"] as const,
   search: (query: string) => [...documentKeys.all, "search", query] as const,
   dailyNotes: () => ["daily-notes"] as const,
@@ -84,13 +77,25 @@ export const documentKeys = {
     [...documentKeys.all, "calendar-stats", year, month] as const,
 };
 
-// 사이드바 트리 조회 — note-info flat list를 받아 클라이언트에서 트리 구성
-export const useDocumentTree = () => {
+// 사이드바 데이터 (noteInfos + unfolded) 동시 invalidate
+export function invalidateSidebar(qc: QueryClient) {
+  qc.invalidateQueries({ queryKey: [...documentKeys.all, "note-info"] });
+  qc.invalidateQueries({ queryKey: documentKeys.unfolded() });
+}
+
+// 사이드바 트리 조회 — workspace별 TaskOverview 계층 구조
+export const useDocumentTree = (workspaceId: number | null) => {
   const noteInfoQuery = useQuery({
-    queryKey: documentKeys.noteInfos(),
-    queryFn: fetchNoteInfoList,
+    queryKey: documentKeys.noteInfos(workspaceId),
+    queryFn: () => fetchNoteInfoList(workspaceId!),
+    enabled: workspaceId !== null,
     staleTime: 1000 * 60,
-    initialData: () => readCache<NoteInfo[]>(NOTES_CACHE_KEY),
+    initialData: () => {
+      const cached = readCache<TaskOverview[]>(NOTES_CACHE_KEY);
+      // 이전 NoteInfo 형식 캐시 무시
+      if (cached && cached.length > 0 && !("title" in cached[0])) return undefined;
+      return cached;
+    },
     initialDataUpdatedAt: () =>
       Number(localStorage.getItem(NOTES_CACHE_TS_KEY)) || undefined,
   });

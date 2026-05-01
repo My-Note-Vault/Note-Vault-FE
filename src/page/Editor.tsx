@@ -14,6 +14,11 @@ function hasMetadata(detail: EntityDetail): detail is TaskDetail | SubTaskDetail
   return "metadata" in detail && detail.metadata != null;
 }
 
+function getErrorStatus(error: unknown): number | null {
+  const status = (error as { response?: { status?: unknown } } | null)?.response?.status;
+  return typeof status === "number" ? status : null;
+}
+
 interface DailyNoteItemListProps {
   label: string;
   items: DailyNotePlan[];
@@ -144,9 +149,10 @@ interface EditorProps {
   documentId: string;
   documentName: string;
   children?: { id: string; name: string }[];
-  onOpenDocument?: (id: string) => void;
+  onOpenDocument?: (id: string, docType?: DocType) => void;
   onRenameDocument?: (id: string, newName: string) => void;
   isNew?: boolean;
+  isTreeLoaded?: boolean;
 }
 
 export default function Editor({
@@ -158,20 +164,11 @@ export default function Editor({
   onOpenDocument,
   onRenameDocument,
   isNew,
+  isTreeLoaded,
 }: EditorProps) {
   const queryClient = useQueryClient();
-  const [title, setTitle] = useState(isDailyNote ? documentName : documentName);
+  const [title, setTitle] = useState(documentName);
   const editorRef = useRef<MarkdownEditorHandle>(null);
-  const renameTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const onRenameDocumentRef = useRef(onRenameDocument);
-  onRenameDocumentRef.current = onRenameDocument;
-
-  const debouncedRename = useCallback((id: string, newName: string) => {
-    if (renameTimerRef.current) clearTimeout(renameTimerRef.current);
-    renameTimerRef.current = setTimeout(() => {
-      onRenameDocumentRef.current?.(id, newName);
-    }, 2000);
-  }, []);
 
   const [dailyLayout, _setDailyLayout] = useState<"horizontal" | "vertical">(() => {
     return (localStorage.getItem("dailyLayout") as "horizontal" | "vertical") ?? "horizontal";
@@ -198,6 +195,7 @@ export default function Editor({
     data: entityDetail,
     isLoading: isEntityLoading,
     isError: isEntityError,
+    error: entityError,
     refetch: refetchEntity,
   } = useEntityDetail(isDailyNote || isNew ? null : documentId, docType);
 
@@ -205,13 +203,18 @@ export default function Editor({
     data: dailyDetail,
     isLoading: isDailyLoading,
     isError: isDailyError,
+    error: dailyError,
     refetch: refetchDaily,
   } = useDailyNoteDetail(dailyPk);
 
   const detail = isDailyNote ? dailyDetail : entityDetail;
   const loading = isNew ? false : isDailyNote ? isDailyLoading : isEntityLoading;
   const isError = isNew ? false : isDailyNote ? isDailyError : isEntityError;
+  const queryError = isDailyNote ? dailyError : entityError;
+  const errorStatus = getErrorStatus(queryError);
   const refetch = isDailyNote ? refetchDaily : refetchEntity;
+  const isMissingDocument = !isDailyNote && !isNew && !docType && !!isTreeLoaded;
+  const isNotFound = isMissingDocument || errorStatus === 404;
 
   const dailyNoteId = dailyPk ?? dailyDetail?.dailyNoteId;
 
@@ -292,6 +295,20 @@ export default function Editor({
   const hasChildren = children && children.length > 0;
   const showChildrenSection = docType && docType !== "trivia" && hasChildren;
   const showMetadata = docType === "task" || docType === "subtask";
+
+  if (isNotFound) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3 text-center max-w-sm px-6">
+          <AlertTriangle className="h-8 w-8 text-destructive" />
+          <p className="text-base font-semibold text-foreground">404 Not Found</p>
+          <p className="text-sm text-muted-foreground">
+            요청한 문서를 찾을 수 없습니다.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   if (isError) {
     return (
@@ -438,13 +455,11 @@ export default function Editor({
           <input
             type="text"
             value={title}
-            onChange={(e) => {
-              setTitle(e.target.value);
-              debouncedRename(documentId, e.target.value);
-            }}
+            onChange={(e) => setTitle(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter") {
+              if (e.key === "Enter" && !e.nativeEvent.isComposing) {
                 e.preventDefault();
+                onRenameDocument?.(documentId, title.trim());
                 editorRef.current?.focus();
               }
             }}

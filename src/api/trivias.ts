@@ -18,7 +18,7 @@ export const createTrivia = async (req: CreateTriviaRequest): Promise<CreateTriv
 };
 
 export const updateTrivia = async (id: string, req: UpdateTriviaRequest): Promise<void> => {
-  await apiClient.patch(endpoints.TRIVIAS, { ...req, workSpaceId: id });
+  await apiClient.patch(endpoints.TRIVIAS, { ...req, triviaId: id });
 };
 
 export const deleteTrivia = async (id: string): Promise<void> => {

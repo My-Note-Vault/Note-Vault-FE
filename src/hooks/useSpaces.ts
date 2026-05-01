@@ -1,12 +1,21 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchSpaceDetail, createSpace, updateSpace, deleteSpace } from "@/api/spaces";
+import { fetchSpaces, fetchSpaceDetail, createSpace, updateSpace, deleteSpace } from "@/api/spaces";
 import type { CreateSpaceRequest } from "@/types/space";
-import { documentKeys } from "./useDocuments";
+import { invalidateSidebar } from "./useDocuments";
 
 export const spaceKeys = {
   all: ["spaces"] as const,
+  list: () => [...spaceKeys.all, "list"] as const,
   details: () => [...spaceKeys.all, "detail"] as const,
   detail: (id: string) => [...spaceKeys.details(), id] as const,
+};
+
+export const useSpaceList = () => {
+  return useQuery({
+    queryKey: spaceKeys.list(),
+    queryFn: fetchSpaces,
+    staleTime: 1000 * 60,
+  });
 };
 
 export const useSpaceDetail = (id: string | null) => {
@@ -23,7 +32,7 @@ export const useCreateSpace = () => {
   return useMutation({
     mutationFn: (req: CreateSpaceRequest) => createSpace(req),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: documentKeys.noteInfos() });
+      invalidateSidebar(queryClient);
     },
   });
 };
@@ -34,9 +43,6 @@ export const useUpdateSpace = () => {
     mutationFn: ({ id, ...req }: { id: string; name?: string; content?: string; parentId?: string | null }) => updateSpace(id, req),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: spaceKeys.detail(variables.id) });
-      if (variables.name) {
-        queryClient.invalidateQueries({ queryKey: documentKeys.noteInfos() });
-      }
     },
   });
 };
@@ -46,7 +52,7 @@ export const useDeleteSpace = () => {
   return useMutation({
     mutationFn: (id: string) => deleteSpace(id),
     onSuccess: (_data, id) => {
-      queryClient.invalidateQueries({ queryKey: documentKeys.noteInfos() });
+      invalidateSidebar(queryClient);
       queryClient.removeQueries({ queryKey: spaceKeys.detail(id) });
     },
   });

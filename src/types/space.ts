@@ -1,3 +1,8 @@
+export interface SpaceListItem {
+  id: number;
+  name: string;
+}
+
 export interface SpaceDetail {
   id: string;
   name: string;

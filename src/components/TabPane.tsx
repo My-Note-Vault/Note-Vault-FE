@@ -26,11 +26,12 @@ interface TabPaneProps {
   paneState: PaneState;
   isFocused: boolean;
   isSplit: boolean;
+  isTreeLoaded?: boolean;
   onClickTab: (tabId: string) => void;
   onCloseTab: (tabId: string) => void;
   onDropTab: (tabId: string, sourcePane: PaneId, targetPane: PaneId) => void;
   onFocusPane: () => void;
-  onOpenDocument: (id: string) => void;
+  onOpenDocument: (id: string, docType?: DocType) => void;
   onRenameDocument: (id: string, newName: string) => void;
   onAddSpace?: () => void;
   draggingTabId: string | null;
@@ -47,6 +48,7 @@ export default function TabPane({
   paneState,
   isFocused,
   isSplit,
+  isTreeLoaded,
   onClickTab,
   onCloseTab,
   onDropTab,
@@ -237,6 +239,7 @@ export default function TabPane({
               onOpenDocument={onOpenDocument}
               onRenameDocument={onRenameDocument}
               isNew={activeTab.isNew}
+              isTreeLoaded={isTreeLoaded}
             />
           )
         ) : (

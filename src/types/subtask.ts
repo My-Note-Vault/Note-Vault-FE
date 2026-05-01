@@ -15,8 +15,12 @@ export interface SubTaskDetail {
 }
 
 export interface CreateSubTaskRequest {
-  name: string;
-  parentId: string;
+  taskId: string;
+  title: string;
+  content?: string;
+  startDateTime?: string | null;
+  endDateTime?: string | null;
+  status?: TaskStatus;
 }
 
 export interface CreateSubTaskResponse {

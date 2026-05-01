@@ -9,6 +9,25 @@ export interface NoteInfo {
   id: number;
   type: NoteType;
   parentId: number | null;
+  name?: string;   // WORKSPACE
+  title?: string;  // TASK, SUBTASK, TRIVIA
+}
+
+// TaskOverview — /api/v1/unfolded-notes/note-info?workspace={id}
+export interface TaskOverview {
+  id: number;
+  title: string;
+  subTaskSummaries: SubTaskSummary[];
+}
+
+export interface SubTaskSummary {
+  id: number;
+  title: string;
+  triviaSummaries: TriviaSummary[];
+}
+
+export interface TriviaSummary {
+  id: number;
   title: string;
 }
 

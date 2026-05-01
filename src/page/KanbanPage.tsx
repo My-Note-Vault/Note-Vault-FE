@@ -8,7 +8,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useKanban, type KanbanItem } from "@/hooks/useKanban";
-import type { TaskStatus } from "@/types/common";
+import type { DocType, TaskStatus } from "@/types/common";
 
 const COLUMN_CONFIG: Record<TaskStatus, { label: string; color: string }> = {
   todo: { label: "할 일", color: "bg-gray-400" },
@@ -25,7 +25,7 @@ const TYPE_LABEL: Record<string, string> = {
 };
 
 interface KanbanPageProps {
-  onOpenDocument: (id: string) => void;
+  onOpenDocument: (id: string, docType?: DocType) => void;
 }
 
 function KanbanCard({
@@ -136,7 +136,7 @@ export default function KanbanPage({ onOpenDocument }: KanbanPageProps) {
                         <KanbanCard
                           key={item.id}
                           item={item}
-                          onClick={() => onOpenDocument(item.id)}
+                          onClick={() => onOpenDocument(item.id, item.type as DocType)}
                         />
                       ))
                     )}

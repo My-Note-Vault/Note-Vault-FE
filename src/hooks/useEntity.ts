@@ -10,8 +10,9 @@ import { fetchSpaceDetail, createSpace, updateSpace, deleteSpace } from "@/api/s
 import { fetchTaskDetail, createTask, updateTask, deleteTask } from "@/api/tasks";
 import { fetchSubTaskDetail, createSubTask, updateSubTask, deleteSubTask } from "@/api/subtasks";
 import { fetchTriviaDetail, createTrivia, updateTrivia, deleteTrivia } from "@/api/trivias";
+import { unfoldNote } from "@/api/documents";
 
-import { documentKeys } from "./useDocuments";
+import { invalidateSidebar } from "./useDocuments";
 import { spaceKeys } from "./useSpaces";
 import { taskKeys } from "./useTasks";
 import { subTaskKeys } from "./useSubTasks";
@@ -89,15 +90,15 @@ export const useCreateEntity = () => {
         case "space":
           return createSpace({ parentId: parentId ?? null, name, content: null, isPublic: false });
         case "task":
-          return createTask({ name, parentId: parentId! });
+          return createTask({ title: name, workSpaceId: parentId! });
         case "subtask":
-          return createSubTask({ name, parentId: parentId! });
+          return createSubTask({ title: name, taskId: parentId! });
         case "trivia":
           return createTrivia({ name, parentId: parentId! });
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: documentKeys.noteInfos() });
+      invalidateSidebar(queryClient);
     },
     onError: () => {
       toast.error("생성에 실패했습니다");
@@ -112,11 +113,10 @@ export const useUpdateEntity = () => {
     mutationFn: async ({ id, type, ...req }: UpdateEntityRequest): Promise<void> => {
       switch (type) {
         case "space": {
-          const cached = queryClient.getQueryData<SpaceDetail>(spaceKeys.detail(id));
-          return updateSpace(id, {
-            name: req.name ?? cached?.name ?? "",
-            content: req.content ?? cached?.content ?? "",
-          });
+          const payload: { name?: string; content?: string } = {};
+          if (req.name !== undefined) payload.name = req.name;
+          if (req.content !== undefined) payload.content = req.content;
+          return updateSpace(id, payload);
         }
         case "task":
           return updateTask(id, req as UpdateTaskRequest);
@@ -129,14 +129,16 @@ export const useUpdateEntity = () => {
     onSuccess: (_data, variables) => {
       const keys = entityKeyMap[variables.type];
       queryClient.invalidateQueries({ queryKey: keys.detail(variables.id) });
-      if (variables.name) {
-        queryClient.invalidateQueries({ queryKey: documentKeys.noteInfos() });
-      }
       if (variables.metadata) {
         queryClient.invalidateQueries({
           predicate: (query) =>
             query.queryKey[0] === "documents" && query.queryKey[1] === "calendar-stats",
         });
+      }
+      // title 저장 시 unfolded-notes 등록 (space 제외)
+      if (variables.name && variables.type !== "space") {
+        const typeMap = { task: "TASK", subtask: "SUBTASK", trivia: "TRIVIA" } as const;
+        unfoldNote({ type: typeMap[variables.type], noteId: Number(variables.id) }).catch(() => {});
       }
     },
     onError: () => {
@@ -163,7 +165,7 @@ export const useDeleteEntity = () => {
     },
     onSuccess: (_data, variables) => {
       const keys = entityKeyMap[variables.type];
-      queryClient.invalidateQueries({ queryKey: documentKeys.noteInfos() });
+      invalidateSidebar(queryClient);
       queryClient.removeQueries({ queryKey: keys.detail(variables.id) });
     },
     onError: () => {
@@ -173,15 +175,11 @@ export const useDeleteEntity = () => {
 };
 
 export const useAutoSaveEntity = () => {
-  const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: async ({ id, type, content }: AutoSaveEntityRequest): Promise<void> => {
       switch (type) {
-        case "space": {
-          const cached = queryClient.getQueryData<SpaceDetail>(spaceKeys.detail(id));
-          return updateSpace(id, { name: cached?.name ?? "", content });
-        }
+        case "space":
+          return updateSpace(id, { content });
         case "task":
           return updateTask(id, { content });
         case "subtask":

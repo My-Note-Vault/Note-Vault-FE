@@ -1,4 +1,4 @@
-import { CalendarDays, PanelLeft, PanelLeftClose, Sun, Moon } from "lucide-react";
+import { CalendarDays, PanelLeft, PanelLeftClose, Sun, Moon, Search } from "lucide-react";
 import { useTheme } from "next-themes";
 import ProfilePopover from "./ProfilePopover";
 
@@ -6,9 +6,11 @@ interface ActivityBarProps {
   onSelectItem?: (id: string) => void;
   sidebarOpen: boolean;
   onToggleSidebar: () => void;
+  searchMode?: boolean;
+  onToggleSearch?: () => void;
 }
 
-export default function ActivityBar({ onSelectItem, sidebarOpen, onToggleSidebar }: ActivityBarProps) {
+export default function ActivityBar({ onSelectItem, sidebarOpen, onToggleSidebar, searchMode, onToggleSearch }: ActivityBarProps) {
   const { theme, setTheme } = useTheme();
   const isDark = theme === "dark";
 
@@ -20,6 +22,13 @@ export default function ActivityBar({ onSelectItem, sidebarOpen, onToggleSidebar
         title={sidebarOpen ? "사이드바 접기" : "사이드바 펼치기"}
       >
         {sidebarOpen ? <PanelLeftClose className="h-5 w-5" /> : <PanelLeft className="h-5 w-5" />}
+      </button>
+      <button
+        onClick={onToggleSearch}
+        className={`p-2 rounded-md hover:bg-sidebar-accent transition-colors ${searchMode ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-sidebar-foreground"}`}
+        title="문서 검색"
+      >
+        <Search className="h-5 w-5" />
       </button>
       <button
         onClick={() => onSelectItem?.("daily-notes")}

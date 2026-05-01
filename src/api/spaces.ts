@@ -2,6 +2,7 @@ import apiClient from "./client";
 import { endpoints } from "@/constants/endpoints";
 import type {
   SpaceDetail,
+  SpaceListItem,
   CreateSpaceRequest,
   CreateSpaceResponse,
   UpdateSpaceRequest,
@@ -19,6 +20,11 @@ export const createSpace = async (req: CreateSpaceRequest): Promise<CreateSpaceR
 
 export const updateSpace = async (id: string, req: Omit<UpdateSpaceRequest, "workSpaceId" | "isPublic">): Promise<void> => {
   await apiClient.patch(endpoints.SPACES, { ...req, workSpaceId: id, isPublic: false });
+};
+
+export const fetchSpaces = async (): Promise<SpaceListItem[]> => {
+  const { data } = await apiClient.get<SpaceListItem[]>(endpoints.SPACES_ALL);
+  return data;
 };
 
 export const deleteSpace = async (id: string): Promise<void> => {

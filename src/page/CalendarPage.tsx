@@ -15,12 +15,12 @@ import {
 import { ko } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { useCalendarStats } from "@/hooks/useDocuments";
-import type { CalendarDateStat } from "@/types/common";
+import type { CalendarDateStat, DocType } from "@/types/common";
 
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 
 interface CalendarPageProps {
-  onOpenDocument: (id: string) => void;
+  onOpenDocument: (id: string, docType?: DocType) => void;
 }
 
 export default function CalendarPage({ onOpenDocument }: CalendarPageProps) {

@@ -14,11 +14,11 @@ export const fetchTaskDetail = async (id: string): Promise<TaskDetail> => {
 
 export const createTask = async (req: CreateTaskRequest): Promise<CreateTaskResponse> => {
   const { data } = await apiClient.post<number>(endpoints.TASKS, req);
-  return { id: String(data), name: req.name };
+  return { id: String(data), name: req.title };
 };
 
 export const updateTask = async (id: string, req: UpdateTaskRequest): Promise<void> => {
-  await apiClient.patch(endpoints.TASKS, { ...req, workSpaceId: id });
+  await apiClient.patch(endpoints.TASKS, { ...req, taskId: id });
 };
 
 export const deleteTask = async (id: string): Promise<void> => {

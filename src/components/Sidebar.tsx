@@ -58,14 +58,14 @@ function SearchResultItem({
 }: {
   doc: SearchResult;
   query: string;
-  onSelect: (id: string) => void;
+  onSelect: (id: string, docType?: DocType) => void;
 }) {
   const Icon = doc.type ? DOC_TYPE_ICON[doc.type] : FileText;
 
   return (
     <div
       className="flex items-center gap-2 px-3 py-2 rounded-md cursor-pointer text-sm text-sidebar-foreground hover:bg-sidebar-accent/50 transition-colors"
-      onClick={() => onSelect(doc.id)}
+      onClick={() => onSelect(doc.id, doc.type)}
     >
       <Icon className="h-4 w-4 shrink-0 opacity-60" />
       <div className="flex-1 min-w-0">
@@ -86,7 +86,7 @@ interface DocItemProps {
   doc: SidebarItem;
   depth: number;
   selectedId: string | null;
-  onSelect: (id: string) => void;
+  onSelect: (id: string, docType?: DocType) => void;
   onAddItem?: (parentId: string) => void;
   onDeleteItem?: (id: string) => void;
   icon?: "file" | "calendar";
@@ -101,11 +101,11 @@ function DocItem({ doc, depth, selectedId, onSelect, onAddItem, onDeleteItem, ic
 
   const handleClick = () => {
     if (doc.type && doc.type !== "trivia") {
-      onSelect(doc.id);
+      onSelect(doc.id, doc.type);
     } else if (hasChildren && !doc.type) {
       setExpanded(!expanded);
     } else {
-      onSelect(doc.id);
+      onSelect(doc.id, doc.type);
     }
   };
 
@@ -265,19 +265,24 @@ function DailyNotesSection({
   );
 }
 
+interface WorkspaceInfo {
+  id: number;
+  name: string;
+}
+
 function WorkspaceSelector({
   workspaces,
   selectedId,
   onSelect,
   onAddSpace,
 }: {
-  workspaces: SidebarItem[];
+  workspaces: WorkspaceInfo[];
   selectedId: string | null;
   onSelect: (id: string) => void;
   onAddSpace?: () => void;
 }) {
   const [open, setOpen] = useState(false);
-  const selected = workspaces.find((w) => w.id === selectedId);
+  const selected = workspaces.find((w) => String(w.id) === selectedId);
 
   if (workspaces.length === 0) {
     return (
@@ -307,21 +312,24 @@ function WorkspaceSelector({
         </PopoverTrigger>
         <PopoverContent side="top" align="start" className="w-52 p-1">
           <div className="space-y-0.5">
-            {workspaces.map((ws) => (
-              <button
-                key={ws.id}
-                onClick={() => {
-                  onSelect(ws.id);
-                  setOpen(false);
-                }}
-                className={`flex items-center gap-2 w-full px-2 py-1.5 rounded-md text-sm transition-colors
-                  ${ws.id === selectedId ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium" : "text-popover-foreground hover:bg-accent/50"}`}
-              >
-                <Layout className="h-4 w-4 shrink-0 opacity-60" />
-                <span className="truncate flex-1 text-left">{ws.name}</span>
-                {ws.id === selectedId && <Check className="h-3.5 w-3.5 shrink-0" />}
-              </button>
-            ))}
+            {workspaces.map((ws) => {
+              const wsId = String(ws.id);
+              return (
+                <button
+                  key={wsId}
+                  onClick={() => {
+                    onSelect(wsId);
+                    setOpen(false);
+                  }}
+                  className={`flex items-center gap-2 w-full px-2 py-1.5 rounded-md text-sm transition-colors
+                    ${wsId === selectedId ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium" : "text-popover-foreground hover:bg-accent/50"}`}
+                >
+                  <Layout className="h-4 w-4 shrink-0 opacity-60" />
+                  <span className="truncate flex-1 text-left">{ws.name}</span>
+                  {wsId === selectedId && <Check className="h-3.5 w-3.5 shrink-0" />}
+                </button>
+              );
+            })}
           </div>
           {onAddSpace && (
             <>
@@ -345,8 +353,9 @@ function WorkspaceSelector({
 }
 
 interface SidebarProps {
-  onSelectSidebarItem?: (id: string) => void;
+  onSelectSidebarItem?: (id: string, docType?: DocType) => void;
   docs: SidebarItem[];
+  workspaces?: WorkspaceInfo[];
   dailyNotes?: DailyNoteDetail[];
   onAddItem?: (parentId: string) => void;
   onAddSpace?: () => void;
@@ -356,46 +365,14 @@ interface SidebarProps {
   unfoldedIds?: Set<string>;
   open: boolean;
   activeTabId?: string | null;
+  searchMode?: boolean;
+  onCloseSearch?: () => void;
+  selectedWorkspaceId?: string | null;
+  onSelectWorkspace?: (id: string) => void;
 }
 
-export default function Sidebar({ onSelectSidebarItem, docs, dailyNotes, onAddItem, onAddSpace, onDeleteItem, onDeleteDailyNote, isLoading, unfoldedIds, open, activeTabId }: SidebarProps) {
+export default function Sidebar({ onSelectSidebarItem, docs, workspaces = [], dailyNotes, onAddItem, onAddSpace, onDeleteItem, onDeleteDailyNote, isLoading, unfoldedIds, open, activeTabId, searchMode, onCloseSearch, selectedWorkspaceId, onSelectWorkspace }: SidebarProps) {
   const [searchQuery, setSearchQuery] = useState("");
-
-  // Workspace 선택 상태 (localStorage persist)
-  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | null>(() => {
-    try {
-      return localStorage.getItem("selected_workspace");
-    } catch {
-      return null;
-    }
-  });
-
-  // 선택된 workspace가 유효하지 않으면 첫 번째로 자동 선택
-  useEffect(() => {
-    if (docs.length === 0) return;
-    const valid = docs.some((d) => d.id === selectedWorkspaceId);
-    if (!valid) {
-      setSelectedWorkspaceId(docs[0].id);
-    }
-  }, [docs, selectedWorkspaceId]);
-
-  // 활성 탭이 workspace이면 자동 선택
-  useEffect(() => {
-    if (!activeTabId || docs.length === 0) return;
-    const ws = docs.find((d) => d.id === activeTabId);
-    if (ws) {
-      setSelectedWorkspaceId(ws.id);
-    }
-  }, [activeTabId, docs]);
-
-  // localStorage 동기화
-  useEffect(() => {
-    if (selectedWorkspaceId) {
-      localStorage.setItem("selected_workspace", selectedWorkspaceId);
-    }
-  }, [selectedWorkspaceId]);
-
-  const selectedWorkspace = docs.find((d) => d.id === selectedWorkspaceId);
 
   // 1초 디바운스 후 검색
   const [debouncedQuery, setDebouncedQuery] = useState("");
@@ -409,13 +386,14 @@ export default function Sidebar({ onSelectSidebarItem, docs, dailyNotes, onAddIt
 
   const { data: searchResults = [], isLoading: isSearching } = useSearchDocuments(debouncedQuery);
 
-  const handleSelect = (id: string) => {
+  const handleSelect = (id: string, docType?: DocType) => {
     setSearchQuery("");
     setDebouncedQuery("");
-    onSelectSidebarItem?.(id);
+    onCloseSearch?.();
+    onSelectSidebarItem?.(id, docType);
   };
 
-  const isSearchMode = searchQuery.trim().length > 0;
+  const isSearchMode = !!searchMode;
 
   return (
     <>
@@ -423,34 +401,40 @@ export default function Sidebar({ onSelectSidebarItem, docs, dailyNotes, onAddIt
         className={`h-screen bg-sidebar-background border-r border-sidebar-border flex flex-col shrink-0 transition-[width] duration-200 overflow-hidden
           ${open ? "w-60" : "w-0 border-r-0"}`}
       >
-        {/* 헤더: 검색 입력 */}
-        <div className="flex items-center gap-2 px-3 py-2.5 border-b border-sidebar-border">
-          <Search className="h-4 w-4 text-sidebar-foreground/40 shrink-0" />
-          <input
-            type="text"
-            placeholder="내 문서 검색..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="flex-1 min-w-0 bg-transparent text-sm text-sidebar-foreground placeholder:text-sidebar-foreground/40 outline-none"
-          />
-          {isSearchMode && (
+        {/* 헤더: 검색 입력 (searchMode일 때만) */}
+        {isSearchMode && (
+          <div className="flex items-center gap-2 px-3 py-2.5 border-b border-sidebar-border">
+            <Search className="h-4 w-4 text-sidebar-foreground/40 shrink-0" />
+            <input
+              type="text"
+              placeholder="내 문서 검색..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="flex-1 min-w-0 bg-transparent text-sm text-sidebar-foreground placeholder:text-sidebar-foreground/40 outline-none"
+              autoFocus
+            />
             <button
               onClick={() => {
                 setSearchQuery("");
                 setDebouncedQuery("");
+                onCloseSearch?.();
               }}
               className="p-1 rounded-md hover:bg-sidebar-accent transition-colors text-sidebar-foreground/50 hover:text-sidebar-foreground"
             >
               <X className="h-3.5 w-3.5" />
             </button>
-          )}
-        </div>
+          </div>
+        )}
 
         <nav className="flex-1 overflow-y-auto p-2">
           {isSearchMode ? (
             /* 검색 결과 */
             <div className="space-y-0.5">
-              {isSearching ? (
+              {searchQuery.trim().length === 0 ? (
+                <div className="px-3 py-4 text-sm text-sidebar-foreground/50 text-center">
+                  검색어를 입력하세요
+                </div>
+              ) : isSearching ? (
                 <div className="flex items-center gap-2 px-3 py-4 text-sm text-sidebar-foreground/50">
                   <Loader2 className="h-4 w-4 animate-spin" />
                   <span>검색 중...</span>
@@ -515,11 +499,32 @@ export default function Sidebar({ onSelectSidebarItem, docs, dailyNotes, onAddIt
 
               <div className="my-2 border-t border-sidebar-border" />
 
-              <div className="space-y-0.5">
-                {selectedWorkspace && (
-                  <>
+              {/* 현재 Workspace 타이틀 */}
+              {selectedWorkspaceId && (() => {
+                const ws = workspaces.find((w) => String(w.id) === selectedWorkspaceId);
+                if (!ws) return null;
+                return (
+                  <div
+                    className={`flex items-center gap-1 px-2 py-1.5 rounded-md cursor-pointer text-sm transition-colors
+                      ${activeTabId === selectedWorkspaceId
+                        ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                        : "text-sidebar-foreground hover:bg-sidebar-accent/50"}`}
+                    onClick={() => handleSelect(selectedWorkspaceId, "space" as DocType)}
+                  >
+                    <span className="w-4.5" />
+                    <Layout className="h-4 w-4 shrink-0 opacity-60" />
+                    <span className="truncate flex-1 font-medium">{ws.name}</span>
+                  </div>
+                );
+              })()}
+
+              {/* 트리 영역 (workspace 하위 Task들) */}
+              {docs.length > 0 && (
+                <div className="space-y-0.5">
+                  {sortFoldersFirst(docs).map((doc) => (
                     <DocItem
-                      doc={{ ...selectedWorkspace, children: undefined }}
+                      key={doc.id}
+                      doc={doc}
                       depth={0}
                       selectedId={activeTabId ?? null}
                       onSelect={handleSelect}
@@ -527,21 +532,9 @@ export default function Sidebar({ onSelectSidebarItem, docs, dailyNotes, onAddIt
                       onDeleteItem={onDeleteItem}
                       unfoldedIds={unfoldedIds}
                     />
-                    {selectedWorkspace.children && sortFoldersFirst(selectedWorkspace.children).map((doc) => (
-                      <DocItem
-                        key={doc.id}
-                        doc={doc}
-                        depth={0}
-                        selectedId={activeTabId ?? null}
-                        onSelect={handleSelect}
-                        onAddItem={onAddItem}
-                        onDeleteItem={onDeleteItem}
-                        unfoldedIds={unfoldedIds}
-                      />
-                    ))}
-                  </>
-                )}
-              </div>
+                  ))}
+                </div>
+              )}
             </>
           )}
         </nav>
@@ -549,9 +542,9 @@ export default function Sidebar({ onSelectSidebarItem, docs, dailyNotes, onAddIt
         {/* 하단 Workspace 선택기 */}
         {!isSearchMode && !isLoading && (
           <WorkspaceSelector
-            workspaces={docs}
-            selectedId={selectedWorkspaceId}
-            onSelect={setSelectedWorkspaceId}
+            workspaces={workspaces}
+            selectedId={selectedWorkspaceId ?? null}
+            onSelect={(id) => onSelectWorkspace?.(id)}
             onAddSpace={onAddSpace}
           />
         )}

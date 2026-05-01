@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useQueries } from "@tanstack/react-query";
 import { useDocumentTree } from "./useDocuments";
+import { useSpaceList } from "./useSpaces";
 import { taskKeys } from "./useTasks";
 import { subTaskKeys } from "./useSubTasks";
 import { fetchTaskDetail } from "@/api/tasks";
@@ -44,21 +45,22 @@ function collectTaskItems(node: SidebarItem, parentName?: string): TreeItem[] {
 }
 
 export function useKanban(spaceId: string | null) {
-  const { data: docs = [] } = useDocumentTree();
+  const workspaceIdNum = spaceId ? Number(spaceId) : null;
+  const { data: docs = [] } = useDocumentTree(workspaceIdNum);
+  const { data: spaceList = [] } = useSpaceList();
 
   const spaces = useMemo(
-    () =>
-      docs
-        .filter((d) => d.type === "space")
-        .map((d) => ({ id: d.id, name: d.name })),
-    [docs],
+    () => spaceList.map((s) => ({ id: String(s.id), name: s.name })),
+    [spaceList],
   );
 
   const taskItems = useMemo(() => {
     if (!spaceId) return [];
-    const space = docs.find((d) => d.id === spaceId);
-    if (!space) return [];
-    return collectTaskItems(space);
+    const items: TreeItem[] = [];
+    for (const doc of docs) {
+      items.push(...collectTaskItems(doc));
+    }
+    return items;
   }, [docs, spaceId]);
 
   const queries = useQueries({

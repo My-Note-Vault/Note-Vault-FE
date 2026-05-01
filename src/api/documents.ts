@@ -1,7 +1,7 @@
 import apiClient from "./client";
 import { endpoints } from "@/constants/endpoints";
 import type {
-  NoteInfo,
+  TaskOverview,
   UnfoldedNote,
   SearchResult,
   CalendarStatsResponse,
@@ -31,8 +31,10 @@ export function formatLogicalDate(logicalDate: number[]): string {
 }
 
 // 전체 NoteInfo 조회 (flat list)
-export const fetchNoteInfoList = async (): Promise<NoteInfo[]> => {
-  const { data } = await apiClient.get<NoteInfo[]>(endpoints.NOTE_INFO_LIST);
+export const fetchNoteInfoList = async (workspaceId: number): Promise<TaskOverview[]> => {
+  const { data } = await apiClient.get<TaskOverview[]>(endpoints.NOTE_INFO_LIST, {
+    params: { workspace: workspaceId },
+  });
   return data;
 };
 
@@ -124,13 +126,20 @@ export const deletePlan = async (
   await apiClient.delete(endpoints.DAILY_NOTE_PLANS(dailyNoteId), { data: body });
 };
 
+// unfolded-notes 등록 (사이드바 펼침)
+export const unfoldNote = async (
+  body: { type: "TASK" | "SUBTASK" | "TRIVIA"; noteId: number },
+): Promise<void> => {
+  await apiClient.post(endpoints.UNFOLDED_NOTES, body);
+};
+
 // 캘린더 월별 통계 조회
 export const fetchCalendarStats = async (
   year: number,
   month: number,
 ): Promise<CalendarStatsResponse> => {
   const { data } = await apiClient.get<CalendarStatsResponse>(
-    endpoints.CALENDAR_STATS,
+    endpoints.CALENDAR_SCHEDULES,
     { params: { year, month } },
   );
   return data;
