@@ -87,8 +87,8 @@ interface DocItemProps {
   depth: number;
   selectedId: string | null;
   onSelect: (id: string, docType?: DocType) => void;
-  onAddItem?: (parentId: string) => void;
-  onDeleteItem?: (id: string) => void;
+  onAddItem?: (parentId: string, parentType?: DocType) => void;
+  onDeleteItem?: (id: string, docType?: DocType) => void;
   icon?: "file" | "calendar";
   unfoldedIds?: Set<string>;
 }
@@ -124,7 +124,7 @@ function DocItem({ doc, depth, selectedId, onSelect, onAddItem, onDeleteItem, ic
     <div>
       <div
         className={`group/item flex items-center gap-1 px-2 py-1.5 rounded-md cursor-pointer text-sm transition-colors
-          ${selectedId === doc.id ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium" : "text-sidebar-foreground hover:bg-sidebar-accent/50"}`}
+          ${selectedId === (doc.type ? `${doc.type}-${doc.id}` : doc.id) ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium" : "text-sidebar-foreground hover:bg-sidebar-accent/50"}`}
         style={{ paddingLeft: `${depth * 12 + 8}px` }}
         onClick={handleClick}
       >
@@ -149,7 +149,7 @@ function DocItem({ doc, depth, selectedId, onSelect, onAddItem, onDeleteItem, ic
           <button
             onClick={(e) => {
               e.stopPropagation();
-              onAddItem(doc.id);
+              onAddItem(doc.id, doc.type);
               setExpanded(true);
             }}
             className="p-0.5 rounded hover:bg-sidebar-border transition-colors opacity-0 group-hover/item:opacity-100"
@@ -161,7 +161,7 @@ function DocItem({ doc, depth, selectedId, onSelect, onAddItem, onDeleteItem, ic
           <button
             onClick={(e) => {
               e.stopPropagation();
-              onDeleteItem(doc.id);
+              onDeleteItem(doc.id, doc.type);
             }}
             className="p-0.5 rounded hover:bg-red-500/20 text-sidebar-foreground/50 hover:text-red-500 transition-colors opacity-0 group-hover/item:opacity-100"
           >
@@ -357,9 +357,9 @@ interface SidebarProps {
   docs: SidebarItem[];
   workspaces?: WorkspaceInfo[];
   dailyNotes?: DailyNoteDetail[];
-  onAddItem?: (parentId: string) => void;
+  onAddItem?: (parentId: string, parentType?: DocType) => void;
   onAddSpace?: () => void;
-  onDeleteItem?: (id: string) => void;
+  onDeleteItem?: (id: string, docType?: DocType) => void;
   onDeleteDailyNote?: (dailyNoteId: number) => void;
   isLoading?: boolean;
   unfoldedIds?: Set<string>;
@@ -506,7 +506,7 @@ export default function Sidebar({ onSelectSidebarItem, docs, workspaces = [], da
                 return (
                   <div
                     className={`flex items-center gap-1 px-2 py-1.5 rounded-md cursor-pointer text-sm transition-colors
-                      ${activeTabId === selectedWorkspaceId
+                      ${activeTabId === `space-${selectedWorkspaceId}`
                         ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
                         : "text-sidebar-foreground hover:bg-sidebar-accent/50"}`}
                     onClick={() => handleSelect(selectedWorkspaceId, "space" as DocType)}

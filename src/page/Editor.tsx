@@ -2,7 +2,7 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import MarkdownEditor, { type MarkdownEditorHandle } from "@/components/MarkdownEditor";
 import { ChevronRight, Loader2, AlertTriangle, RefreshCw, Check, Undo2, ArrowUp, ArrowDown, Plus, Trash2, Columns2, Rows2 } from "lucide-react";
-import type { DocType } from "@/types/common";
+import { extractEntityId, type DocType } from "@/types/common";
 import TaskMetadata, { type TaskMetadataValues } from "@/components/TaskMetadata";
 import { useDailyNoteDetail, useUpdateDailyNote, useAddPlan, useUpdatePlan, useDeletePlan, documentKeys } from "@/hooks/useDocuments";
 import { formatLogicalDate, type DailyNoteDetail, type DailyNotePlan } from "@/api/documents";
@@ -190,6 +190,9 @@ export default function Editor({
     return match ? Number(match[1]) : null;
   })() : null;
 
+  // 탭 ID에서 엔티티 ID 추출 (예: "task-1" → "1")
+  const entityId = extractEntityId(documentId);
+
   // 엔티티 상세 조회
   const {
     data: entityDetail,
@@ -197,7 +200,7 @@ export default function Editor({
     isError: isEntityError,
     error: entityError,
     refetch: refetchEntity,
-  } = useEntityDetail(isDailyNote || isNew ? null : documentId, docType);
+  } = useEntityDetail(isDailyNote || isNew ? null : entityId, docType);
 
   const {
     data: dailyDetail,
@@ -234,6 +237,16 @@ export default function Editor({
     setTitle(documentName);
   }, [isDailyNote, documentName]);
 
+  // API 응답에서 이름 동기화 (트리 미로드 등으로 탭 이름이 잘못된 경우 대비)
+  useEffect(() => {
+    if (!entityDetail || isDailyNote || isNew) return;
+    const apiName = (entityDetail as EntityDetail).name;
+    if (apiName && apiName !== title) {
+      setTitle(apiName);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [entityDetail, isDailyNote, isNew]);
+
   // DailyNote 조회 성공 시 사이드바 갱신 (처음 열었을 때도 사이드바에 나타나도록)
   const hasInvalidatedDailyNotes = useRef(false);
   useEffect(() => {
@@ -248,10 +261,10 @@ export default function Editor({
 
   const handleAutoSave = useCallback(
     (content: string) => {
-      if (!docType || !documentId) return;
-      autoSaveMutation.mutate({ id: documentId, type: docType, content });
+      if (!docType || !entityId) return;
+      autoSaveMutation.mutate({ id: entityId, type: docType, content });
     },
-    [documentId, docType, autoSaveMutation],
+    [entityId, docType, autoSaveMutation],
   );
 
   // 자동 저장 (DailyNote content)
@@ -280,7 +293,7 @@ export default function Editor({
       setMetadata(newMetadata);
 
       updateMutation.mutate({
-        id: documentId,
+        id: entityId,
         type: docType,
         metadata: {
           status: newMetadata.status,
@@ -289,7 +302,7 @@ export default function Editor({
         },
       });
     },
-    [documentId, docType, updateMutation],
+    [entityId, docType, updateMutation],
   );
 
   const hasChildren = children && children.length > 0;

@@ -6,7 +6,7 @@ import { AuthProvider } from "./context/AuthContext";
 import { PanelGroup, Panel, PanelResizeHandle } from "react-resizable-panels";
 import ActivityBar from "./components/ActivityBar";
 import Sidebar from "./components/Sidebar";
-import type { SidebarItem, DocType, TaskOverview } from "@/types/common";
+import { entityTabId, extractEntityId, type SidebarItem, type DocType, type TaskOverview } from "@/types/common";
 import type { DailyNoteDetail } from "@/api/documents";
 import { fetchDailyNoteByDate, fetchDailyNoteDetail, formatLogicalDate } from "@/api/documents";
 import { createSpace } from "@/api/spaces";
@@ -99,11 +99,11 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
     }
 }
 
-function findDocById(docs: SidebarItem[], id: string): SidebarItem | null {
+function findDocById(docs: SidebarItem[], id: string, type?: DocType): SidebarItem | null {
     for (const doc of docs) {
-        if (doc.id === id) return doc;
+        if (doc.id === id && (!type || doc.type === type)) return doc;
         if (doc.children) {
-            const found = findDocById(doc.children, id);
+            const found = findDocById(doc.children, id, type);
             if (found) return found;
         }
     }
@@ -364,14 +364,14 @@ function AppContent() {
                 const pane = prev.panes[pid];
                 const newTabs = pane.tabs.map((tab) => {
                     if (tab.isDaily || tab.id === "calendar-view" || tab.id === "kanban-view" || tab.isNew) return tab;
-                    const doc = findDocById(docs, tab.id);
-                    if (doc && (!tab.docType || tab.name === tab.id)) {
+                    const doc = findDocById(docs, extractEntityId(tab.id), tab.docType);
+                    if (doc && (tab.name !== doc.name || !tab.docType)) {
                         changed = true;
                         return {
                             ...tab,
                             docType: doc.type,
                             name: doc.name,
-                            children: doc.children?.filter((c) => !c.children || c.type)?.map((c) => ({ id: c.id, name: c.name })) ?? [],
+                            children: doc.children?.filter((c) => !c.children || c.type)?.map((c) => ({ id: c.type ? entityTabId(c.type, c.id) : c.id, name: c.name })) ?? [],
                         };
                     }
                     return tab;
@@ -425,21 +425,23 @@ function AppContent() {
             const dailyNote = dailyNotesRef.current?.find((dn: DailyNoteDetail) => dn.dailyNoteId === pk);
             name = dailyNote ? formatLogicalDate(dailyNote.logicalDate) : id;
         } else {
-            const doc = findDocById(docsRef.current, id);
+            const entityId = extractEntityId(id);
+            const doc = findDocById(docsRef.current, entityId, passedDocType);
             if (doc) {
                 name = doc.name;
                 docType = passedDocType ?? doc.type;
                 children = doc.children
                     ?.filter((c) => !c.children || c.type)
-                    ?.map((c) => ({ id: c.id, name: c.name })) ?? [];
+                    ?.map((c) => ({ id: c.type ? entityTabId(c.type, c.id) : c.id, name: c.name })) ?? [];
             } else {
-                const ws = workspacesRef.current?.find((w) => String(w.id) === id);
+                const ws = workspacesRef.current?.find((w) => String(w.id) === entityId);
                 if (ws) {
                     name = ws.name;
                     docType = passedDocType ?? ("space" as DocType);
                 } else {
+                    const prefixMatch = id.match(/^(space|task|subtask|trivia)-/);
                     name = id;
-                    docType = passedDocType;
+                    docType = passedDocType ?? (prefixMatch ? prefixMatch[1] as DocType : undefined);
                 }
             }
         }
@@ -491,15 +493,15 @@ function AppContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    const handleAddItem = useCallback((parentId: string) => {
-        const parent = findDocById(docsRef.current, parentId);
+    const handleAddItem = useCallback((parentId: string, parentType?: DocType) => {
+        const parent = findDocById(docsRef.current, parentId, parentType);
         if (!parent?.type) return;
         const childType = CHILD_TYPE_MAP[parent.type];
         if (!childType) return;
 
         createEntityMutation.mutate(
             { type: childType, name: TYPE_LABELS[childType], parentId },
-            { onSuccess: (result) => openNewTab(result.id, result.name, childType) },
+            { onSuccess: (result) => openNewTab(entityTabId(childType, result.id), result.name, childType) },
         );
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
@@ -507,7 +509,7 @@ function AppContent() {
     const handleAddSpace = useCallback(async () => {
         try {
             const result = await createSpace({ parentId: null, name: TYPE_LABELS["space"], content: null, isPublic: false });
-            openNewTab(result.id, result.name, "space" as DocType);
+            openNewTab(entityTabId("space", result.id), result.name, "space" as DocType);
             appQueryClient.setQueryData<SpaceListItem[]>(
                 spaceKeys.list(),
                 (old) => [...(old ?? []), { id: Number(result.id), name: result.name }],
@@ -620,10 +622,11 @@ function AppContent() {
         });
     }, []);
 
-    const handleDeleteDocument = useCallback((id: string) => {
+    const handleDeleteDocument = useCallback((id: string, passedDocType?: DocType) => {
         // 삭제 대상과 하위 ID 수집
-        const doc = findDocById(docsRef.current, id);
-        const idsToRemove = doc ? new Set(collectAllIds(doc)) : new Set([id]);
+        const entityId = extractEntityId(id);
+        const doc = findDocById(docsRef.current, entityId, passedDocType);
+        const idsToRemove = doc ? new Set(collectAllIds(doc)) : new Set([entityId]);
         const docType = doc?.type;
 
         // 열린 탭에서 제거 (즉시 UI 반응)
@@ -631,8 +634,8 @@ function AppContent() {
             const newPanes = Object.fromEntries(
                 (["left", "right"] as PaneId[]).map((pid) => {
                     const pane = prev.panes[pid];
-                    const newTabs = pane.tabs.filter((t) => !idsToRemove.has(t.id));
-                    const newActiveTabId = pane.activeTabId && idsToRemove.has(pane.activeTabId)
+                    const newTabs = pane.tabs.filter((t) => !idsToRemove.has(extractEntityId(t.id)));
+                    const newActiveTabId = pane.activeTabId && idsToRemove.has(extractEntityId(pane.activeTabId))
                         ? (newTabs[0]?.id ?? null)
                         : pane.activeTabId;
                     return [pid, { tabs: newTabs, activeTabId: newActiveTabId }];
@@ -659,7 +662,7 @@ function AppContent() {
 
         // API 호출로 서버에서 삭제
         if (docType) {
-            deleteEntityMutation.mutate({ id, type: docType });
+            deleteEntityMutation.mutate({ id: entityId, type: docType });
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
@@ -703,8 +706,12 @@ function AppContent() {
     }, []);
 
     const handleRenameDocument = useCallback((id: string, newName: string) => {
+        const entityId = extractEntityId(id);
+        // 접두사에서 type 추론
+        const prefixMatch = id.match(/^(space|task|subtask|trivia)-/);
+        const expectedType = prefixMatch ? prefixMatch[1] as DocType : undefined;
         // 트리에서 docType 찾기 (트리에 없으면 탭에서 fallback)
-        const doc = findDocById(docsRef.current, id);
+        const doc = findDocById(docsRef.current, entityId, expectedType);
         let docType = doc?.type;
         if (!docType) {
             const state = splitStateRef.current;
@@ -736,7 +743,7 @@ function AppContent() {
 
         // 사이드바 트리 즉시 반영
         if (docType && docType !== "space") {
-            const numId = Number(id);
+            const numId = Number(entityId);
             appQueryClient.setQueryData<TaskOverview[]>(
                 documentKeys.noteInfos(workspaceIdNum),
                 (old) => old?.map((task) => {
@@ -761,13 +768,13 @@ function AppContent() {
         if (docType === "space") {
             appQueryClient.setQueryData<SpaceListItem[]>(
                 spaceKeys.list(),
-                (old) => old?.map((w) => w.id === Number(id) ? { ...w, name: newName } : w),
+                (old) => old?.map((w) => w.id === Number(entityId) ? { ...w, name: newName } : w),
             );
         }
 
         // API 호출
         if (docType) {
-            updateEntityMutation.mutate({ id, type: docType, name: newName });
+            updateEntityMutation.mutate({ id: entityId, type: docType, name: newName });
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
@@ -826,24 +833,37 @@ function AppContent() {
             return;
         }
 
-        // docType이 전달되었으면 바로 사용
+        // docType이 전달되었으면 접두사 탭 ID 생성
         if (docType) {
-            handleSelectDocument(id, docType);
-            updateLastVisitedMutation.mutate(tabIdToPath(id, docType));
+            const eid = extractEntityId(id);
+            const tabId = entityTabId(docType, eid);
+            handleSelectDocument(tabId, docType);
+            updateLastVisitedMutation.mutate(tabIdToPath(eid, docType));
+            return;
+        }
+
+        // 이미 접두사가 있는 경우 docType 추론
+        const prefixMatch = id.match(/^(space|task|subtask|trivia)-(.+)$/);
+        if (prefixMatch) {
+            const inferredDocType = prefixMatch[1] as DocType;
+            handleSelectDocument(id, inferredDocType);
+            updateLastVisitedMutation.mutate(tabIdToPath(prefixMatch[2], inferredDocType));
             return;
         }
 
         // fallback: 트리 탐색
         const doc = findDocById(docsRef.current, id);
         if (doc?.type) {
-            handleSelectDocument(id, doc.type);
+            const tabId = entityTabId(doc.type, id);
+            handleSelectDocument(tabId, doc.type);
             updateLastVisitedMutation.mutate(tabIdToPath(id, doc.type));
             return;
         }
 
         const ws = workspacesRef.current?.find((w) => String(w.id) === id);
         if (ws) {
-            handleSelectDocument(id, "space" as DocType);
+            const tabId = entityTabId("space", id);
+            handleSelectDocument(tabId, "space" as DocType);
             updateLastVisitedMutation.mutate(tabIdToPath(id, "space"));
             return;
         }
@@ -863,13 +883,14 @@ function AppContent() {
             ...pane,
             tabs: pane.tabs.map((tab) => {
                 if (tab.isDaily || tab.id === "calendar-view" || tab.id === "kanban-view" || tab.isNew || tab.docType) return tab;
-                const doc = findDocById(docs, tab.id);
+                const pfx = tab.id.match(/^(space|task|subtask|trivia)-/);
+                const doc = findDocById(docs, extractEntityId(tab.id), pfx ? pfx[1] as DocType : undefined);
                 if (doc) {
                     return {
                         ...tab,
                         docType: doc.type,
                         name: doc.name,
-                        children: doc.children?.filter((c) => !c.children || c.type)?.map((c) => ({ id: c.id, name: c.name })) ?? [],
+                        children: doc.children?.filter((c) => !c.children || c.type)?.map((c) => ({ id: c.type ? entityTabId(c.type, c.id) : c.id, name: c.name })) ?? [],
                     };
                 }
                 return tab;

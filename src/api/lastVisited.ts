@@ -37,9 +37,9 @@ export function pathToTabId(path: string): string {
   const dailyMatch = trimmed.match(/^daily-notes\/(.+)$/);
   if (dailyMatch) return `daily-${dailyMatch[1]}`;
 
-  for (const [segment] of Object.entries(PATH_TO_DOCTYPE)) {
+  for (const [segment, docType] of Object.entries(PATH_TO_DOCTYPE)) {
     const match = trimmed.match(new RegExp(`^${segment}/(.+)$`));
-    if (match) return match[1];
+    if (match) return `${docType}-${match[1]}`;
   }
 
   return path;

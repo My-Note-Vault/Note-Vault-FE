@@ -77,3 +77,14 @@ export interface CalendarDateStat {
 }
 
 export type CalendarStatsResponse = CalendarDateStat[];
+
+// 탭 ID: docType + entityId → 유일한 탭 식별자 (예: "task-1", "subtask-2")
+export function entityTabId(docType: DocType, id: string | number): string {
+  return `${docType}-${id}`;
+}
+
+// 탭 ID에서 엔티티 ID 추출 (예: "task-1" → "1", "daily-3" → "daily-3")
+export function extractEntityId(tabId: string): string {
+  const match = tabId.match(/^(?:space|task|subtask|trivia)-(.+)$/);
+  return match ? match[1] : tabId;
+}
