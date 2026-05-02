@@ -47,4 +47,10 @@ MEMBER_PROFILE: `${API_BASE}/members/profile`,
 MEMBER_PROFILE_IMAGE_UPLOAD_URL: `${API_BASE}/members/profile-image/upload-url`,
 MEMBER_PROFILE_IMAGE: `${API_BASE}/members/profile-image`,
 
+// Invitation
+INVITE_LINKS: (workspaceId: string) => `${API_BASE}/workspaces/${workspaceId}/invitations`,
+INVITE_LINK_DETAIL: (workspaceId: string, code: string) => `${API_BASE}/workspaces/${workspaceId}/invitations/${code}`,
+INVITE_INFO: (code: string) => `${API_BASE}/invitations/${code}`,
+INVITE_ACCEPT: (code: string) => `${API_BASE}/invitations/${code}/accept`,
+
 };

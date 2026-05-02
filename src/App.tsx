@@ -32,6 +32,7 @@ import ProfileSetupRoute from "./components/auth/ProfileSetupRoute";
 import LandingPage from "./page/LandingPage";
 import OAuthCallbackPage from "./page/OAuthCallbackPage";
 import ProfileSetupPage from "./page/ProfileSetupPage";
+import InvitePage from "./page/InvitePage";
 import { AlertTriangle, RefreshCw } from "lucide-react";
 import { ThemeProvider } from "next-themes";
 
@@ -982,6 +983,7 @@ const App = () => {
                             <Route path="/" element={<PublicRoute><LandingPage /></PublicRoute>} />
                             <Route path="/oauth/callback" element={<OAuthCallbackPage />} />
                             <Route path="/profile-setup" element={<ProfileSetupRoute><ProfileSetupPage /></ProfileSetupRoute>} />
+                            <Route path="/invite/:code" element={<InvitePage />} />
                             <Route path="/app/*" element={<ProtectedRoute><AppContent /></ProtectedRoute>} />
                         </Routes>
                     </ErrorBoundary>

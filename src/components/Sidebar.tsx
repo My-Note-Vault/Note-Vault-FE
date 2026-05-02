@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
-import { ChevronRight, ChevronUp, FileText, CalendarDays, NotebookPen, FolderClosed, Plus, Layout, ListChecks, ListTodo, Sparkles, Search, X, Loader2, Trash2, Columns3, Check } from "lucide-react";
+import { ChevronRight, ChevronUp, FileText, CalendarDays, NotebookPen, FolderClosed, Plus, Layout, ListChecks, ListTodo, Sparkles, Search, X, Loader2, Trash2, Columns3, Check, UserPlus } from "lucide-react";
 import { useSearchDocuments } from "@/hooks/useDocuments";
 import { formatLogicalDate, type DailyNoteDetail } from "@/api/documents";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import InviteDialog from "@/components/InviteDialog";
 
 export type { DocType, SidebarItem, SearchResult } from "@/types/common";
 import type { DocType, SidebarItem, SearchResult } from "@/types/common";
@@ -191,6 +192,105 @@ function DocItem({ doc, depth, selectedId, onSelect, onAddItem, onDeleteItem, ic
   );
 }
 
+function DailyNoteItem({
+  dn,
+  selectedId,
+  onSelect,
+  onDelete,
+  depth,
+}: {
+  dn: DailyNoteDetail;
+  selectedId: string | null;
+  onSelect: (id: string) => void;
+  onDelete?: (dailyNoteId: number) => void;
+  depth: number;
+}) {
+  const tabId = `daily-${dn.dailyNoteId}`;
+  return (
+    <div
+      key={dn.dailyNoteId}
+      className={`group/daily flex items-center gap-1 px-2 py-1.5 rounded-md cursor-pointer text-sm transition-colors
+        ${selectedId === tabId
+          ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+          : "text-sidebar-foreground hover:bg-sidebar-accent/50"}`}
+      style={{ paddingLeft: `${depth * 12 + 8}px` }}
+      onClick={() => onSelect(tabId)}
+    >
+      <span className="w-4.5" />
+      <NotebookPen className="h-4 w-4 shrink-0 opacity-60" />
+      <span className="truncate flex-1">{formatLogicalDate(dn.logicalDate)}</span>
+      {onDelete && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            if (window.confirm(`"${formatLogicalDate(dn.logicalDate)}" 데일리 노트를 삭제하시겠습니까?`)) {
+              onDelete(dn.dailyNoteId);
+            }
+          }}
+          className="p-0.5 rounded opacity-0 group-hover/daily:opacity-100 hover:bg-red-500/20 text-muted-foreground hover:text-red-500 transition-all shrink-0"
+          title="삭제"
+        >
+          <X className="h-3.5 w-3.5" />
+        </button>
+      )}
+    </div>
+  );
+}
+
+function MonthFolder({
+  month,
+  notes,
+  selectedId,
+  onSelect,
+  onDelete,
+}: {
+  month: string;
+  notes: DailyNoteDetail[];
+  selectedId: string | null;
+  onSelect: (id: string) => void;
+  onDelete?: (dailyNoteId: number) => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <div>
+      <div
+        className="flex items-center gap-1 px-2 py-1.5 rounded-md cursor-pointer text-sm text-sidebar-foreground hover:bg-sidebar-accent/50 transition-colors"
+        style={{ paddingLeft: "20px" }}
+        onClick={() => setExpanded(!expanded)}
+      >
+        <button
+          className="p-0.5 rounded hover:bg-sidebar-border transition-colors"
+          onClick={(e) => {
+            e.stopPropagation();
+            setExpanded(!expanded);
+          }}
+        >
+          <ChevronRight
+            className={`h-3.5 w-3.5 transition-transform ${expanded ? "rotate-90" : ""}`}
+          />
+        </button>
+        <FolderClosed className="h-4 w-4 shrink-0 opacity-60" />
+        <span className="truncate flex-1">{month}</span>
+      </div>
+      {expanded && (
+        <div>
+          {notes.map((dn) => (
+            <DailyNoteItem
+              key={dn.dailyNoteId}
+              dn={dn}
+              selectedId={selectedId}
+              onSelect={onSelect}
+              onDelete={onDelete}
+              depth={3}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function DailyNotesSection({
   dailyNotes,
   selectedId,
@@ -203,6 +303,25 @@ function DailyNotesSection({
   onDelete?: (dailyNoteId: number) => void;
 }) {
   const [expanded, setExpanded] = useState(true);
+
+  // logicalDate 내림차순 정렬 (최신 먼저)
+  const sorted = [...dailyNotes].sort((a, b) => {
+    const [ay, am, ad] = a.logicalDate;
+    const [by, bm, bd] = b.logicalDate;
+    return by - ay || bm - am || bd - ad;
+  });
+
+  const recentNotes = sorted.slice(0, 3);
+  const olderNotes = sorted.slice(3);
+
+  // yyyy-MM 기준 그룹핑 (순서 유지)
+  const monthGroups = new Map<string, DailyNoteDetail[]>();
+  for (const dn of olderNotes) {
+    const [y, m] = dn.logicalDate;
+    const key = `${y}-${String(m).padStart(2, "0")}`;
+    if (!monthGroups.has(key)) monthGroups.set(key, []);
+    monthGroups.get(key)!.push(dn);
+  }
 
   return (
     <div>
@@ -227,38 +346,26 @@ function DailyNotesSection({
 
       {expanded && (
         <div>
-          {dailyNotes.map((dn) => {
-            const tabId = `daily-${dn.dailyNoteId}`;
-            return (
-              <div
-                key={dn.dailyNoteId}
-                className={`group/daily flex items-center gap-1 px-2 py-1.5 rounded-md cursor-pointer text-sm transition-colors
-                  ${selectedId === tabId
-                    ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                    : "text-sidebar-foreground hover:bg-sidebar-accent/50"}`}
-                style={{ paddingLeft: "20px" }}
-                onClick={() => onSelect(tabId)}
-              >
-                <span className="w-4.5" />
-                <NotebookPen className="h-4 w-4 shrink-0 opacity-60" />
-                <span className="truncate flex-1">{formatLogicalDate(dn.logicalDate)}</span>
-                {onDelete && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (window.confirm(`"${formatLogicalDate(dn.logicalDate)}" 데일리 노트를 삭제하시겠습니까?`)) {
-                        onDelete(dn.dailyNoteId);
-                      }
-                    }}
-                    className="p-0.5 rounded opacity-0 group-hover/daily:opacity-100 hover:bg-red-500/20 text-muted-foreground hover:text-red-500 transition-all shrink-0"
-                    title="삭제"
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </button>
-                )}
-              </div>
-            );
-          })}
+          {recentNotes.map((dn) => (
+            <DailyNoteItem
+              key={dn.dailyNoteId}
+              dn={dn}
+              selectedId={selectedId}
+              onSelect={onSelect}
+              onDelete={onDelete}
+              depth={1}
+            />
+          ))}
+          {[...monthGroups.entries()].map(([month, notes]) => (
+            <MonthFolder
+              key={month}
+              month={month}
+              notes={notes}
+              selectedId={selectedId}
+              onSelect={onSelect}
+              onDelete={onDelete}
+            />
+          ))}
         </div>
       )}
     </div>
@@ -373,6 +480,7 @@ interface SidebarProps {
 
 export default function Sidebar({ onSelectSidebarItem, docs, workspaces = [], dailyNotes, onAddItem, onAddSpace, onDeleteItem, onDeleteDailyNote, isLoading, unfoldedIds, open, activeTabId, searchMode, onCloseSearch, selectedWorkspaceId, onSelectWorkspace }: SidebarProps) {
   const [searchQuery, setSearchQuery] = useState("");
+  const [inviteOpen, setInviteOpen] = useState(false);
 
   // 1초 디바운스 후 검색
   const [debouncedQuery, setDebouncedQuery] = useState("");
@@ -505,7 +613,7 @@ export default function Sidebar({ onSelectSidebarItem, docs, workspaces = [], da
                 if (!ws) return null;
                 return (
                   <div
-                    className={`flex items-center gap-1 px-2 py-1.5 rounded-md cursor-pointer text-sm transition-colors
+                    className={`group/ws flex items-center gap-1 px-2 py-1.5 rounded-md cursor-pointer text-sm transition-colors
                       ${activeTabId === `space-${selectedWorkspaceId}`
                         ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
                         : "text-sidebar-foreground hover:bg-sidebar-accent/50"}`}
@@ -514,6 +622,16 @@ export default function Sidebar({ onSelectSidebarItem, docs, workspaces = [], da
                     <span className="w-4.5" />
                     <Layout className="h-4 w-4 shrink-0 opacity-60" />
                     <span className="truncate flex-1 font-medium">{ws.name}</span>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setInviteOpen(true);
+                      }}
+                      className="p-0.5 rounded hover:bg-sidebar-border transition-colors opacity-0 group-hover/ws:opacity-100"
+                      title="멤버 초대"
+                    >
+                      <UserPlus className="h-3.5 w-3.5" />
+                    </button>
                   </div>
                 );
               })()}
@@ -549,6 +667,15 @@ export default function Sidebar({ onSelectSidebarItem, docs, workspaces = [], da
           />
         )}
       </aside>
+
+      {selectedWorkspaceId && (
+        <InviteDialog
+          isOpen={inviteOpen}
+          onClose={() => setInviteOpen(false)}
+          workspaceId={selectedWorkspaceId}
+          workspaceName={workspaces.find((w) => String(w.id) === selectedWorkspaceId)?.name ?? ""}
+        />
+      )}
     </>
   );
 }
