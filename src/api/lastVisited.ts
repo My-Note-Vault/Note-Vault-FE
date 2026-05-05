@@ -16,14 +16,14 @@ export const updateLastVisited = async (path: string): Promise<void> => {
 };
 
 const PATH_TO_DOCTYPE: Record<string, DocType> = {
-  workspaces: "space",
+  "workspaces/information": "space",
   tasks: "task",
   subtasks: "subtask",
   trivia: "trivia",
 };
 
 const DOCTYPE_TO_PATH: Record<DocType, string> = {
-  space: "workspaces",
+  space: "workspaces/information",
   task: "tasks",
   subtask: "subtasks",
   trivia: "trivia",
@@ -41,6 +41,9 @@ export function pathToTabId(path: string): string {
     const match = trimmed.match(new RegExp(`^${segment}/(.+)$`));
     if (match) return `${docType}-${match[1]}`;
   }
+
+  const legacySpaceMatch = trimmed.match(/^workspaces\/(.+)$/);
+  if (legacySpaceMatch) return `space-${legacySpaceMatch[1]}`;
 
   return path;
 }

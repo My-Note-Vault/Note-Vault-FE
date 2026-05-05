@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import MarkdownEditor, { type MarkdownEditorHandle } from "@/components/MarkdownEditor";
 import { ChevronRight, Loader2, AlertTriangle, RefreshCw, Check, Undo2, ArrowUp, ArrowDown, Plus, Trash2, Columns2, Rows2 } from "lucide-react";
@@ -7,11 +7,18 @@ import TaskMetadata, { type TaskMetadataValues } from "@/components/TaskMetadata
 import { useDailyNoteDetail, useUpdateDailyNote, useAddPlan, useUpdatePlan, useDeletePlan, documentKeys } from "@/hooks/useDocuments";
 import { formatLogicalDate, type DailyNoteDetail, type DailyNotePlan } from "@/api/documents";
 import { useEntityDetail, useAutoSaveEntity, useUpdateEntity, type EntityDetail } from "@/hooks/useEntity";
+import { useMemberProfile } from "@/hooks/useMember";
+import {
+  buildCollaborationParams,
+  buildCollaborationUser,
+  buildEntityCollaborationRoom,
+  resolveCollaborationServerUrl,
+} from "@/lib/collaboration";
 import type { TaskDetail } from "@/types/task";
 import type { SubTaskDetail } from "@/types/subtask";
 
 function hasMetadata(detail: EntityDetail): detail is TaskDetail | SubTaskDetail {
-  return "metadata" in detail && detail.metadata != null;
+  return "status" in detail || ("metadata" in detail && detail.metadata != null);
 }
 
 function getErrorStatus(error: unknown): number | null {
@@ -179,7 +186,7 @@ export default function Editor({
   };
 
   const [metadata, setMetadata] = useState<TaskMetadataValues>({
-    status: "todo",
+    status: "NOT_STARTED",
     startDate: undefined,
     endDate: undefined,
   });
@@ -220,16 +227,57 @@ export default function Editor({
   const isNotFound = isMissingDocument || errorStatus === 404;
 
   const dailyNoteId = dailyPk ?? dailyDetail?.dailyNoteId;
+  const { data: memberProfile } = useMemberProfile();
+  const collaboratorName = memberProfile?.nickname ?? memberProfile?.name ?? null;
+  const collaborationServerUrl = useMemo(() => resolveCollaborationServerUrl(), []);
+
+  const collaborationConfig = useMemo(() => {
+    if (!collaborationServerUrl) return null;
+    if (isDailyNote || isNew || !entityDetail || !docType || !entityId) return null;
+
+    return {
+      room: buildEntityCollaborationRoom(docType, entityId),
+      serverUrl: collaborationServerUrl,
+      params: buildCollaborationParams({
+        documentType: docType,
+        documentId: entityId,
+      }),
+      user: buildCollaborationUser(
+        collaboratorName,
+        `${docType}:${entityId}`,
+      ),
+    };
+  }, [
+    collaborationServerUrl,
+    isDailyNote,
+    isNew,
+    entityDetail,
+    docType,
+    entityId,
+    collaboratorName,
+  ]);
 
   // 서버에서 받은 메타데이터 반영
   useEffect(() => {
     if (detail && !isDailyNote && hasMetadata(detail as EntityDetail)) {
-      const meta = (detail as TaskDetail | SubTaskDetail).metadata!;
-      setMetadata({
-        status: meta.status,
-        startDate: meta.startDate ? new Date(meta.startDate) : undefined,
-        endDate: meta.endDate ? new Date(meta.endDate) : undefined,
-      });
+      const d = detail as TaskDetail | SubTaskDetail;
+      if ("status" in d && !("metadata" in d && d.metadata)) {
+        // Task: flat 구조
+        const task = d as TaskDetail;
+        setMetadata({
+          status: task.status ?? "NOT_STARTED",
+          startDate: task.startDateTime ? new Date(task.startDateTime) : undefined,
+          endDate: task.endDateTime ? new Date(task.endDateTime) : undefined,
+        });
+      } else {
+        // SubTask: metadata 구조
+        const meta = (d as SubTaskDetail).metadata!;
+        setMetadata({
+          status: meta.status,
+          startDate: meta.startDate ? new Date(meta.startDate) : undefined,
+          endDate: meta.endDate ? new Date(meta.endDate) : undefined,
+        });
+      }
     }
   }, [detail, isDailyNote]);
 
@@ -451,6 +499,7 @@ export default function Editor({
               <MarkdownEditor
                 initialContent={daily?.content ?? ""}
                 onAutoSave={handleDailyContentAutoSave}
+                collaboration={collaborationConfig}
               />
             </div>
           </div>
@@ -510,6 +559,7 @@ export default function Editor({
             ref={editorRef}
             initialContent={initialContent}
             onAutoSave={handleAutoSave}
+            collaboration={collaborationConfig}
           />
         </div>
       </div>

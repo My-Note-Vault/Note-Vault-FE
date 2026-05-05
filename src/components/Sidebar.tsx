@@ -625,6 +625,16 @@ export default function Sidebar({ onSelectSidebarItem, docs, workspaces = [], da
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
+                        onAddItem?.(selectedWorkspaceId!, "space" as DocType);
+                      }}
+                      className="p-0.5 rounded hover:bg-sidebar-border transition-colors opacity-0 group-hover/ws:opacity-100"
+                      title="Task 추가"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
                         setInviteOpen(true);
                       }}
                       className="p-0.5 rounded hover:bg-sidebar-border transition-colors opacity-0 group-hover/ws:opacity-100"

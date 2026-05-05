@@ -105,7 +105,14 @@ export default function ProfileSetupPage() {
         dayStartMinute: values.dayStartMinute,
       });
       toast.success("프로필이 설정되었습니다");
-      navigate("/app", { replace: true });
+      // 초대 링크에서 회원가입한 경우 초대 페이지로 복귀
+      const inviteRedirect = sessionStorage.getItem("invite_redirect");
+      if (inviteRedirect) {
+        sessionStorage.removeItem("invite_redirect");
+        navigate(inviteRedirect, { replace: true });
+      } else {
+        navigate("/app", { replace: true });
+      }
     } catch {
       toast.error("프로필 저장에 실패했습니다");
     }

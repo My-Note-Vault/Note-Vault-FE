@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import type { DocType } from "@/types/common";
 import type { SpaceDetail } from "@/types/space";
-import type { TaskDetail, TaskMetadata, UpdateTaskRequest } from "@/types/task";
+import type { TaskDetail, UpdateTaskRequest } from "@/types/task";
 import type { SubTaskDetail, SubTaskMetadata, UpdateSubTaskRequest } from "@/types/subtask";
 import type { TriviaDetail, UpdateTriviaRequest } from "@/types/trivia";
 
@@ -22,7 +22,7 @@ import { triviaKeys } from "./useTrivias";
 
 export type EntityDetail = SpaceDetail | TaskDetail | SubTaskDetail | TriviaDetail;
 
-export type EntityMetadata = TaskMetadata | SubTaskMetadata;
+export type EntityMetadata = SubTaskMetadata;
 
 interface CreateEntityRequest {
   type: DocType;
@@ -94,7 +94,7 @@ export const useCreateEntity = () => {
         case "subtask":
           return createSubTask({ title: name, taskId: parentId! });
         case "trivia":
-          return createTrivia({ name, parentId: parentId! });
+          return createTrivia({ subTaskId: parentId! });
       }
     },
     onSuccess: () => {
@@ -118,8 +118,18 @@ export const useUpdateEntity = () => {
           if (req.content !== undefined) payload.content = req.content;
           return updateSpace(id, payload);
         }
-        case "task":
-          return updateTask(id, req as UpdateTaskRequest);
+        case "task": {
+          const taskReq: UpdateTaskRequest = {};
+          if (req.name !== undefined) taskReq.title = req.name;
+          if (req.content !== undefined) taskReq.content = req.content;
+          if (req.metadata) {
+            const meta = req.metadata;
+            taskReq.status = meta.status;
+            taskReq.startDateTime = meta.startDate;
+            taskReq.endDateTime = meta.endDate;
+          }
+          return updateTask(id, taskReq);
+        }
         case "subtask":
           return updateSubTask(id, req as UpdateSubTaskRequest);
         case "trivia":

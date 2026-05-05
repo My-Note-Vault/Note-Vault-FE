@@ -11,7 +11,8 @@ DEV_LOGIN: `${API_BASE}/oauth/dev`,
 // Space Endpoints
 SPACES: `${API_BASE}/workspaces`,
 SPACES_ALL: `${API_BASE}/workspaces/all`,
-SPACE_DETAIL: (id: string) => `${API_BASE}/workspaces/${id}`,
+WORKSPACE: (id: string) => `${API_BASE}/workspaces/${id}`,
+SPACE_INFORMATION: (id: string) => `${API_BASE}/workspaces/information/${id}`,
 
 // Task Endpoints
 TASKS: `${API_BASE}/tasks`,
@@ -48,9 +49,8 @@ MEMBER_PROFILE_IMAGE_UPLOAD_URL: `${API_BASE}/members/profile-image/upload-url`,
 MEMBER_PROFILE_IMAGE: `${API_BASE}/members/profile-image`,
 
 // Invitation
-INVITE_LINKS: (workspaceId: string) => `${API_BASE}/workspaces/${workspaceId}/invitations`,
-INVITE_LINK_DETAIL: (workspaceId: string, code: string) => `${API_BASE}/workspaces/${workspaceId}/invitations/${code}`,
-INVITE_INFO: (code: string) => `${API_BASE}/invitations/${code}`,
-INVITE_ACCEPT: (code: string) => `${API_BASE}/invitations/${code}/accept`,
+WORKSPACE_INVITATIONS: (workSpaceId: string) => `${API_BASE}/workspaces/${workSpaceId}/invitations`,
+INVITATIONS: `${API_BASE}/workspaces/invitations`,
+INVITE_ACCEPT: `${API_BASE}/workspaces/invitations/accept`,
 
 };

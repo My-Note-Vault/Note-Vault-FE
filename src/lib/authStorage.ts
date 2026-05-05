@@ -1,5 +1,17 @@
 const AUTH_TOKEN_EVENT = "auth-token-changed";
 
+const APP_STATE_KEYS = [
+  "last_visited",
+  "selected_workspace",
+  "splitState",
+  "sidebar_notes",
+  "sidebar_notes_ts",
+  "sidebar_unfolded",
+  "sidebar_unfolded_ts",
+  "sidebar_daily",
+  "sidebar_daily_ts",
+];
+
 export const authStorage = {
   getAccessToken() {
     return localStorage.getItem("accessToken");
@@ -17,9 +29,14 @@ export const authStorage = {
     window.dispatchEvent(new Event(AUTH_TOKEN_EVENT));
   },
 
+  clearAppState() {
+    APP_STATE_KEYS.forEach((key) => localStorage.removeItem(key));
+  },
+
   clearTokens() {
     localStorage.removeItem("accessToken");
     localStorage.removeItem("refreshToken");
+    APP_STATE_KEYS.forEach((key) => localStorage.removeItem(key));
     window.dispatchEvent(new Event(AUTH_TOKEN_EVENT));
   },
 

@@ -9,8 +9,17 @@ import type {
 } from "@/types/space";
 
 export const fetchSpaceDetail = async (id: string): Promise<SpaceDetail> => {
-  const { data } = await apiClient.get<SpaceDetail>(endpoints.SPACE_DETAIL(id));
+  const { data } = await apiClient.get<SpaceDetail>(endpoints.SPACE_INFORMATION(id));
   return data;
+};
+
+export const fetchWorkspaceLastVisited = async (id: string): Promise<string | null> => {
+  try {
+    const { data } = await apiClient.get<string>(endpoints.WORKSPACE(id));
+    return data;
+  } catch {
+    return null;
+  }
 };
 
 export const createSpace = async (req: CreateSpaceRequest): Promise<CreateSpaceResponse> => {
@@ -28,5 +37,5 @@ export const fetchSpaces = async (): Promise<SpaceListItem[]> => {
 };
 
 export const deleteSpace = async (id: string): Promise<void> => {
-  await apiClient.delete(endpoints.SPACE_DETAIL(id));
+  await apiClient.delete(endpoints.WORKSPACE(id));
 };

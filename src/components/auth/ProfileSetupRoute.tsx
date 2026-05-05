@@ -25,5 +25,12 @@ export default function ProfileSetupRoute({ children }: { children: ReactNode })
     return <>{children}</>;
   }
 
+  // 초대 링크에서 로그인한 경우 초대 페이지로 복귀
+  const inviteRedirect = sessionStorage.getItem("invite_redirect");
+  if (inviteRedirect) {
+    sessionStorage.removeItem("invite_redirect");
+    return <Navigate to={inviteRedirect} replace />;
+  }
+
   return <Navigate to="/app" replace />;
 }

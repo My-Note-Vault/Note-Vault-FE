@@ -9,7 +9,7 @@ import Sidebar from "./components/Sidebar";
 import { entityTabId, extractEntityId, type SidebarItem, type DocType, type TaskOverview } from "@/types/common";
 import type { DailyNoteDetail } from "@/api/documents";
 import { fetchDailyNoteByDate, fetchDailyNoteDetail, formatLogicalDate } from "@/api/documents";
-import { createSpace } from "@/api/spaces";
+import { createSpace, fetchWorkspaceLastVisited } from "@/api/spaces";
 import { pathToTabId, tabIdToPath } from "@/api/lastVisited";
 import TabPane, { type PaneId, type PaneState } from "./components/TabPane";
 import {
@@ -183,6 +183,7 @@ function AppContent() {
     const { data: lastVisited, isSuccess: lastVisitedLoaded } = useLastVisited();
     const updateLastVisitedMutation = useUpdateLastVisited();
     const hasRestoredLastVisited = useRef(false);
+    const workspaceSelectionRequestId = useRef(0);
 
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const [searchMode, setSearchMode] = useState(false);
@@ -301,37 +302,6 @@ function AppContent() {
         });
     }, []);
 
-    // 마운트 시 최근 방문 문서 또는 Daily Note 복원
-    useEffect(() => {
-        if (!hasRestoredLastVisited.current && lastVisitedLoaded && !hasRestoredFromUrl.current) {
-            hasRestoredLastVisited.current = true;
-            if (lastVisited) {
-                const tabId = pathToTabId(lastVisited);
-                if (tabId === "daily-note") {
-                    // /api/v1/daily-notes (오늘) → dailyNotes 목록에서 오늘 날짜 PK 검색
-                    const today = new Date().toISOString().slice(0, 10);
-                    const todayNote = dailyNotesRef.current?.find((dn: DailyNoteDetail) => formatLogicalDate(dn.logicalDate) === today);
-                    if (todayNote) {
-                        handleSelectDocument(`daily-${todayNote.dailyNoteId}`);
-                    } else {
-                        // 목록에 없으면 오늘 Daily Note 조회 후 PK 획득
-                        fetchDailyNoteDetail().then((detail) => {
-                            handleSelectDocument(`daily-${detail.dailyNoteId}`);
-                        }).catch(() => {});
-                    }
-                } else {
-                    handleSelectDocument(tabId);
-                }
-            } else {
-                // 새 사용자: 오늘의 Daily Note 열기
-                fetchDailyNoteDetail().then((detail) => {
-                    handleSelectDocument(`daily-${detail.dailyNoteId}`);
-                }).catch(() => {});
-            }
-        }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [lastVisited, lastVisitedLoaded]);
-
     // 세션 종료 시 마지막 방문 경로 서버 전송
     useEffect(() => {
         const handleBeforeUnload = () => {
@@ -346,7 +316,7 @@ function AppContent() {
                     "Content-Type": "application/json",
                     Authorization: `Bearer ${token}`,
                 },
-                body: JSON.stringify(path),
+                body: JSON.stringify({ path }),
                 keepalive: true,
             });
         };
@@ -494,10 +464,48 @@ function AppContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
+    const restoreVisitedPath = useCallback((path: string | null, fallbackWorkspaceId?: string) => {
+        if (path) {
+            const tabId = pathToTabId(path);
+            if (tabId === "daily-note") {
+                const today = new Date().toISOString().slice(0, 10);
+                const todayNote = dailyNotesRef.current?.find((dn: DailyNoteDetail) => formatLogicalDate(dn.logicalDate) === today);
+                if (todayNote) {
+                    handleSelectDocument(`daily-${todayNote.dailyNoteId}`);
+                } else {
+                    fetchDailyNoteDetail().then((detail) => {
+                        handleSelectDocument(`daily-${detail.dailyNoteId}`);
+                    }).catch(() => {});
+                }
+                return;
+            }
+
+            handleSelectDocument(tabId);
+            return;
+        }
+
+        if (fallbackWorkspaceId) {
+            handleSelectDocument(entityTabId("space", fallbackWorkspaceId), "space");
+            return;
+        }
+
+        fetchDailyNoteDetail().then((detail) => {
+            handleSelectDocument(`daily-${detail.dailyNoteId}`);
+        }).catch(() => {});
+    }, [handleSelectDocument]);
+
+    // 마운트 시 최근 방문 문서 또는 Daily Note 복원
+    useEffect(() => {
+        if (!hasRestoredLastVisited.current && lastVisitedLoaded && !hasRestoredFromUrl.current) {
+            hasRestoredLastVisited.current = true;
+            restoreVisitedPath(lastVisited);
+        }
+    }, [lastVisited, lastVisitedLoaded, restoreVisitedPath]);
+
     const handleAddItem = useCallback((parentId: string, parentType?: DocType) => {
-        const parent = findDocById(docsRef.current, parentId, parentType);
-        if (!parent?.type) return;
-        const childType = CHILD_TYPE_MAP[parent.type];
+        const resolvedType = parentType ?? findDocById(docsRef.current, parentId, parentType)?.type;
+        if (!resolvedType) return;
+        const childType = CHILD_TYPE_MAP[resolvedType];
         if (!childType) return;
 
         createEntityMutation.mutate(
@@ -949,8 +957,12 @@ function AppContent() {
                 onCloseSearch={() => setSearchMode(false)}
                 selectedWorkspaceId={selectedWorkspaceId}
                 onSelectWorkspace={(id) => {
+                    const requestId = ++workspaceSelectionRequestId.current;
                     setSelectedWorkspaceId(id);
-                    handleSelectDocumentWithTracking(id, "space" as DocType);
+                    fetchWorkspaceLastVisited(id).then((path) => {
+                        if (workspaceSelectionRequestId.current !== requestId) return;
+                        restoreVisitedPath(path, id);
+                    });
                 }}
             />
             <main className="flex-1 overflow-hidden flex">

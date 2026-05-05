@@ -84,10 +84,9 @@ export function useKanban(spaceId: string | null) {
 
   const columns = useMemo<KanbanColumns>(() => {
     const cols: KanbanColumns = {
-      todo: [],
-      in_progress: [],
-      done: [],
-      hold: [],
+      NOT_STARTED: [],
+      IN_PROGRESS: [],
+      COMPLETED: [],
     };
 
     for (let i = 0; i < queries.length; i++) {
@@ -96,7 +95,10 @@ export function useKanban(spaceId: string | null) {
       if (!query.data) continue;
 
       const detail = query.data as TaskDetail | SubTaskDetail;
-      const status: TaskStatus = detail.metadata?.status ?? "todo";
+      const status: TaskStatus =
+        item.type === "task"
+          ? (detail as TaskDetail).status ?? "NOT_STARTED"
+          : (detail as SubTaskDetail).metadata?.status ?? "NOT_STARTED";
 
       cols[status].push({
         id: item.id,

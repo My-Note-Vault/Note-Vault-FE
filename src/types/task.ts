@@ -1,16 +1,12 @@
 import type { TaskStatus } from "./common";
 
-export interface TaskMetadata {
-  status: TaskStatus;
-  startDate: string | null;
-  endDate: string | null;
-}
-
 export interface TaskDetail {
   id: string;
   name: string;
   content: string;
-  metadata?: TaskMetadata;
+  status: TaskStatus | null;
+  startDateTime: string | null;
+  endDateTime: string | null;
   children?: { id: string; name: string }[];
 }
 
@@ -29,7 +25,9 @@ export interface CreateTaskResponse {
 }
 
 export interface UpdateTaskRequest {
-  name?: string;
+  title?: string;
   content?: string;
-  metadata?: TaskMetadata;
+  status?: TaskStatus;
+  startDateTime?: string | null;
+  endDateTime?: string | null;
 }

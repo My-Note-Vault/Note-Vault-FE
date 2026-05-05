@@ -57,6 +57,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (!token?.accessToken) throw new Error("No access token returned");
 
       const { accessToken, refreshToken } = token;
+      authStorage.clearAppState();
       authStorage.setTokens(accessToken, refreshToken);
     } catch (error) {
       console.error("OAuth login failed:", error);
@@ -70,6 +71,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const response = await axios.get(endpoints.DEV_LOGIN);
     const { token } = response.data;
     if (!token?.accessToken) throw new Error("No access token returned");
+    authStorage.clearAppState();
     authStorage.setTokens(token.accessToken, token.refreshToken);
   };
 

@@ -13,8 +13,8 @@ export const fetchTriviaDetail = async (id: string): Promise<TriviaDetail> => {
 };
 
 export const createTrivia = async (req: CreateTriviaRequest): Promise<CreateTriviaResponse> => {
-  const { data } = await apiClient.post<number>(endpoints.TRIVIAS, req);
-  return { id: String(data), name: req.name };
+  const { data } = await apiClient.post<CreateTriviaResponse>(endpoints.TRIVIAS, req);
+  return data;
 };
 
 export const updateTrivia = async (id: string, req: UpdateTriviaRequest): Promise<void> => {

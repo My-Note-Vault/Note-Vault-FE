@@ -1,5 +1,5 @@
 export type DocType = "space" | "task" | "subtask" | "trivia";
-export type TaskStatus = "todo" | "in_progress" | "done" | "hold";
+export type TaskStatus = "NOT_STARTED" | "IN_PROGRESS" | "COMPLETED";
 
 // 백엔드 NoteType (대문자)
 export type NoteType = "WORKSPACE" | "TASK" | "SUBTASK" | "TRIVIA";

@@ -17,10 +17,9 @@ import type { TaskStatus } from "@/types/common";
 export type { TaskStatus };
 
 const STATUS_OPTIONS: { value: TaskStatus; label: string; color: string }[] = [
-  { value: "todo", label: "할 일", color: "bg-gray-400" },
-  { value: "in_progress", label: "진행 중", color: "bg-blue-500" },
-  { value: "done", label: "완료", color: "bg-green-500" },
-  { value: "hold", label: "보류", color: "bg-yellow-500" },
+  { value: "NOT_STARTED", label: "할 일", color: "bg-gray-400" },
+  { value: "IN_PROGRESS", label: "진행 중", color: "bg-blue-500" },
+  { value: "COMPLETED", label: "완료", color: "bg-green-500" },
 ];
 
 export interface TaskMetadataValues {

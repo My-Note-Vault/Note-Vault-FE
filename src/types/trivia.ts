@@ -5,8 +5,7 @@ export interface TriviaDetail {
 }
 
 export interface CreateTriviaRequest {
-  name: string;
-  parentId: string;
+  subTaskId: string;
 }
 
 export interface CreateTriviaResponse {

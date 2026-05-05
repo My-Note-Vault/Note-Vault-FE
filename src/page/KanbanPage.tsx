@@ -11,13 +11,12 @@ import { useKanban, type KanbanItem } from "@/hooks/useKanban";
 import type { DocType, TaskStatus } from "@/types/common";
 
 const COLUMN_CONFIG: Record<TaskStatus, { label: string; color: string }> = {
-  todo: { label: "할 일", color: "bg-gray-400" },
-  in_progress: { label: "진행 중", color: "bg-blue-500" },
-  done: { label: "완료", color: "bg-green-500" },
-  hold: { label: "보류", color: "bg-yellow-500" },
+  NOT_STARTED: { label: "할 일", color: "bg-gray-400" },
+  IN_PROGRESS: { label: "진행 중", color: "bg-blue-500" },
+  COMPLETED: { label: "완료", color: "bg-green-500" },
 };
 
-const COLUMN_ORDER: TaskStatus[] = ["todo", "in_progress", "done", "hold"];
+const COLUMN_ORDER: TaskStatus[] = ["NOT_STARTED", "IN_PROGRESS", "COMPLETED"];
 
 const TYPE_LABEL: Record<string, string> = {
   task: "Task",
@@ -104,7 +103,7 @@ export default function KanbanPage({ onOpenDocument }: KanbanPageProps) {
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
         ) : (
-          <div className="flex-1 grid grid-cols-4 gap-4 min-h-0">
+          <div className="flex-1 grid grid-cols-3 gap-4 min-h-0">
             {COLUMN_ORDER.map((status) => {
               const config = COLUMN_CONFIG[status];
               const items = columns[status];

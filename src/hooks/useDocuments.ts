@@ -193,8 +193,24 @@ export const useUpdateDailyNote = () => {
   return useMutation({
     mutationFn: ({dailyNoteId, body}: UpdateDailyNoteRequest) =>
       updateDailyNote(dailyNoteId, body),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: documentKeys.dailyNotes() });
+    onSuccess: (updatedDailyNote, variables) => {
+      queryClient.setQueryData(
+        documentKeys.dailyNoteDetail(variables.dailyNoteId),
+        updatedDailyNote,
+      );
+
+      queryClient.setQueryData<DailyNoteDetail[] | undefined>(
+        documentKeys.dailyNotes(),
+        (current) => {
+          if (!current) return current;
+
+          return current.map((note) =>
+            note.dailyNoteId === updatedDailyNote.dailyNoteId
+              ? { ...note, content: updatedDailyNote.content }
+              : note,
+          );
+        },
+      );
     },
   });
 };

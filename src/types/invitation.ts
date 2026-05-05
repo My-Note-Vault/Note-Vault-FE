@@ -1,11 +1,3 @@
-export interface InviteLink {
-  code: string;
-  workspaceId: string;
-  workspaceName: string;
-  createdAt: string;
-  expiresAt: string | null;
-}
-
 export interface CreateInviteLinkRequest {
   workspaceId: string;
   expiresAt?: string | null;
@@ -16,8 +8,6 @@ export interface CreateInviteLinkResponse {
 }
 
 export interface InviteInfo {
-  code: string;
-  workspaceName: string;
-  inviterName: string;
+  workSpaceName: string;
   expiresAt: string | null;
 }

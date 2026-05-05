@@ -59,9 +59,8 @@ export default function InvitePage() {
         <div className="space-y-2">
           <h1 className="text-xl font-semibold">워크스페이스 초대</h1>
           <p className="text-sm text-muted-foreground">
-            <span className="font-medium text-foreground">{info.inviterName}</span>님이{" "}
-            <span className="font-medium text-foreground">{info.workspaceName}</span>{" "}
-            워크스페이스에 초대했습니다.
+            <span className="font-medium text-foreground">{info.workSpaceName}</span>{" "}
+            워크스페이스에 초대되었습니다.
           </p>
           {info.expiresAt && (
             <p className="text-xs text-muted-foreground">
