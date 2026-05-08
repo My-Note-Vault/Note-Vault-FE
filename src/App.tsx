@@ -996,6 +996,7 @@ const App = () => {
                             <Route path="/oauth/callback" element={<OAuthCallbackPage />} />
                             <Route path="/profile-setup" element={<ProfileSetupRoute><ProfileSetupPage /></ProfileSetupRoute>} />
                             <Route path="/invite/:code" element={<InvitePage />} />
+                            <Route path="/api/v1/workspaces/invitations" element={<InvitePage />} />
                             <Route path="/app/*" element={<ProtectedRoute><AppContent /></ProtectedRoute>} />
                         </Routes>
                     </ErrorBoundary>

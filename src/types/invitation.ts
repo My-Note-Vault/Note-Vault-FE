@@ -3,9 +3,7 @@ export interface CreateInviteLinkRequest {
   expiresAt?: string | null;
 }
 
-export interface CreateInviteLinkResponse {
-  code: string;
-}
+export type CreateInviteLinkResponse = string;
 
 export interface InviteInfo {
   workSpaceName: string;

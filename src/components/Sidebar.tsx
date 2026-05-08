@@ -304,15 +304,9 @@ function DailyNotesSection({
 }) {
   const [expanded, setExpanded] = useState(true);
 
-  // logicalDate 내림차순 정렬 (최신 먼저)
-  const sorted = [...dailyNotes].sort((a, b) => {
-    const [ay, am, ad] = a.logicalDate;
-    const [by, bm, bd] = b.logicalDate;
-    return by - ay || bm - am || bd - ad;
-  });
-
-  const recentNotes = sorted.slice(0, 3);
-  const olderNotes = sorted.slice(3);
+  // 백엔드 정렬 순서 그대로 사용
+  const recentNotes = dailyNotes.slice(0, 3);
+  const olderNotes = dailyNotes.slice(3);
 
   // yyyy-MM 기준 그룹핑 (순서 유지)
   const monthGroups = new Map<string, DailyNoteDetail[]>();

@@ -26,6 +26,8 @@ const FEATURES = [
   },
 ];
 
+const DEV_USERS = [1, 2, 3] as const;
+
 export default function LandingPage() {
   const { devLogin, redirectToGoogle } = useAuth();
   const navigate = useNavigate();
@@ -34,9 +36,9 @@ export default function LandingPage() {
     redirectToGoogle();
   };
 
-  const handleDevLogin = async () => {
+  const handleDevLogin = async (userId: number) => {
     try {
-      await devLogin();
+      await devLogin(userId);
       navigate("/profile-setup", { replace: true });
     } catch {
       toast.error("Dev 로그인에 실패했습니다");
@@ -74,12 +76,17 @@ export default function LandingPage() {
           </button>
 
           {import.meta.env.DEV && (
-            <button
-              onClick={handleDevLogin}
-              className="text-sm text-muted-foreground hover:text-foreground underline underline-offset-4 transition-colors"
-            >
-              Dev 로그인
-            </button>
+            <div className="flex gap-2">
+              {DEV_USERS.map((id) => (
+                <button
+                  key={id}
+                  onClick={() => handleDevLogin(id)}
+                  className="text-sm text-muted-foreground hover:text-foreground underline underline-offset-4 transition-colors"
+                >
+                  Dev 유저 {id}
+                </button>
+              ))}
+            </div>
           )}
         </div>
       </section>

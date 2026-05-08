@@ -1,11 +1,13 @@
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { Layout, Loader2, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
 import { useInviteInfo, useAcceptInvite } from "@/hooks/useInvitations";
 
 export default function InvitePage() {
-  const { code } = useParams<{ code: string }>();
+  const { code: paramCode } = useParams<{ code: string }>();
+  const [searchParams] = useSearchParams();
+  const code = paramCode ?? searchParams.get("code") ?? undefined;
   const navigate = useNavigate();
   const { isLoggedIn, redirectToGoogle } = useAuth();
   const { data: info, isLoading, isError } = useInviteInfo(code ?? null);

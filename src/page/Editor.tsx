@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import MarkdownEditor, { type MarkdownEditorHandle } from "@/components/MarkdownEditor";
-import { ChevronRight, Loader2, AlertTriangle, RefreshCw, Check, Undo2, ArrowUp, ArrowDown, Plus, Trash2, Columns2, Rows2 } from "lucide-react";
+import { ChevronRight, Loader2, AlertTriangle, RefreshCw, Check, Undo2, ArrowUp, ArrowDown, Trash2, Columns2, Rows2 } from "lucide-react";
 import { extractEntityId, type DocType } from "@/types/common";
 import TaskMetadata, { type TaskMetadataValues } from "@/components/TaskMetadata";
 import { useDailyNoteDetail, useUpdateDailyNote, useAddPlan, useUpdatePlan, useDeletePlan, documentKeys } from "@/hooks/useDocuments";
@@ -49,14 +49,8 @@ function DailyNoteItemList({
   onDelete,
   onAdd,
 }: DailyNoteItemListProps) {
-  const [adding, setAdding] = useState(false);
   const [newContent, setNewContent] = useState("");
-  const inputRef = useRef<HTMLInputElement>(null);
   const submittingRef = useRef(false);
-
-  useEffect(() => {
-    if (adding) inputRef.current?.focus();
-  }, [adding]);
 
   const handleSubmit = () => {
     if (submittingRef.current) return;
@@ -121,31 +115,20 @@ function DailyNoteItemList({
         ))}
       </div>
 
-      {adding ? (
-        <div className="flex items-center gap-2 mt-1">
-          <input
-            ref={inputRef}
-            type="text"
-            value={newContent}
-            onChange={(e) => setNewContent(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.nativeEvent.isComposing) { e.preventDefault(); handleSubmit(); }
-              if (e.key === "Escape") { setAdding(false); setNewContent(""); }
-            }}
-            onBlur={() => { if (!newContent.trim()) { setAdding(false); setNewContent(""); } }}
-            placeholder="내용 입력 후 Enter"
-            className="flex-1 px-2 py-1 text-sm bg-transparent border border-border rounded-md outline-none focus:border-primary/50"
-          />
-        </div>
-      ) : (
-        <button
-          onClick={() => setAdding(true)}
-          className="flex items-center gap-1 mt-1 px-1 py-1 text-sm text-muted-foreground/60 hover:text-foreground transition-colors"
-        >
-          <Plus className="h-3.5 w-3.5" />
-          <span>추가</span>
-        </button>
-      )}
+      <div className="flex items-center gap-2 mt-1">
+        <span className="w-5 text-right text-muted-foreground/60 shrink-0 text-xs">{items.length + 1}.</span>
+        <input
+          type="text"
+          value={newContent}
+          onChange={(e) => setNewContent(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.nativeEvent.isComposing) { e.preventDefault(); handleSubmit(); }
+            if (e.key === "Escape") { setNewContent(""); (e.target as HTMLInputElement).blur(); }
+          }}
+          placeholder="내용 입력 후 Enter"
+          className="flex-1 py-1 text-sm bg-transparent outline-none placeholder:text-muted-foreground/40"
+        />
+      </div>
     </div>
   );
 }

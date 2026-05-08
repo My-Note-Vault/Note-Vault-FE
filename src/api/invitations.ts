@@ -3,12 +3,11 @@ import axios from "axios";
 import { endpoints } from "@/constants/endpoints";
 import type {
   CreateInviteLinkRequest,
-  CreateInviteLinkResponse,
   InviteInfo,
 } from "@/types/invitation";
 
-export const createInviteLink = async (req: CreateInviteLinkRequest): Promise<CreateInviteLinkResponse> => {
-  const { data } = await apiClient.post<CreateInviteLinkResponse>(
+export const createInviteLink = async (req: CreateInviteLinkRequest): Promise<string> => {
+  const { data } = await apiClient.post<string>(
     endpoints.WORKSPACE_INVITATIONS(req.workspaceId),
     { expiresAt: req.expiresAt ?? null },
   );
@@ -28,5 +27,5 @@ export const acceptInvite = async (code: string): Promise<void> => {
 
 /** 공유 링크 URL 생성 */
 export const buildShareUrl = (code: string): string => {
-  return `${window.location.origin}/invite/${code}`;
+  return `${window.location.origin}/api/v1/workspaces/invitations?code=${code}`;
 };

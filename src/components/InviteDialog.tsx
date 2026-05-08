@@ -50,7 +50,7 @@ export default function InviteDialog({ isOpen, onClose, workspaceId, workspaceNa
   const handleCreate = () => {
     createMutation.mutate(
       { workspaceId, expiresAt: getExpiresAt(expiry) },
-      { onSuccess: (data) => setGeneratedCode(data.code) },
+      { onSuccess: (data) => setGeneratedCode(data) },
     );
   };
 
@@ -99,8 +99,8 @@ export default function InviteDialog({ isOpen, onClose, workspaceId, workspaceNa
         </div>
 
         {generatedCode && (
-          <div className="flex items-center gap-2 rounded-md border px-3 py-2">
-            <div className="flex-1 min-w-0 truncate font-mono text-xs text-muted-foreground">
+          <div className="flex items-center gap-2 rounded-md border px-3 py-2 overflow-hidden">
+            <div className="flex-1 min-w-0 truncate font-mono text-xs text-muted-foreground overflow-hidden text-ellipsis">
               {buildShareUrl(generatedCode)}
             </div>
             <button
