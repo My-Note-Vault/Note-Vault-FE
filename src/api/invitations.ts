@@ -27,5 +27,5 @@ export const acceptInvite = async (code: string): Promise<void> => {
 
 /** 공유 링크 URL 생성 */
 export const buildShareUrl = (code: string): string => {
-  return `${window.location.origin}/api/v1/workspaces/invitations?code=${code}`;
+  return `${window.location.origin}/invite/${code}`;
 };

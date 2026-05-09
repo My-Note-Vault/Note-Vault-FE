@@ -6,6 +6,6 @@ export interface CreateInviteLinkRequest {
 export type CreateInviteLinkResponse = string;
 
 export interface InviteInfo {
-  workSpaceName: string;
+  workspaceName: string;
   expiresAt: string | null;
 }
