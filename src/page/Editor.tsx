@@ -9,10 +9,8 @@ import { formatLogicalDate, type DailyNoteDetail, type DailyNotePlan } from "@/a
 import { useEntityDetail, useAutoSaveEntity, useUpdateEntity, type EntityDetail } from "@/hooks/useEntity";
 import { useMemberProfile } from "@/hooks/useMember";
 import {
-  buildCollaborationParams,
+  buildCollaborationConfig,
   buildCollaborationUser,
-  buildEntityCollaborationRoom,
-  resolveCollaborationServerUrl,
 } from "@/lib/collaboration";
 import type { TaskDetail } from "@/types/task";
 import type { SubTaskDetail } from "@/types/subtask";
@@ -212,26 +210,21 @@ export default function Editor({
   const dailyNoteId = dailyPk ?? dailyDetail?.dailyNoteId;
   const { data: memberProfile } = useMemberProfile();
   const collaboratorName = memberProfile?.nickname ?? memberProfile?.name ?? null;
-  const collaborationServerUrl = useMemo(() => resolveCollaborationServerUrl(), []);
-
   const collaborationConfig = useMemo(() => {
-    if (!collaborationServerUrl) return null;
     if (isDailyNote || isNew || !entityDetail || !docType || !entityId) return null;
+    const workspaceId = localStorage.getItem("selected_workspace");
+    if (!workspaceId) return null;
 
-    return {
-      room: buildEntityCollaborationRoom(docType, entityId),
-      serverUrl: collaborationServerUrl,
-      params: buildCollaborationParams({
-        documentType: docType,
-        documentId: entityId,
-      }),
-      user: buildCollaborationUser(
-        collaboratorName,
-        `${docType}:${entityId}`,
-      ),
-    };
+    const numericId = Number(entityId);
+    if (Number.isNaN(numericId)) return null;
+
+    const user = buildCollaborationUser(
+      collaboratorName,
+      `${docType}:${entityId}`,
+    );
+
+    return buildCollaborationConfig(workspaceId, docType, numericId, user);
   }, [
-    collaborationServerUrl,
     isDailyNote,
     isNew,
     entityDetail,
@@ -328,8 +321,12 @@ export default function Editor({
         type: docType,
         metadata: {
           status: newMetadata.status,
-          startDate: newMetadata.startDate?.toISOString().slice(0, 10) ?? null,
-          endDate: newMetadata.endDate?.toISOString().slice(0, 10) ?? null,
+          startDate: newMetadata.startDate
+            ? `${newMetadata.startDate.getFullYear()}-${String(newMetadata.startDate.getMonth() + 1).padStart(2, "0")}-${String(newMetadata.startDate.getDate()).padStart(2, "0")}T00:00:00`
+            : null,
+          endDate: newMetadata.endDate
+            ? `${newMetadata.endDate.getFullYear()}-${String(newMetadata.endDate.getMonth() + 1).padStart(2, "0")}-${String(newMetadata.endDate.getDate()).padStart(2, "0")}T23:59:59`
+            : null,
         },
       });
     },

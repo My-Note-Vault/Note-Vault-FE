@@ -11,20 +11,13 @@ import { Prec } from "@codemirror/state";
 import { EditorView, keymap, placeholder as placeholderExtension } from "@codemirror/view";
 import { markdown } from "@codemirror/lang-markdown";
 import { minimalSetup } from "codemirror";
-import { WebsocketProvider } from "y-websocket";
 import { yCollab, yUndoManagerKeymap } from "y-codemirror.next";
 import * as Y from "yjs";
-import type { CollaborationUser } from "@/lib/collaboration";
+import { useCollaborativeDocument } from "@/collab/useCollaborativeDocument";
+import type { CollaborationConfig, ProviderStatus } from "@/collab/types";
 
 export interface MarkdownEditorHandle {
   focus: () => void;
-}
-
-export interface MarkdownEditorCollaborationConfig {
-  room: string;
-  serverUrl: string;
-  params?: Record<string, string>;
-  user: CollaborationUser;
 }
 
 interface MarkdownEditorProps {
@@ -32,15 +25,15 @@ interface MarkdownEditorProps {
   placeholder?: string;
   onAutoSave?: (content: string) => void;
   autoSaveDelay?: number;
-  collaboration?: MarkdownEditorCollaborationConfig | null;
+  collaboration?: CollaborationConfig | null;
 }
 
-type CollaborationStatus =
+type DisplayStatus =
   | "local"
   | "connecting"
-  | "syncing"
   | "connected"
-  | "disconnected";
+  | "disconnected"
+  | "error";
 
 const editorTheme = EditorView.theme({
   "&": {
@@ -84,13 +77,18 @@ const editorTheme = EditorView.theme({
   },
 });
 
-const statusText: Record<CollaborationStatus, string> = {
+const statusText: Record<DisplayStatus, string> = {
   local: "Local",
   connecting: "Connecting",
-  syncing: "Syncing",
   connected: "Live",
   disconnected: "Offline",
+  error: "Error",
 };
+
+function toDisplayStatus(s: ProviderStatus): DisplayStatus {
+  if (s === "idle") return "local";
+  return s;
+}
 
 const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(({
   initialContent = "",
@@ -103,9 +101,12 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(({
   const viewRef = useRef<EditorView | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onAutoSaveRef = useRef(onAutoSave);
-  const [connectionStatus, setConnectionStatus] = useState<CollaborationStatus>(
-    collaboration ? "connecting" : "local",
-  );
+
+  const { doc, awareness, status: providerStatus } = useCollaborativeDocument(collaboration);
+
+  const displayStatus: DisplayStatus = collaboration
+    ? toDisplayStatus(providerStatus)
+    : "local";
 
   useEffect(() => {
     onAutoSaveRef.current = onAutoSave;
@@ -126,60 +127,24 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(({
     };
   }, []);
 
-  const collaborationKey = useMemo(() => {
+  // collaboration config key for editor re-creation
+  const collabKey = useMemo(() => {
     if (!collaboration) return "local";
-
-    return JSON.stringify({
-      room: collaboration.room,
-      serverUrl: collaboration.serverUrl,
-      params: collaboration.params ?? {},
-      user: collaboration.user,
-    });
-  }, [collaboration]);
+    return `${collaboration.workspaceId}/${collaboration.documentType}/${collaboration.documentId}`;
+  }, [collaboration?.workspaceId, collaboration?.documentType, collaboration?.documentId]);
 
   useEffect(() => {
     const parent = hostRef.current;
     if (!parent) return;
 
     parent.innerHTML = "";
-    setConnectionStatus(collaboration ? "connecting" : "local");
 
-    const ydoc = collaboration ? new Y.Doc() : null;
-    const ytext = ydoc?.getText("content") ?? null;
+    const isCollab = !!collaboration && !!doc;
+    const ytext = isCollab ? doc!.getText("content") : null;
     const undoManager = ytext ? new Y.UndoManager(ytext) : null;
-    const provider = collaboration && ydoc
-      ? new WebsocketProvider(collaboration.serverUrl, collaboration.room, ydoc, {
-          params: collaboration.params,
-        })
-      : null;
-
-    if (provider && collaboration) {
-      provider.awareness.setLocalStateField("user", collaboration.user);
-    }
-
-    const handleStatus = (event: { status: "connected" | "disconnected" }) => {
-      if (event.status === "connected") {
-        setConnectionStatus("syncing");
-        return;
-      }
-
-      setConnectionStatus("disconnected");
-    };
-
-    const handleSync = (isSynced: boolean) => {
-      if (isSynced) {
-        setConnectionStatus("connected");
-        return;
-      }
-
-      setConnectionStatus(provider?.wsconnected ? "syncing" : "disconnected");
-    };
-
-    provider?.on("status", handleStatus);
-    provider?.on("sync", handleSync);
 
     const editor = new EditorView({
-      doc: collaboration ? ytext?.toString() ?? "" : initialContent,
+      doc: isCollab ? ytext?.toString() ?? "" : initialContent,
       extensions: [
         minimalSetup,
         markdown(),
@@ -187,12 +152,12 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(({
         editorTheme,
         placeholder ? placeholderExtension(placeholder) : [],
         Prec.high(keymap.of(yUndoManagerKeymap)),
-        collaboration && ytext && undoManager
-          ? yCollab(ytext, provider?.awareness, { undoManager })
+        isCollab && ytext && undoManager
+          ? yCollab(ytext, awareness, { undoManager })
           : [],
         EditorView.updateListener.of((update) => {
           if (!update.docChanged) return;
-          if (collaboration) return;
+          if (isCollab) return;
 
           debouncedSave(update.state.doc.toString());
         }),
@@ -203,16 +168,11 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(({
     viewRef.current = editor;
 
     return () => {
-      provider?.off("status", handleStatus);
-      provider?.off("sync", handleSync);
-      provider?.awareness.setLocalState(null);
-      provider?.destroy();
       undoManager?.destroy();
-      ydoc?.destroy();
       editor.destroy();
       viewRef.current = null;
     };
-  }, [collaboration, collaborationKey, debouncedSave, initialContent, placeholder]);
+  }, [collabKey, doc, awareness, debouncedSave, initialContent, placeholder]);
 
   useImperativeHandle(ref, () => ({
     focus: () => {
@@ -229,8 +189,19 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(({
   return (
     <div className="relative min-h-[700px]">
       {collaboration && (
-        <div className="pointer-events-none absolute right-5 top-4 z-10 rounded-full border border-border bg-background/85 px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground backdrop-blur-sm">
-          {statusText[connectionStatus]}
+        <div className="pointer-events-none absolute right-5 top-4 z-10 flex items-center gap-1.5 rounded-full border border-border bg-background/85 px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground backdrop-blur-sm">
+          <span
+            className={`inline-block h-1.5 w-1.5 rounded-full ${
+              displayStatus === "connected"
+                ? "bg-green-500"
+                : displayStatus === "connecting"
+                ? "bg-yellow-500 animate-pulse"
+                : displayStatus === "error"
+                ? "bg-red-500"
+                : "bg-gray-400"
+            }`}
+          />
+          {statusText[displayStatus]}
         </div>
       )}
       <div

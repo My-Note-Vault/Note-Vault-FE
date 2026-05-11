@@ -222,7 +222,42 @@ export const useAddPlan = () => {
   return useMutation({
     mutationFn: ({ dailyNoteId, body }: { dailyNoteId: number; body: { type: "TODO" | "PENDING"; content: string } }) =>
       addPlan(dailyNoteId, body),
-    onSuccess: (_data, variables) => {
+    onMutate: async (variables) => {
+      await queryClient.cancelQueries({ queryKey: documentKeys.dailyNoteDetail(variables.dailyNoteId) });
+
+      const previous = queryClient.getQueryData<DailyNoteDetail>(
+        documentKeys.dailyNoteDetail(variables.dailyNoteId),
+      );
+
+      if (previous) {
+        queryClient.setQueryData<DailyNoteDetail>(
+          documentKeys.dailyNoteDetail(variables.dailyNoteId),
+          {
+            ...previous,
+            plans: [
+              ...previous.plans,
+              {
+                planId: -Date.now(),
+                type: variables.body.type,
+                content: variables.body.content,
+                isDone: false,
+              },
+            ],
+          },
+        );
+      }
+
+      return { previous };
+    },
+    onError: (_err, variables, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(
+          documentKeys.dailyNoteDetail(variables.dailyNoteId),
+          context.previous,
+        );
+      }
+    },
+    onSettled: (_data, _error, variables) => {
       queryClient.invalidateQueries({ queryKey: documentKeys.dailyNoteDetail(variables.dailyNoteId) });
     },
   });

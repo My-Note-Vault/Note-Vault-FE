@@ -1,4 +1,4 @@
-import { authStorage } from "@/lib/authStorage";
+import type { CollaborationConfig } from "@/collab/types";
 import type { DocType } from "@/types/common";
 
 export interface CollaborationUser {
@@ -6,8 +6,6 @@ export interface CollaborationUser {
   color: string;
   colorLight: string;
 }
-
-const DEFAULT_COLLAB_PATH = "/api/v1/collaboration";
 
 const USER_COLORS = [
   { color: "#2563eb", colorLight: "#2563eb33" },
@@ -30,47 +28,6 @@ function hashString(value: string): number {
   return Math.abs(hash);
 }
 
-export function resolveCollaborationServerUrl(): string | null {
-  if (typeof window === "undefined") return null;
-
-  const url = new URL(DEFAULT_COLLAB_PATH, window.location.origin);
-  url.protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-
-  return url.toString();
-}
-
-export function buildEntityCollaborationRoom(
-  docType: DocType,
-  id: string | number,
-): string {
-  return `${docType}:${id}`;
-}
-
-export function buildDailyNoteCollaborationRoom(id: string | number): string {
-  return `daily-note:${id}`;
-}
-
-export function buildCollaborationParams(
-  extra?: Record<string, string | number | null | undefined>,
-): Record<string, string> {
-  const params: Record<string, string> = {};
-  const accessToken = authStorage.getAccessToken();
-
-  if (accessToken) {
-    params.token = accessToken;
-  }
-
-  if (!extra) return params;
-
-  Object.entries(extra).forEach(([key, value]) => {
-    if (value !== null && value !== undefined) {
-      params[key] = String(value);
-    }
-  });
-
-  return params;
-}
-
 export function buildCollaborationUser(
   preferredName: string | null | undefined,
   seed: string,
@@ -81,5 +38,22 @@ export function buildCollaborationUser(
     name: preferredName?.trim() || "Anonymous",
     color: palette.color,
     colorLight: palette.colorLight,
+  };
+}
+
+/** docType + entityId 로 CollaborationConfig 를 만든다 */
+export function buildCollaborationConfig(
+  workspaceId: string,
+  docType: DocType,
+  documentId: number,
+  user: CollaborationUser,
+): CollaborationConfig {
+  return {
+    workspaceId,
+    documentType: docType,
+    documentId,
+    userName: user.name,
+    userColor: user.color,
+    userColorLight: user.colorLight,
   };
 }
