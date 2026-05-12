@@ -1,13 +1,14 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import MarkdownEditor, { type MarkdownEditorHandle } from "@/components/MarkdownEditor";
+import MarkdownEditor, { type MarkdownEditorHandle, type AutoSaveOptions } from "@/components/MarkdownEditor";
 import { ChevronRight, Loader2, AlertTriangle, RefreshCw, Check, Undo2, ArrowUp, ArrowDown, Trash2, Columns2, Rows2 } from "lucide-react";
+import { sendKeepaliveDailyNoteAutoSave, sendKeepaliveEntityAutoSave } from "@/api/autoSave";
 import { extractEntityId, type DocType } from "@/types/common";
 import TaskMetadata, { type TaskMetadataValues } from "@/components/TaskMetadata";
 import { useDailyNoteDetail, useUpdateDailyNote, useAddPlan, useUpdatePlan, useDeletePlan, documentKeys } from "@/hooks/useDocuments";
 import { formatLogicalDate, type DailyNoteDetail, type DailyNotePlan } from "@/api/documents";
 import { useEntityDetail, useAutoSaveEntity, useUpdateEntity, type EntityDetail } from "@/hooks/useEntity";
-import { useMemberProfile } from "@/hooks/useMember";
+import { useMemberProfile, useProfileImage } from "@/hooks/useMember";
 import {
   buildCollaborationConfig,
   buildCollaborationUser,
@@ -209,7 +210,9 @@ export default function Editor({
 
   const dailyNoteId = dailyPk ?? dailyDetail?.dailyNoteId;
   const { data: memberProfile } = useMemberProfile();
+  const { data: profileImage } = useProfileImage();
   const collaboratorName = memberProfile?.nickname ?? memberProfile?.name ?? null;
+  const profileImageUrl = profileImage?.profileImageUrl ?? null;
   const collaborationConfig = useMemo(() => {
     if (isDailyNote || isNew || !entityDetail || !docType || !entityId) return null;
     const workspaceId = localStorage.getItem("selected_workspace");
@@ -221,6 +224,7 @@ export default function Editor({
     const user = buildCollaborationUser(
       collaboratorName,
       `${docType}:${entityId}`,
+      profileImageUrl,
     );
 
     return buildCollaborationConfig(workspaceId, docType, numericId, user);
@@ -231,6 +235,7 @@ export default function Editor({
     docType,
     entityId,
     collaboratorName,
+    profileImageUrl,
   ]);
 
   // 서버에서 받은 메타데이터 반영
@@ -284,9 +289,14 @@ export default function Editor({
   const autoSaveMutation = useAutoSaveEntity();
 
   const handleAutoSave = useCallback(
-    (content: string) => {
-      if (!docType || !entityId) return;
-      autoSaveMutation.mutate({ id: entityId, type: docType, content });
+    (content: string, options: AutoSaveOptions) => {
+      if (!docType || !entityId) return Promise.resolve();
+      if (options.reason === "unload") {
+        sendKeepaliveEntityAutoSave(entityId, docType, content);
+        return Promise.resolve();
+      }
+
+      return autoSaveMutation.mutateAsync({ id: entityId, type: docType, content });
     },
     [entityId, docType, autoSaveMutation],
   );
@@ -295,9 +305,14 @@ export default function Editor({
   const dailyUpdateMutation = useUpdateDailyNote();
 
   const handleDailyContentAutoSave = useCallback(
-    (content: string) => {
-      if (!isDailyNote || !dailyNoteId) return;
-      dailyUpdateMutation.mutate({ dailyNoteId, body: { content } });
+    (content: string, options: AutoSaveOptions) => {
+      if (!isDailyNote || !dailyNoteId) return Promise.resolve();
+      if (options.reason === "unload") {
+        sendKeepaliveDailyNoteAutoSave(dailyNoteId, content);
+        return Promise.resolve();
+      }
+
+      return dailyUpdateMutation.mutateAsync({ dailyNoteId, body: { content } });
     },
     [isDailyNote, dailyNoteId, dailyUpdateMutation],
   );

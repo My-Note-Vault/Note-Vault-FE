@@ -5,6 +5,7 @@ export interface CollaborationUser {
   name: string;
   color: string;
   colorLight: string;
+  profileImageUrl: string | null;
 }
 
 const USER_COLORS = [
@@ -31,6 +32,7 @@ function hashString(value: string): number {
 export function buildCollaborationUser(
   preferredName: string | null | undefined,
   seed: string,
+  profileImageUrl?: string | null,
 ): CollaborationUser {
   const palette = USER_COLORS[hashString(seed) % USER_COLORS.length];
 
@@ -38,6 +40,7 @@ export function buildCollaborationUser(
     name: preferredName?.trim() || "Anonymous",
     color: palette.color,
     colorLight: palette.colorLight,
+    profileImageUrl: profileImageUrl ?? null,
   };
 }
 
@@ -55,5 +58,6 @@ export function buildCollaborationConfig(
     userName: user.name,
     userColor: user.color,
     userColorLight: user.colorLight,
+    userProfileImageUrl: user.profileImageUrl,
   };
 }

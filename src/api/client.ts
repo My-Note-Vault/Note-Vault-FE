@@ -2,12 +2,41 @@ import axios from "axios";
 import { endpoints } from "@/constants/endpoints";
 import { authStorage } from "@/lib/authStorage";
 
+interface KeepaliveJsonRequestOptions {
+  method: "POST" | "PUT" | "PATCH" | "DELETE";
+  body?: unknown;
+}
+
 // 인증 토큰이 자동으로 포함되는 axios 인스턴스
 const apiClient = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
 });
+
+export function sendKeepaliveJsonRequest(
+  url: string,
+  { method, body }: KeepaliveJsonRequestOptions,
+): void {
+  const accessToken = authStorage.getAccessToken();
+  if (!accessToken) return;
+
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${accessToken}`,
+  };
+  const requestBody = body === undefined ? undefined : JSON.stringify(body);
+
+  if (requestBody !== undefined) {
+    headers["Content-Type"] = "application/json";
+  }
+
+  void fetch(url, {
+    method,
+    headers,
+    body: requestBody,
+    keepalive: true,
+  }).catch(() => {});
+}
 
 // 진행 중인 refresh Promise. 동시 요청 중복 refresh 방지용.
 let refreshPromise: Promise<string> | null = null;

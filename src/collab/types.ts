@@ -19,10 +19,12 @@ export interface YjsWsProvider {
   doc: Y.Doc;
   awareness: Awareness;
   status: ProviderStatus;
+  isSynced: boolean;
   connect(): void;
   disconnect(): void;
   destroy(): void;
   onStatusChange(cb: (status: ProviderStatus) => void): () => void;
+  onSync(cb: (isSynced: boolean) => void): () => void;
 }
 
 export interface CollaborationConfig {
@@ -32,4 +34,5 @@ export interface CollaborationConfig {
   userName: string;
   userColor: string;
   userColorLight: string;
+  userProfileImageUrl: string | null;
 }
