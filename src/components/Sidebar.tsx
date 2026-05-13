@@ -158,17 +158,6 @@ function DocItem({ doc, depth, selectedId, onSelect, onAddItem, onDeleteItem, ic
             <Plus className="h-3.5 w-3.5" />
           </button>
         )}
-        {doc.type && onDeleteItem && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onDeleteItem(doc.id, doc.type);
-            }}
-            className="p-0.5 rounded hover:bg-red-500/20 text-sidebar-foreground/50 hover:text-red-500 transition-colors opacity-0 group-hover/item:opacity-100"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </button>
-        )}
       </div>
 
       {(hasChildren || isExpandable) && expanded && (
@@ -196,13 +185,11 @@ function DailyNoteItem({
   dn,
   selectedId,
   onSelect,
-  onDelete,
   depth,
 }: {
   dn: DailyNoteDetail;
   selectedId: string | null;
   onSelect: (id: string) => void;
-  onDelete?: (dailyNoteId: number) => void;
   depth: number;
 }) {
   const tabId = `daily-${dn.dailyNoteId}`;
@@ -219,20 +206,6 @@ function DailyNoteItem({
       <span className="w-4.5" />
       <NotebookPen className="h-4 w-4 shrink-0 opacity-60" />
       <span className="truncate flex-1">{formatLogicalDate(dn.logicalDate)}</span>
-      {onDelete && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            if (window.confirm(`"${formatLogicalDate(dn.logicalDate)}" 데일리 노트를 삭제하시겠습니까?`)) {
-              onDelete(dn.dailyNoteId);
-            }
-          }}
-          className="p-0.5 rounded opacity-0 group-hover/daily:opacity-100 hover:bg-red-500/20 text-muted-foreground hover:text-red-500 transition-all shrink-0"
-          title="삭제"
-        >
-          <X className="h-3.5 w-3.5" />
-        </button>
-      )}
     </div>
   );
 }
@@ -242,13 +215,11 @@ function MonthFolder({
   notes,
   selectedId,
   onSelect,
-  onDelete,
 }: {
   month: string;
   notes: DailyNoteDetail[];
   selectedId: string | null;
   onSelect: (id: string) => void;
-  onDelete?: (dailyNoteId: number) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
 
@@ -281,7 +252,6 @@ function MonthFolder({
               dn={dn}
               selectedId={selectedId}
               onSelect={onSelect}
-              onDelete={onDelete}
               depth={3}
             />
           ))}
@@ -295,12 +265,10 @@ function DailyNotesSection({
   dailyNotes,
   selectedId,
   onSelect,
-  onDelete,
 }: {
   dailyNotes: DailyNoteDetail[];
   selectedId: string | null;
   onSelect: (id: string) => void;
-  onDelete?: (dailyNoteId: number) => void;
 }) {
   const [expanded, setExpanded] = useState(true);
 
@@ -346,7 +314,6 @@ function DailyNotesSection({
               dn={dn}
               selectedId={selectedId}
               onSelect={onSelect}
-              onDelete={onDelete}
               depth={1}
             />
           ))}
@@ -357,7 +324,6 @@ function DailyNotesSection({
               notes={notes}
               selectedId={selectedId}
               onSelect={onSelect}
-              onDelete={onDelete}
             />
           ))}
         </div>
@@ -461,7 +427,6 @@ interface SidebarProps {
   onAddItem?: (parentId: string, parentType?: DocType) => void;
   onAddSpace?: () => void;
   onDeleteItem?: (id: string, docType?: DocType) => void;
-  onDeleteDailyNote?: (dailyNoteId: number) => void;
   isLoading?: boolean;
   unfoldedIds?: Set<string>;
   open: boolean;
@@ -472,7 +437,7 @@ interface SidebarProps {
   onSelectWorkspace?: (id: string) => void;
 }
 
-export default function Sidebar({ onSelectSidebarItem, docs, workspaces = [], dailyNotes, onAddItem, onAddSpace, onDeleteItem, onDeleteDailyNote, isLoading, unfoldedIds, open, activeTabId, searchMode, onCloseSearch, selectedWorkspaceId, onSelectWorkspace }: SidebarProps) {
+export default function Sidebar({ onSelectSidebarItem, docs, workspaces = [], dailyNotes, onAddItem, onAddSpace, onDeleteItem, isLoading, unfoldedIds, open, activeTabId, searchMode, onCloseSearch, selectedWorkspaceId, onSelectWorkspace }: SidebarProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [inviteOpen, setInviteOpen] = useState(false);
 
@@ -570,7 +535,6 @@ export default function Sidebar({ onSelectSidebarItem, docs, workspaces = [], da
                     dailyNotes={dailyNotes}
                     selectedId={activeTabId ?? null}
                     onSelect={handleSelect}
-                    onDelete={onDeleteDailyNote}
                   />
                 )}
                 <div

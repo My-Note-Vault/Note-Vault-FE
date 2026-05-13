@@ -979,6 +979,8 @@ function AppContent() {
         onFocusPane: () => handleFocusPane(paneId),
         onOpenDocument: handleSelectDocumentWithTracking,
         onRenameDocument: handleRenameDocument,
+        onDeleteDocument: handleDeleteDocument,
+        onDeleteDailyNote: handleDeleteDailyNote,
         onAddSpace: handleAddSpace,
         draggingTabId,
         onDragStart: setDraggingTabId,
@@ -1008,7 +1010,6 @@ function AppContent() {
                 onAddItem={handleAddItem}
                 onAddSpace={handleAddSpace}
                 onDeleteItem={handleDeleteDocument}
-                onDeleteDailyNote={handleDeleteDailyNote}
                 isLoading={isLoading}
                 unfoldedIds={unfoldedIds}
                 open={sidebarOpen}

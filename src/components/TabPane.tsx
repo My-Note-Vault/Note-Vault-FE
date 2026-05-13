@@ -33,6 +33,8 @@ interface TabPaneProps {
   onFocusPane: () => void;
   onOpenDocument: (id: string, docType?: DocType) => void;
   onRenameDocument: (id: string, newName: string) => void;
+  onDeleteDocument?: (id: string, docType?: DocType) => void;
+  onDeleteDailyNote?: (dailyNoteId: number) => void;
   onAddSpace?: () => void;
   draggingTabId: string | null;
   onDragStart: (tabId: string) => void;
@@ -56,6 +58,8 @@ export default function TabPane({
   draggingTabId,
   onOpenDocument,
   onRenameDocument,
+  onDeleteDocument,
+  onDeleteDailyNote,
   onAddSpace,
   onDragStart,
   onDragEnd,
@@ -238,6 +242,8 @@ export default function TabPane({
               children={activeTab.children}
               onOpenDocument={onOpenDocument}
               onRenameDocument={onRenameDocument}
+              onDeleteDocument={onDeleteDocument}
+              onDeleteDailyNote={onDeleteDailyNote}
               isNew={activeTab.isNew}
               isTreeLoaded={isTreeLoaded}
             />

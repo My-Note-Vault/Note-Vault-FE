@@ -140,6 +140,8 @@ interface EditorProps {
   children?: { id: string; name: string }[];
   onOpenDocument?: (id: string, docType?: DocType) => void;
   onRenameDocument?: (id: string, newName: string) => void;
+  onDeleteDocument?: (id: string, docType?: DocType) => void;
+  onDeleteDailyNote?: (dailyNoteId: number) => void;
   isNew?: boolean;
   isTreeLoaded?: boolean;
 }
@@ -152,6 +154,8 @@ export default function Editor({
   children,
   onOpenDocument,
   onRenameDocument,
+  onDeleteDocument,
+  onDeleteDailyNote,
   isNew,
   isTreeLoaded,
 }: EditorProps) {
@@ -400,17 +404,16 @@ export default function Editor({
     return (
       <div className="min-h-screen bg-background">
         <div className="mx-auto p-6">
-          {/* Title */}
-          <input
-            type="text"
-            value={daily?.logicalDate ? formatLogicalDate(daily.logicalDate) : ""}
-            readOnly
-            className="w-full px-12 pt-4 pb-0 text-xl font-semibold bg-transparent outline-none"
-          />
-
-          {/* Split direction toggle */}
-          <div className="flex justify-end mb-2">
-            <div className="flex gap-0.5 rounded-md border border-border bg-muted/30 p-0.5">
+          {/* Title + Delete */}
+          <div className="flex items-start">
+            <input
+              type="text"
+              value={daily?.logicalDate ? formatLogicalDate(daily.logicalDate) : ""}
+              readOnly
+              className="flex-1 px-12 pt-4 pb-0 text-xl font-semibold bg-transparent outline-none"
+            />
+            {/* Split direction toggle */}
+            <div className="mt-4 mr-2 flex gap-0.5 rounded-md border border-border bg-muted/30 p-0.5 shrink-0">
               <button
                 onClick={() => setDailyLayout("horizontal")}
                 className={`p-1 rounded transition-colors ${
@@ -434,6 +437,19 @@ export default function Editor({
                 <Rows2 className="h-3.5 w-3.5" />
               </button>
             </div>
+            {onDeleteDailyNote && dailyNoteId && (
+              <button
+                onClick={() => {
+                  if (window.confirm("이 데일리 노트를 삭제하시겠습니까?")) {
+                    onDeleteDailyNote(dailyNoteId);
+                  }
+                }}
+                className="mt-4 mr-2 p-1.5 rounded-md text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition-colors shrink-0"
+                title="삭제"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            )}
           </div>
 
           {/* Split: left(Pending+Todo) / right(Content) */}
@@ -509,19 +525,30 @@ export default function Editor({
     <div className="min-h-screen bg-background">
       <div className="max-w-[54.4rem] mx-auto p-6">
         <div>
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.nativeEvent.isComposing) {
-                e.preventDefault();
-                onRenameDocument?.(documentId, title.trim());
-                editorRef.current?.focus();
-              }
-            }}
-            className="w-full px-12 pt-4 pb-0 text-xl font-semibold bg-transparent outline-none"
-          />
+          <div className="flex items-start">
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.nativeEvent.isComposing) {
+                  e.preventDefault();
+                  onRenameDocument?.(documentId, title.trim());
+                  editorRef.current?.focus();
+                }
+              }}
+              className="flex-1 px-12 pt-4 pb-0 text-xl font-semibold bg-transparent outline-none"
+            />
+            {onDeleteDocument && docType && !isNew && (
+              <button
+                onClick={() => onDeleteDocument(documentId, docType)}
+                className="mt-4 mr-2 p-1.5 rounded-md text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition-colors shrink-0"
+                title="삭제"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            )}
+          </div>
 
           {showMetadata && (
             <>
