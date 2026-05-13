@@ -17,7 +17,7 @@ import type { TaskDetail } from "@/types/task";
 import type { SubTaskDetail } from "@/types/subtask";
 
 function hasMetadata(detail: EntityDetail): detail is TaskDetail | SubTaskDetail {
-  return "status" in detail || ("metadata" in detail && detail.metadata != null);
+  return "status" in detail;
 }
 
 function getErrorStatus(error: unknown): number | null {
@@ -242,8 +242,8 @@ export default function Editor({
   useEffect(() => {
     if (detail && !isDailyNote && hasMetadata(detail as EntityDetail)) {
       const d = detail as TaskDetail | SubTaskDetail;
-      if ("status" in d && !("metadata" in d && d.metadata)) {
-        // Task: flat 구조
+      if ("startDateTime" in d) {
+        // Task
         const task = d as TaskDetail;
         setMetadata({
           status: task.status ?? "NOT_STARTED",
@@ -251,12 +251,12 @@ export default function Editor({
           endDate: task.endDateTime ? new Date(task.endDateTime) : undefined,
         });
       } else {
-        // SubTask: metadata 구조
-        const meta = (d as SubTaskDetail).metadata!;
+        // SubTask
+        const sub = d as SubTaskDetail;
         setMetadata({
-          status: meta.status,
-          startDate: meta.startDate ? new Date(meta.startDate) : undefined,
-          endDate: meta.endDate ? new Date(meta.endDate) : undefined,
+          status: sub.status ?? "NOT_STARTED",
+          startDate: sub.startDate ? new Date(sub.startDate) : undefined,
+          endDate: sub.endDate ? new Date(sub.endDate) : undefined,
         });
       }
     }

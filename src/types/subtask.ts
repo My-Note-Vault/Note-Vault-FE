@@ -10,7 +10,9 @@ export interface SubTaskDetail {
   id: string;
   name: string;
   content: string;
-  metadata?: SubTaskMetadata;
+  status?: TaskStatus;
+  startDate?: string | null;
+  endDate?: string | null;
   children?: { id: string; name: string }[];
 }
 
@@ -31,5 +33,7 @@ export interface CreateSubTaskResponse {
 export interface UpdateSubTaskRequest {
   name?: string;
   content?: string;
-  metadata?: SubTaskMetadata;
+  status?: TaskStatus;
+  startDate?: string | null;
+  endDate?: string | null;
 }

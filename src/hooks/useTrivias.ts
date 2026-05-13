@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchTriviaDetail, createTrivia, updateTrivia, deleteTrivia } from "@/api/trivias";
 import type { CreateTriviaRequest, UpdateTriviaRequest } from "@/types/trivia";
-import { documentKeys } from "./useDocuments";
+import { invalidateSidebar } from "./useDocuments";
 
 export const triviaKeys = {
   all: ["trivias"] as const,
@@ -23,7 +23,7 @@ export const useCreateTrivia = () => {
   return useMutation({
     mutationFn: (req: CreateTriviaRequest) => createTrivia(req),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: documentKeys.noteInfos() });
+      invalidateSidebar(queryClient);
     },
   });
 };
@@ -35,7 +35,7 @@ export const useUpdateTrivia = () => {
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: triviaKeys.detail(variables.id) });
       if (variables.name) {
-        queryClient.invalidateQueries({ queryKey: documentKeys.noteInfos() });
+        invalidateSidebar(queryClient);
       }
     },
   });
@@ -46,7 +46,7 @@ export const useDeleteTrivia = () => {
   return useMutation({
     mutationFn: (id: string) => deleteTrivia(id),
     onSuccess: (_data, id) => {
-      queryClient.invalidateQueries({ queryKey: documentKeys.noteInfos() });
+      invalidateSidebar(queryClient);
       queryClient.removeQueries({ queryKey: triviaKeys.detail(id) });
     },
   });

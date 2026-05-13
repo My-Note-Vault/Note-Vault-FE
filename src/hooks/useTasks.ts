@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchTaskDetail, createTask, updateTask, deleteTask } from "@/api/tasks";
 import type { CreateTaskRequest, UpdateTaskRequest } from "@/types/task";
-import { documentKeys } from "./useDocuments";
+import { documentKeys, invalidateSidebar } from "./useDocuments";
 
 export const taskKeys = {
   all: ["tasks"] as const,
@@ -23,7 +23,7 @@ export const useCreateTask = () => {
   return useMutation({
     mutationFn: (req: CreateTaskRequest) => createTask(req),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: documentKeys.noteInfos() });
+      invalidateSidebar(queryClient);
     },
   });
 };
@@ -34,10 +34,10 @@ export const useUpdateTask = () => {
     mutationFn: ({ id, ...req }: UpdateTaskRequest & { id: string }) => updateTask(id, req),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: taskKeys.detail(variables.id) });
-      if (variables.name) {
-        queryClient.invalidateQueries({ queryKey: documentKeys.noteInfos() });
+      if (variables.title) {
+        invalidateSidebar(queryClient);
       }
-      if (variables.metadata) {
+      if (variables.status || variables.startDateTime !== undefined || variables.endDateTime !== undefined) {
         queryClient.invalidateQueries({
           queryKey: documentKeys.calendarStats(0, 0),
           predicate: (query) => query.queryKey[0] === "documents" && query.queryKey[1] === "calendar-stats",
@@ -52,7 +52,7 @@ export const useDeleteTask = () => {
   return useMutation({
     mutationFn: (id: string) => deleteTask(id),
     onSuccess: (_data, id) => {
-      queryClient.invalidateQueries({ queryKey: documentKeys.noteInfos() });
+      invalidateSidebar(queryClient);
       queryClient.removeQueries({ queryKey: taskKeys.detail(id) });
     },
   });

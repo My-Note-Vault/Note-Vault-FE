@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchSubTaskDetail, createSubTask, updateSubTask, deleteSubTask } from "@/api/subtasks";
 import type { CreateSubTaskRequest, UpdateSubTaskRequest } from "@/types/subtask";
-import { documentKeys } from "./useDocuments";
+import { documentKeys, invalidateSidebar } from "./useDocuments";
 
 export const subTaskKeys = {
   all: ["subtasks"] as const,
@@ -23,7 +23,7 @@ export const useCreateSubTask = () => {
   return useMutation({
     mutationFn: (req: CreateSubTaskRequest) => createSubTask(req),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: documentKeys.noteInfos() });
+      invalidateSidebar(queryClient);
     },
   });
 };
@@ -35,9 +35,9 @@ export const useUpdateSubTask = () => {
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: subTaskKeys.detail(variables.id) });
       if (variables.name) {
-        queryClient.invalidateQueries({ queryKey: documentKeys.noteInfos() });
+        invalidateSidebar(queryClient);
       }
-      if (variables.metadata) {
+      if (variables.status !== undefined || variables.startDate !== undefined || variables.endDate !== undefined) {
         queryClient.invalidateQueries({
           queryKey: documentKeys.calendarStats(0, 0),
           predicate: (query) => query.queryKey[0] === "documents" && query.queryKey[1] === "calendar-stats",
@@ -52,7 +52,7 @@ export const useDeleteSubTask = () => {
   return useMutation({
     mutationFn: (id: string) => deleteSubTask(id),
     onSuccess: (_data, id) => {
-      queryClient.invalidateQueries({ queryKey: documentKeys.noteInfos() });
+      invalidateSidebar(queryClient);
       queryClient.removeQueries({ queryKey: subTaskKeys.detail(id) });
     },
   });

@@ -56,7 +56,8 @@ export function tabIdToPath(id: string, docType?: DocType): string {
 
   if (docType) {
     const segment = DOCTYPE_TO_PATH[docType];
-    if (segment) return `/api/v1/${segment}/${id}`;
+    const entityId = id.replace(/^(?:space|task|subtask|trivia)-/, "");
+    if (segment) return `/api/v1/${segment}/${entityId}`;
   }
 
   return `/api/v1/${id}`;

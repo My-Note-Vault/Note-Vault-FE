@@ -130,8 +130,17 @@ export const useUpdateEntity = () => {
           }
           return updateTask(id, taskReq);
         }
-        case "subtask":
-          return updateSubTask(id, req as UpdateSubTaskRequest);
+        case "subtask": {
+          const subReq: UpdateSubTaskRequest = {};
+          if (req.name !== undefined) subReq.name = req.name;
+          if (req.content !== undefined) subReq.content = req.content;
+          if (req.metadata) {
+            subReq.status = req.metadata.status;
+            subReq.startDate = req.metadata.startDate;
+            subReq.endDate = req.metadata.endDate;
+          }
+          return updateSubTask(id, subReq);
+        }
         case "trivia":
           return updateTrivia(id, req as UpdateTriviaRequest);
       }

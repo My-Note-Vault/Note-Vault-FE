@@ -98,7 +98,7 @@ export function useKanban(spaceId: string | null) {
       const status: TaskStatus =
         item.type === "task"
           ? (detail as TaskDetail).status ?? "NOT_STARTED"
-          : (detail as SubTaskDetail).metadata?.status ?? "NOT_STARTED";
+          : (detail as SubTaskDetail).status ?? "NOT_STARTED";
 
       cols[status].push({
         id: item.id,

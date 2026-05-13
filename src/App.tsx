@@ -135,6 +135,57 @@ const TYPE_LABELS: Record<DocType, string> = {
     trivia: "새 Trivia",
 };
 
+function addCreatedEntityToTree(
+    tasks: TaskOverview[] | undefined,
+    type: DocType,
+    parentId: string,
+    id: string,
+    name: string,
+): TaskOverview[] | undefined {
+    if (!tasks || type === "space") return tasks;
+
+    const numericParentId = Number(parentId);
+    const numericId = Number(id);
+
+    if (type === "task") {
+        if (tasks.some((task) => task.id === numericId)) return tasks;
+        return [...tasks, { id: numericId, title: name, subTaskSummaries: [] }];
+    }
+
+    if (type === "subtask") {
+        return tasks.map((task) => {
+            if (task.id !== numericParentId) return task;
+            if (task.subTaskSummaries.some((sub) => sub.id === numericId)) return task;
+            return {
+                ...task,
+                subTaskSummaries: [
+                    ...task.subTaskSummaries,
+                    { id: numericId, title: name, triviaSummaries: [] },
+                ],
+            };
+        });
+    }
+
+    if (type === "trivia") {
+        return tasks.map((task) => ({
+            ...task,
+            subTaskSummaries: task.subTaskSummaries.map((sub) => {
+                if (sub.id !== numericParentId) return sub;
+                if (sub.triviaSummaries.some((trivia) => trivia.id === numericId)) return sub;
+                return {
+                    ...sub,
+                    triviaSummaries: [
+                        ...sub.triviaSummaries,
+                        { id: numericId, title: name },
+                    ],
+                };
+            }),
+        }));
+    }
+
+    return tasks;
+}
+
 interface SplitState {
     mode: "single" | "split";
     focusedPane: PaneId;
@@ -273,7 +324,7 @@ function AppContent() {
         setSplitState((prev) => {
             const targetPaneId = prev.focusedPane;
             const pane = prev.panes[targetPaneId];
-            const newTab = { id, name, isDaily: false, docType, children: [] as { id: string; name: string }[], isNew: true };
+            const newTab = { id, name, isDaily: false, docType, children: [] as { id: string; name: string }[] };
 
             if (pane.tabs.length >= 4) {
                 const replaceId = pane.activeTabId ?? pane.tabs[pane.tabs.length - 1].id;
@@ -510,15 +561,25 @@ function AppContent() {
 
         createEntityMutation.mutate(
             { type: childType, name: TYPE_LABELS[childType], parentId },
-            { onSuccess: (result) => openNewTab(entityTabId(childType, result.id), result.name, childType) },
+            {
+                onSuccess: (result) => {
+                    const tabId = entityTabId(childType, result.id);
+                    openNewTab(tabId, result.name, childType);
+                    updateLastVisitedMutation.mutate(tabIdToPath(result.id, childType));
+                    appQueryClient.setQueryData<TaskOverview[]>(
+                        documentKeys.noteInfos(childType === "task" ? Number(parentId) : workspaceIdNum),
+                        (old) => addCreatedEntityToTree(old, childType, parentId, result.id, result.name),
+                    );
+                },
+            },
         );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [appQueryClient, createEntityMutation, openNewTab, updateLastVisitedMutation, workspaceIdNum]);
 
     const handleAddSpace = useCallback(async () => {
         try {
             const result = await createSpace({ parentId: null, name: TYPE_LABELS["space"], content: null, isPublic: false });
             openNewTab(entityTabId("space", result.id), result.name, "space" as DocType);
+            updateLastVisitedMutation.mutate(tabIdToPath(result.id, "space"));
             appQueryClient.setQueryData<SpaceListItem[]>(
                 spaceKeys.list(),
                 (old) => [...(old ?? []), { id: Number(result.id), name: result.name }],
@@ -526,8 +587,7 @@ function AppContent() {
         } catch {
             toast.error("생성에 실패했습니다");
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [appQueryClient, openNewTab, updateLastVisitedMutation]);
 
     const handleClickTab = useCallback((paneId: PaneId, tabId: string) => {
         setSplitState((prev) => ({
