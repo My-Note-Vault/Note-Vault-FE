@@ -222,8 +222,12 @@ function AppContent() {
     }, [selectedWorkspaceId]);
 
     const workspaceIdNum = selectedWorkspaceId ? Number(selectedWorkspaceId) : null;
-    const { data: docs = [], unfoldedIds, isLoading } = useDocumentTree(workspaceIdNum);
+    const { data: docs = [], unfoldedIds, setUnfolded, isLoading } = useDocumentTree(workspaceIdNum);
     const { data: dailyNotes } = useDailyNotes();
+
+    const handleToggleExpand = useCallback((noteId: string, docType: DocType, expanded: boolean) => {
+        setUnfolded(noteId, docType, expanded);
+    }, [setUnfolded]);
     const createEntityMutation = useCreateEntity();
     const deleteEntityMutation = useDeleteEntity();
     const updateEntityMutation = useUpdateEntity();
@@ -1012,6 +1016,7 @@ function AppContent() {
                 onDeleteItem={handleDeleteDocument}
                 isLoading={isLoading}
                 unfoldedIds={unfoldedIds}
+                onToggleExpand={handleToggleExpand}
                 open={sidebarOpen}
                 activeTabId={splitState.panes[splitState.focusedPane].activeTabId}
                 searchMode={searchMode}

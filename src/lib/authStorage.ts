@@ -31,6 +31,12 @@ export const authStorage = {
 
   clearAppState() {
     APP_STATE_KEYS.forEach((key) => localStorage.removeItem(key));
+    for (let i = localStorage.length - 1; i >= 0; i -= 1) {
+      const key = localStorage.key(i);
+      if (key?.startsWith("sidebar_unfolded:")) {
+        localStorage.removeItem(key);
+      }
+    }
   },
 
   clearTokens() {
@@ -50,4 +56,3 @@ export const authStorage = {
     };
   },
 };
-

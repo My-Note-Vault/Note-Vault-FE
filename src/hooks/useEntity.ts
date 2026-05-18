@@ -10,7 +10,6 @@ import { fetchSpaceDetail, createSpace, updateSpace, deleteSpace } from "@/api/s
 import { fetchTaskDetail, createTask, updateTask, deleteTask } from "@/api/tasks";
 import { fetchSubTaskDetail, createSubTask, updateSubTask, deleteSubTask } from "@/api/subtasks";
 import { fetchTriviaDetail, createTrivia, updateTrivia, deleteTrivia } from "@/api/trivias";
-import { unfoldNote } from "@/api/documents";
 
 import { invalidateSidebar } from "./useDocuments";
 import { spaceKeys } from "./useSpaces";
@@ -153,11 +152,6 @@ export const useUpdateEntity = () => {
           predicate: (query) =>
             query.queryKey[0] === "documents" && query.queryKey[1] === "calendar-stats",
         });
-      }
-      // title 저장 시 unfolded-notes 등록 (space 제외)
-      if (variables.name && variables.type !== "space") {
-        const typeMap = { task: "TASK", subtask: "SUBTASK", trivia: "TRIVIA" } as const;
-        unfoldNote({ type: typeMap[variables.type], noteId: Number(variables.id) }).catch(() => {});
       }
     },
     onError: () => {

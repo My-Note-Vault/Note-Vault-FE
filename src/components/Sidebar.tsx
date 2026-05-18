@@ -6,7 +6,7 @@ import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover
 import InviteDialog from "@/components/InviteDialog";
 
 export type { DocType, SidebarItem, SearchResult } from "@/types/common";
-import type { DocType, SidebarItem, SearchResult } from "@/types/common";
+import { sidebarUnfoldedId, type DocType, type SidebarItem, type SearchResult } from "@/types/common";
 
 const CHILD_TYPE_MAP: Record<DocType, DocType | null> = {
   space: "task",
@@ -29,6 +29,12 @@ function sortFoldersFirst(docs: SidebarItem[]): SidebarItem[] {
     if (aIsFolder !== bIsFolder) return bIsFolder - aIsFolder;
     return a.name.localeCompare(b.name, undefined, { numeric: true });
   });
+}
+
+function isDocUnfolded(doc: SidebarItem, unfoldedIds?: Set<string>): boolean {
+  return doc.type
+    ? (unfoldedIds?.has(sidebarUnfoldedId(doc.type, doc.id)) ?? false)
+    : (unfoldedIds?.has(doc.id) ?? false);
 }
 
 function HighlightText({ text, query }: { text: string; query: string }) {
@@ -92,19 +98,47 @@ interface DocItemProps {
   onDeleteItem?: (id: string, docType?: DocType) => void;
   icon?: "file" | "calendar";
   unfoldedIds?: Set<string>;
+  onToggleExpand?: (noteId: string, docType: DocType, expanded: boolean) => void;
 }
 
-function DocItem({ doc, depth, selectedId, onSelect, onAddItem, onDeleteItem, icon = "file", unfoldedIds }: DocItemProps) {
-  const [expanded, setExpanded] = useState(() => unfoldedIds?.has(doc.id) ?? false);
+function DocItem({ doc, depth, selectedId, onSelect, onAddItem, onDeleteItem, icon = "file", unfoldedIds, onToggleExpand }: DocItemProps) {
+  const [expanded, setExpanded] = useState(() => isDocUnfolded(doc, unfoldedIds));
   const hasChildren = doc.children && doc.children.length > 0;
   const isExpandable = doc.type && doc.type !== "trivia";
   const canAdd = doc.type && CHILD_TYPE_MAP[doc.type] !== null;
+
+  useEffect(() => {
+    setExpanded(isDocUnfolded(doc, unfoldedIds));
+  }, [doc, unfoldedIds]);
+
+  const toggleExpand = (next: boolean) => {
+    setExpanded(next);
+    if (doc.type) {
+      onToggleExpand?.(doc.id, doc.type, next);
+    }
+    // 펼칠 때 자식(subtask, trivia)도 unfolded로 등록
+    if (next && doc.children) {
+      for (const child of doc.children) {
+        if (child.type) {
+          onToggleExpand?.(child.id, child.type, true);
+          // 손자(trivia)까지 등록
+          if (child.children) {
+            for (const grandchild of child.children) {
+              if (grandchild.type) {
+                onToggleExpand?.(grandchild.id, grandchild.type, true);
+              }
+            }
+          }
+        }
+      }
+    }
+  };
 
   const handleClick = () => {
     if (doc.type && doc.type !== "trivia") {
       onSelect(doc.id, doc.type);
     } else if (hasChildren && !doc.type) {
-      setExpanded(!expanded);
+      toggleExpand(!expanded);
     } else {
       onSelect(doc.id, doc.type);
     }
@@ -133,7 +167,7 @@ function DocItem({ doc, depth, selectedId, onSelect, onAddItem, onDeleteItem, ic
           <button
             onClick={(e) => {
               e.stopPropagation();
-              setExpanded(!expanded);
+              toggleExpand(!expanded);
             }}
             className="p-0.5 rounded hover:bg-sidebar-border transition-colors"
           >
@@ -151,7 +185,7 @@ function DocItem({ doc, depth, selectedId, onSelect, onAddItem, onDeleteItem, ic
             onClick={(e) => {
               e.stopPropagation();
               onAddItem(doc.id, doc.type);
-              setExpanded(true);
+              toggleExpand(true);
             }}
             className="p-0.5 rounded hover:bg-sidebar-border transition-colors opacity-0 group-hover/item:opacity-100"
           >
@@ -164,7 +198,7 @@ function DocItem({ doc, depth, selectedId, onSelect, onAddItem, onDeleteItem, ic
         <div>
           {doc.children && sortFoldersFirst(doc.children).map((child) => (
             <DocItem
-              key={child.id}
+              key={`${child.type ?? "item"}-${child.id}`}
               doc={child}
               depth={depth + 1}
               selectedId={selectedId}
@@ -173,6 +207,7 @@ function DocItem({ doc, depth, selectedId, onSelect, onAddItem, onDeleteItem, ic
               onDeleteItem={onDeleteItem}
               icon={icon}
               unfoldedIds={unfoldedIds}
+              onToggleExpand={onToggleExpand}
             />
           ))}
         </div>
@@ -203,7 +238,7 @@ function DailyNoteItem({
       style={{ paddingLeft: `${depth * 12 + 8}px` }}
       onClick={() => onSelect(tabId)}
     >
-      <span className="w-4.5" />
+      <span className="shrink-0" style={{ width: 18 }} />
       <NotebookPen className="h-4 w-4 shrink-0 opacity-60" />
       <span className="truncate flex-1">{formatLogicalDate(dn.logicalDate)}</span>
     </div>
@@ -231,7 +266,8 @@ function MonthFolder({
         onClick={() => setExpanded(!expanded)}
       >
         <button
-          className="p-0.5 rounded hover:bg-sidebar-border transition-colors"
+          className="shrink-0 flex items-center justify-center rounded hover:bg-sidebar-border transition-colors"
+          style={{ width: 18 }}
           onClick={(e) => {
             e.stopPropagation();
             setExpanded(!expanded);
@@ -272,9 +308,14 @@ function DailyNotesSection({
 }) {
   const [expanded, setExpanded] = useState(true);
 
-  // 백엔드 정렬 순서 그대로 사용
-  const recentNotes = dailyNotes.slice(0, 3);
-  const olderNotes = dailyNotes.slice(3);
+  // 오름차순 정렬 (오래된 순 위, 최신 아래), 최근 3개는 하단에, 나머지는 월별 폴더로
+  const sorted = [...dailyNotes].sort((a, b) => {
+    const [ay, am, ad] = a.logicalDate;
+    const [by, bm, bd] = b.logicalDate;
+    return ay - by || am - bm || ad - bd;
+  });
+  const recentNotes = sorted.slice(-3);
+  const olderNotes = sorted.slice(0, -3);
 
   // yyyy-MM 기준 그룹핑 (순서 유지)
   const monthGroups = new Map<string, DailyNoteDetail[]>();
@@ -308,15 +349,6 @@ function DailyNotesSection({
 
       {expanded && (
         <div>
-          {recentNotes.map((dn) => (
-            <DailyNoteItem
-              key={dn.dailyNoteId}
-              dn={dn}
-              selectedId={selectedId}
-              onSelect={onSelect}
-              depth={1}
-            />
-          ))}
           {[...monthGroups.entries()].map(([month, notes]) => (
             <MonthFolder
               key={month}
@@ -324,6 +356,15 @@ function DailyNotesSection({
               notes={notes}
               selectedId={selectedId}
               onSelect={onSelect}
+            />
+          ))}
+          {recentNotes.map((dn) => (
+            <DailyNoteItem
+              key={dn.dailyNoteId}
+              dn={dn}
+              selectedId={selectedId}
+              onSelect={onSelect}
+              depth={1}
             />
           ))}
         </div>
@@ -435,9 +476,10 @@ interface SidebarProps {
   onCloseSearch?: () => void;
   selectedWorkspaceId?: string | null;
   onSelectWorkspace?: (id: string) => void;
+  onToggleExpand?: (noteId: string, docType: DocType, expanded: boolean) => void;
 }
 
-export default function Sidebar({ onSelectSidebarItem, docs, workspaces = [], dailyNotes, onAddItem, onAddSpace, onDeleteItem, isLoading, unfoldedIds, open, activeTabId, searchMode, onCloseSearch, selectedWorkspaceId, onSelectWorkspace }: SidebarProps) {
+export default function Sidebar({ onSelectSidebarItem, docs, workspaces = [], dailyNotes, onAddItem, onAddSpace, onDeleteItem, isLoading, unfoldedIds, open, activeTabId, searchMode, onCloseSearch, selectedWorkspaceId, onSelectWorkspace, onToggleExpand }: SidebarProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [inviteOpen, setInviteOpen] = useState(false);
 
@@ -609,7 +651,7 @@ export default function Sidebar({ onSelectSidebarItem, docs, workspaces = [], da
                 <div className="space-y-0.5">
                   {sortFoldersFirst(docs).map((doc) => (
                     <DocItem
-                      key={doc.id}
+                      key={`${doc.type ?? "item"}-${doc.id}`}
                       doc={doc}
                       depth={0}
                       selectedId={activeTabId ?? null}
@@ -617,6 +659,7 @@ export default function Sidebar({ onSelectSidebarItem, docs, workspaces = [], da
                       onAddItem={onAddItem}
                       onDeleteItem={onDeleteItem}
                       unfoldedIds={unfoldedIds}
+                      onToggleExpand={onToggleExpand}
                     />
                   ))}
                 </div>

@@ -31,12 +31,6 @@ export interface TriviaSummary {
   title: string;
 }
 
-// UnfoldedNote — /api/v1/unfolded-notes
-export interface UnfoldedNote {
-  type: NoteType;
-  noteId: number;
-}
-
 // NoteType ↔ DocType 매핑
 const NOTE_TO_DOC: Record<NoteType, DocType> = {
   WORKSPACE: "space",
@@ -52,6 +46,8 @@ const DOC_TO_NOTE: Record<DocType, NoteType> = {
 };
 export const noteTypeToDocType = (nt: NoteType): DocType => NOTE_TO_DOC[nt];
 export const docTypeToNoteType = (dt: DocType): NoteType => DOC_TO_NOTE[dt];
+export const sidebarUnfoldedId = (docType: DocType, id: string | number): string =>
+  `${docType}:${id}`;
 
 // 사이드바 트리 구조에서 사용하는 아이템 타입
 export interface SidebarItem {
@@ -70,13 +66,9 @@ export interface SearchResult {
 }
 
 // 캘린더 날짜별 통계
-export interface CalendarDateStat {
-  date: string;
-  startCount: number;
-  endCount: number;
-}
-
-export type CalendarStatsResponse = CalendarDateStat[];
+export type CalendarEventType = "START" | "END";
+export type CalendarDateStat = Partial<Record<CalendarEventType, number>>;
+export type CalendarStatsResponse = Record<string, CalendarDateStat>;
 
 // 탭 ID: docType + entityId → 유일한 탭 식별자 (예: "task-1", "subtask-2")
 export function entityTabId(docType: DocType, id: string | number): string {

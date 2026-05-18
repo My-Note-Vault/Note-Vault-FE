@@ -27,12 +27,12 @@ export default function CalendarPage({ onOpenDocument }: CalendarPageProps) {
   const [currentMonth, setCurrentMonth] = useState(() => new Date());
   const year = currentMonth.getFullYear();
   const month = currentMonth.getMonth() + 1;
-  const { data: stats = [], isLoading, isError, refetch } = useCalendarStats(year, month);
+  const { data: stats = {}, isLoading, isError, refetch } = useCalendarStats(year, month);
 
   const statsMap = useMemo(() => {
     const map = new Map<string, CalendarDateStat>();
-    for (const s of stats) {
-      map.set(s.date, s);
+    for (const [date, stat] of Object.entries(stats)) {
+      map.set(date, stat);
     }
     return map;
   }, [stats]);
@@ -149,19 +149,19 @@ export default function CalendarPage({ onOpenDocument }: CalendarPageProps) {
                     {format(day, "d")}
                   </div>
                   <div className="flex flex-col gap-0.5">
-                    {stat && stat.startCount > 0 && (
+                    {stat && (stat.START ?? 0) > 0 && (
                       <div className="flex items-center gap-1">
                         <span className="h-2 w-2 rounded-full bg-blue-500 shrink-0" />
                         <span className="text-xs text-blue-600 dark:text-blue-400 truncate">
-                          시작 {stat.startCount}
+                          시작 {stat.START}
                         </span>
                       </div>
                     )}
-                    {stat && stat.endCount > 0 && (
+                    {stat && (stat.END ?? 0) > 0 && (
                       <div className="flex items-center gap-1">
                         <span className="h-2 w-2 rounded-full bg-red-500 shrink-0" />
                         <span className="text-xs text-red-500 dark:text-red-400 truncate">
-                          마감 {stat.endCount}
+                          마감 {stat.END}
                         </span>
                       </div>
                     )}
