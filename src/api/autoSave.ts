@@ -26,10 +26,10 @@ export function sendKeepaliveEntityAutoSave(
         body: { subTaskId: id, content },
       });
       return;
-    case "trivia":
-      sendKeepaliveJsonRequest(endpoints.TRIVIAS, {
+    case "note":
+      sendKeepaliveJsonRequest(endpoints.NOTES, {
         method: "PATCH",
-        body: { triviaId: id, content },
+        body: { noteId: id, content },
       });
       return;
   }
