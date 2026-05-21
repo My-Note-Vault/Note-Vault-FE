@@ -124,15 +124,15 @@ function collectAllIds(doc: SidebarItem): string[] {
 const CHILD_TYPE_MAP: Record<DocType, DocType | null> = {
     space: "task",
     task: "subtask",
-    subtask: "trivia",
-    trivia: null,
+    subtask: "note",
+    note: null,
 };
 
 const TYPE_LABELS: Record<DocType, string> = {
     space: "새 Workspace",
     task: "새 Task",
     subtask: "새 Sub Task",
-    trivia: "새 Trivia",
+    note: "새 Note",
 };
 
 function addCreatedEntityToTree(
@@ -160,22 +160,22 @@ function addCreatedEntityToTree(
                 ...task,
                 subTaskSummaries: [
                     ...task.subTaskSummaries,
-                    { id: numericId, title: name, triviaSummaries: [] },
+                    { id: numericId, title: name, noteSummaries: [] },
                 ],
             };
         });
     }
 
-    if (type === "trivia") {
+    if (type === "note") {
         return tasks.map((task) => ({
             ...task,
             subTaskSummaries: task.subTaskSummaries.map((sub) => {
                 if (sub.id !== numericParentId) return sub;
-                if (sub.triviaSummaries.some((trivia) => trivia.id === numericId)) return sub;
+                if (sub.noteSummaries.some((note) => note.id === numericId)) return sub;
                 return {
                     ...sub,
-                    triviaSummaries: [
-                        ...sub.triviaSummaries,
+                    noteSummaries: [
+                        ...sub.noteSummaries,
                         { id: numericId, title: name },
                     ],
                 };
@@ -465,7 +465,7 @@ function AppContent() {
                     name = ws.name;
                     docType = passedDocType ?? ("space" as DocType);
                 } else {
-                    const prefixMatch = id.match(/^(space|task|subtask|trivia)-/);
+                    const prefixMatch = id.match(/^(space|task|subtask|note)-/);
                     name = id;
                     docType = passedDocType ?? (prefixMatch ? prefixMatch[1] as DocType : undefined);
                 }
@@ -781,7 +781,7 @@ function AppContent() {
     const handleRenameDocument = useCallback((id: string, newName: string) => {
         const entityId = extractEntityId(id);
         // 접두사에서 type 추론
-        const prefixMatch = id.match(/^(space|task|subtask|trivia)-/);
+        const prefixMatch = id.match(/^(space|task|subtask|note)-/);
         const expectedType = prefixMatch ? prefixMatch[1] as DocType : undefined;
         // 트리에서 docType 찾기 (트리에 없으면 탭에서 fallback)
         const doc = findDocById(docsRef.current, entityId, expectedType);
@@ -827,8 +827,8 @@ function AppContent() {
                             if (docType === "subtask" && sub.id === numId) return { ...sub, title: newName };
                             return {
                                 ...sub,
-                                triviaSummaries: sub.triviaSummaries.map((t) =>
-                                    docType === "trivia" && t.id === numId ? { ...t, title: newName } : t,
+                                noteSummaries: sub.noteSummaries.map((t) =>
+                                    docType === "note" && t.id === numId ? { ...t, title: newName } : t,
                                 ),
                             };
                         }),
@@ -916,7 +916,7 @@ function AppContent() {
         }
 
         // 이미 접두사가 있는 경우 docType 추론
-        const prefixMatch = id.match(/^(space|task|subtask|trivia)-(.+)$/);
+        const prefixMatch = id.match(/^(space|task|subtask|note)-(.+)$/);
         if (prefixMatch) {
             const inferredDocType = prefixMatch[1] as DocType;
             handleSelectDocument(id, inferredDocType);
@@ -956,7 +956,7 @@ function AppContent() {
             ...pane,
             tabs: pane.tabs.map((tab) => {
                 if (tab.isDaily || tab.id === "calendar-view" || tab.id === "kanban-view" || tab.isNew || tab.docType) return tab;
-                const pfx = tab.id.match(/^(space|task|subtask|trivia)-/);
+                const pfx = tab.id.match(/^(space|task|subtask|note)-/);
                 const doc = findDocById(docs, extractEntityId(tab.id), pfx ? pfx[1] as DocType : undefined);
                 if (doc) {
                     return {

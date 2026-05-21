@@ -22,9 +22,9 @@ TASK_DETAIL: (id: string) => `${API_BASE}/tasks/${id}`,
 SUBTASKS: `${API_BASE}/subtasks`,
 SUBTASK_DETAIL: (id: string) => `${API_BASE}/subtasks/${id}`,
 
-// Trivia Endpoints
-TRIVIAS: `${API_BASE}/trivia`,
-TRIVIA_DETAIL: (id: string) => `${API_BASE}/trivia/${id}`,
+// Note Endpoints
+NOTES: `${API_BASE}/note`,
+NOTE_DETAIL: (id: string) => `${API_BASE}/note/${id}`,
 
 // 사이드바 문서 트리
 NOTE_INFO_LIST: `${API_BASE}/unfolded-notes/note-info`,

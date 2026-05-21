@@ -353,7 +353,7 @@ export default function Editor({
   );
 
   const hasChildren = children && children.length > 0;
-  const showChildrenSection = docType && docType !== "trivia" && hasChildren;
+  const showChildrenSection = docType && docType !== "note" && hasChildren;
   const showMetadata = docType === "task" || docType === "subtask";
 
   if (isNotFound) {

@@ -93,10 +93,10 @@ function buildTree(overviews: TaskOverview[]): SidebarItem[] {
       id: String(sub.id),
       name: sub.title,
       type: "subtask" as DocType,
-      children: (sub.triviaSummaries ?? []).map((trivia) => ({
-        id: String(trivia.id),
-        name: trivia.title,
-        type: "trivia" as DocType,
+      children: (sub.noteSummaries ?? []).map((note) => ({
+        id: String(note.id),
+        name: note.title,
+        type: "note" as DocType,
         children: [],
       })),
     })),

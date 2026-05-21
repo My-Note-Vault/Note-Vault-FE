@@ -11,15 +11,15 @@ import { sidebarUnfoldedId, type DocType, type SidebarItem, type SearchResult } 
 const CHILD_TYPE_MAP: Record<DocType, DocType | null> = {
   space: "task",
   task: "subtask",
-  subtask: "trivia",
-  trivia: null,
+  subtask: "note",
+  note: null,
 };
 
 const DOC_TYPE_ICON: Record<DocType, typeof Layout> = {
   space: Layout,
   task: ListChecks,
   subtask: ListTodo,
-  trivia: Sparkles,
+  note: Sparkles,
 };
 
 function sortFoldersFirst(docs: SidebarItem[]): SidebarItem[] {
@@ -104,7 +104,7 @@ interface DocItemProps {
 function DocItem({ doc, depth, selectedId, onSelect, onAddItem, onDeleteItem, icon = "file", unfoldedIds, onToggleExpand }: DocItemProps) {
   const [expanded, setExpanded] = useState(() => isDocUnfolded(doc, unfoldedIds));
   const hasChildren = doc.children && doc.children.length > 0;
-  const isExpandable = doc.type && doc.type !== "trivia";
+  const isExpandable = doc.type && doc.type !== "note";
   const canAdd = doc.type && CHILD_TYPE_MAP[doc.type] !== null;
 
   useEffect(() => {
@@ -116,12 +116,12 @@ function DocItem({ doc, depth, selectedId, onSelect, onAddItem, onDeleteItem, ic
     if (doc.type) {
       onToggleExpand?.(doc.id, doc.type, next);
     }
-    // 펼칠 때 자식(subtask, trivia)도 unfolded로 등록
+    // 펼칠 때 자식(subtask, note)도 unfolded로 등록
     if (next && doc.children) {
       for (const child of doc.children) {
         if (child.type) {
           onToggleExpand?.(child.id, child.type, true);
-          // 손자(trivia)까지 등록
+          // 손자(note)까지 등록
           if (child.children) {
             for (const grandchild of child.children) {
               if (grandchild.type) {
@@ -135,7 +135,7 @@ function DocItem({ doc, depth, selectedId, onSelect, onAddItem, onDeleteItem, ic
   };
 
   const handleClick = () => {
-    if (doc.type && doc.type !== "trivia") {
+    if (doc.type && doc.type !== "note") {
       onSelect(doc.id, doc.type);
     } else if (hasChildren && !doc.type) {
       toggleExpand(!expanded);

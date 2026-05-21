@@ -158,7 +158,7 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(({
   initialContent = "",
   placeholder = "",
   onAutoSave,
-  autoSaveDelay = 2000,
+  autoSaveDelay = 1000,
   collaboration = null,
 }, ref) => {
   const hostRef = useRef<HTMLDivElement | null>(null);

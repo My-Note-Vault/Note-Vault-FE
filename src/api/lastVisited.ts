@@ -19,14 +19,14 @@ const PATH_TO_DOCTYPE: Record<string, DocType> = {
   "workspaces/information": "space",
   tasks: "task",
   subtasks: "subtask",
-  trivia: "trivia",
+  note: "note",
 };
 
 const DOCTYPE_TO_PATH: Record<DocType, string> = {
   space: "workspaces/information",
   task: "tasks",
   subtask: "subtasks",
-  trivia: "trivia",
+  note: "note",
 };
 
 export function pathToTabId(path: string): string {
@@ -56,7 +56,7 @@ export function tabIdToPath(id: string, docType?: DocType): string {
 
   if (docType) {
     const segment = DOCTYPE_TO_PATH[docType];
-    const entityId = id.replace(/^(?:space|task|subtask|trivia)-/, "");
+    const entityId = id.replace(/^(?:space|task|subtask|note)-/, "");
     if (segment) return `/api/v1/${segment}/${entityId}`;
   }
 

@@ -7,7 +7,7 @@ const FEATURES = [
   {
     icon: FileText,
     title: "계층형 문서 관리",
-    description: "Space, Task, SubTask, Trivia로 이어지는 계층 구조로 생각을 체계적으로 정리하세요.",
+    description: "Space, Task, SubTask, Note로 이어지는 계층 구조로 생각을 체계적으로 정리하세요.",
   },
   {
     icon: Columns3,

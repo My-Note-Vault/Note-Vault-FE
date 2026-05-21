@@ -4,22 +4,22 @@ import type { DocType } from "@/types/common";
 import type { SpaceDetail } from "@/types/space";
 import type { TaskDetail, UpdateTaskRequest } from "@/types/task";
 import type { SubTaskDetail, SubTaskMetadata, UpdateSubTaskRequest } from "@/types/subtask";
-import type { TriviaDetail, UpdateTriviaRequest } from "@/types/trivia";
+import type { NoteDetail, UpdateNoteRequest } from "@/types/note";
 
 import { fetchSpaceDetail, createSpace, updateSpace, deleteSpace } from "@/api/spaces";
 import { fetchTaskDetail, createTask, updateTask, deleteTask } from "@/api/tasks";
 import { fetchSubTaskDetail, createSubTask, updateSubTask, deleteSubTask } from "@/api/subtasks";
-import { fetchTriviaDetail, createTrivia, updateTrivia, deleteTrivia } from "@/api/trivias";
+import { fetchNoteDetail, createNote, updateNote, deleteNote } from "@/api/notes";
 
 import { invalidateSidebar } from "./useDocuments";
 import { spaceKeys } from "./useSpaces";
 import { taskKeys } from "./useTasks";
 import { subTaskKeys } from "./useSubTasks";
-import { triviaKeys } from "./useTrivias";
+import { noteKeys } from "./useNotes";
 
 // --- 통합 타입 ---
 
-export type EntityDetail = SpaceDetail | TaskDetail | SubTaskDetail | TriviaDetail;
+export type EntityDetail = SpaceDetail | TaskDetail | SubTaskDetail | NoteDetail;
 
 export type EntityMetadata = SubTaskMetadata;
 
@@ -59,14 +59,14 @@ const detailFetchers: Record<DocType, (id: string) => Promise<EntityDetail>> = {
   space: fetchSpaceDetail,
   task: fetchTaskDetail,
   subtask: fetchSubTaskDetail,
-  trivia: fetchTriviaDetail,
+  note: fetchNoteDetail,
 };
 
 const entityKeyMap = {
   space: spaceKeys,
   task: taskKeys,
   subtask: subTaskKeys,
-  trivia: triviaKeys,
+  note: noteKeys,
 };
 
 // --- 통합 훅 ---
@@ -92,8 +92,8 @@ export const useCreateEntity = () => {
           return createTask({ title: name, workSpaceId: parentId! });
         case "subtask":
           return createSubTask({ title: name, taskId: parentId! });
-        case "trivia":
-          return createTrivia({ subTaskId: parentId! });
+        case "note":
+          return createNote({ subTaskId: parentId! });
       }
     },
     onSuccess: () => {
@@ -140,8 +140,8 @@ export const useUpdateEntity = () => {
           }
           return updateSubTask(id, subReq);
         }
-        case "trivia":
-          return updateTrivia(id, req as UpdateTriviaRequest);
+        case "note":
+          return updateNote(id, req as UpdateNoteRequest);
       }
     },
     onSuccess: (_data, variables) => {
@@ -172,8 +172,8 @@ export const useDeleteEntity = () => {
           return deleteTask(id);
         case "subtask":
           return deleteSubTask(id);
-        case "trivia":
-          return deleteTrivia(id);
+        case "note":
+          return deleteNote(id);
       }
     },
     onSuccess: (_data, variables) => {
@@ -197,8 +197,8 @@ export const useAutoSaveEntity = () => {
           return updateTask(id, { content });
         case "subtask":
           return updateSubTask(id, { content });
-        case "trivia":
-          return updateTrivia(id, { content });
+        case "note":
+          return updateNote(id, { content });
       }
     },
     onError: () => {
