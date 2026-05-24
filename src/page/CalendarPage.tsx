@@ -15,6 +15,7 @@ import {
 import { ko } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { useCalendarStats } from "@/hooks/useDocuments";
+import CalendarDateModal from "@/components/CalendarDateModal";
 import type { CalendarDateStat, DocType } from "@/types/common";
 
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
@@ -25,6 +26,7 @@ interface CalendarPageProps {
 
 export default function CalendarPage({ onOpenDocument }: CalendarPageProps) {
   const [currentMonth, setCurrentMonth] = useState(() => new Date());
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const year = currentMonth.getFullYear();
   const month = currentMonth.getMonth() + 1;
   const { data: stats = {}, isLoading, isError, refetch } = useCalendarStats(year, month);
@@ -131,7 +133,7 @@ export default function CalendarPage({ onOpenDocument }: CalendarPageProps) {
               return (
                 <div
                   key={dateStr}
-                  onClick={() => onOpenDocument(`daily-${dateStr}`)}
+                  onClick={() => setSelectedDate(dateStr)}
                   className={cn(
                     "min-h-[90px] p-2 border-r border-b border-border cursor-pointer transition-colors hover:bg-muted/50",
                     !inMonth && "opacity-35 bg-muted/20",
@@ -172,6 +174,13 @@ export default function CalendarPage({ onOpenDocument }: CalendarPageProps) {
           </div>
         )}
       </div>
+
+      <CalendarDateModal
+        open={selectedDate !== null}
+        onOpenChange={(open) => { if (!open) setSelectedDate(null); }}
+        date={selectedDate}
+        onOpenDocument={onOpenDocument}
+      />
     </div>
   );
 }

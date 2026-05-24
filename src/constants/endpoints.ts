@@ -33,11 +33,13 @@ DOCUMENT_SEARCH: `${API_BASE}/search`,
 // Daily Note Endpoints
 DAILY_NOTES_ALL: `${API_BASE}/daily-notes/all`,
 DAILY_NOTE: `${API_BASE}/daily-notes`,
+DAILY_NOTE_BY_DATE: (date: string) => `${API_BASE}/daily-notes/date/${date}`,
 DAILY_NOTE_DETAIL: (id: string | number) => `${API_BASE}/daily-notes/${id}`,
 DAILY_NOTE_PLANS: (dailyNoteId: number) => `${API_BASE}/daily-notes/${dailyNoteId}/plans`,
 
 // Calendar Endpoints
 CALENDAR_SCHEDULES: `${API_BASE}/calendar/schedules`,
+CALENDAR_EVENTS: `${API_BASE}/calendar/events`,
 
 // Last Visited
 LAST_VISITED: `${API_BASE}/members/last-visited-path`,

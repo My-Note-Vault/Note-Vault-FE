@@ -69,7 +69,7 @@ export const fetchDailyNoteByPk = async (pk: number): Promise<DailyNoteDetail> =
 
 // Daily Note 날짜로 조회
 export const fetchDailyNoteByDate = async (date: string): Promise<DailyNoteDetail> => {
-  const { data } = await apiClient.get<DailyNoteDetail>(endpoints.DAILY_NOTE_DETAIL(date));
+  const { data } = await apiClient.get<DailyNoteDetail>(endpoints.DAILY_NOTE_BY_DATE(date));
   return data;
 };
 

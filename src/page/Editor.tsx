@@ -49,17 +49,44 @@ function DailyNoteItemList({
   onAdd,
 }: DailyNoteItemListProps) {
   const [newContent, setNewContent] = useState("");
-  const submittingRef = useRef(false);
+  const contentRef = useRef("");
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const onAddRef = useRef(onAdd);
+  onAddRef.current = onAdd;
 
-  const handleSubmit = () => {
-    if (submittingRef.current) return;
-    const trimmed = newContent.trim();
+  const flushAdd = useCallback(() => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+    const trimmed = contentRef.current.trim();
     if (!trimmed) return;
-    submittingRef.current = true;
-    onAdd(trimmed);
+    contentRef.current = "";
+    onAddRef.current(trimmed);
     setNewContent("");
-    requestAnimationFrame(() => { submittingRef.current = false; });
-  };
+  }, []);
+
+  const debouncedAdd = useCallback(() => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => {
+      timerRef.current = null;
+      flushAdd();
+    }, 1000);
+  }, [flushAdd]);
+
+  useEffect(() => {
+    const handleUnload = () => flushAdd();
+    window.addEventListener("beforeunload", handleUnload);
+    window.addEventListener("pagehide", handleUnload);
+    return () => {
+      window.removeEventListener("beforeunload", handleUnload);
+      window.removeEventListener("pagehide", handleUnload);
+    };
+  }, [flushAdd]);
+
+  useEffect(() => {
+    return () => flushAdd();
+  }, [flushAdd]);
 
   return (
     <div className="px-12 pt-4 pb-1">
@@ -119,12 +146,16 @@ function DailyNoteItemList({
         <input
           type="text"
           value={newContent}
-          onChange={(e) => setNewContent(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.nativeEvent.isComposing) { e.preventDefault(); handleSubmit(); }
-            if (e.key === "Escape") { setNewContent(""); (e.target as HTMLInputElement).blur(); }
+          onChange={(e) => {
+            setNewContent(e.target.value);
+            contentRef.current = e.target.value;
+            debouncedAdd();
           }}
-          placeholder="내용 입력 후 Enter"
+          onBlur={() => flushAdd()}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") { setNewContent(""); contentRef.current = ""; (e.target as HTMLInputElement).blur(); }
+          }}
+          placeholder="내용을 입력하세요"
           className="flex-1 py-1 text-sm bg-transparent outline-none placeholder:text-muted-foreground/40"
         />
       </div>
@@ -162,6 +193,10 @@ export default function Editor({
   const queryClient = useQueryClient();
   const [title, setTitle] = useState(documentName);
   const editorRef = useRef<MarkdownEditorHandle>(null);
+  const titleRef = useRef(title);
+  const savedTitleRef = useRef(documentName);
+
+  titleRef.current = title;
 
   const [dailyLayout, _setDailyLayout] = useState<"horizontal" | "vertical">(() => {
     return (localStorage.getItem("dailyLayout") as "horizontal" | "vertical") ?? "horizontal";
@@ -268,6 +303,7 @@ export default function Editor({
 
   useEffect(() => {
     setTitle(documentName);
+    savedTitleRef.current = documentName;
   }, [isDailyNote, documentName]);
 
   // API 응답에서 이름 동기화 (트리 미로드 등으로 탭 이름이 잘못된 경우 대비)
@@ -276,9 +312,47 @@ export default function Editor({
     const apiName = (entityDetail as EntityDetail).name;
     if (apiName && apiName !== title) {
       setTitle(apiName);
+      savedTitleRef.current = apiName;
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [entityDetail, isDailyNote, isNew]);
+
+  const titleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const flushTitle = useCallback(() => {
+    if (titleTimerRef.current) {
+      clearTimeout(titleTimerRef.current);
+      titleTimerRef.current = null;
+    }
+    const current = titleRef.current.trim();
+    if (!current || current === savedTitleRef.current) return;
+    savedTitleRef.current = current;
+    onRenameDocument?.(documentId, current);
+  }, [documentId, onRenameDocument]);
+
+  const debouncedTitleSave = useCallback(() => {
+    if (titleTimerRef.current) clearTimeout(titleTimerRef.current);
+    titleTimerRef.current = setTimeout(() => {
+      titleTimerRef.current = null;
+      flushTitle();
+    }, 1000);
+  }, [flushTitle]);
+
+  // 브라우저 새로고침/탭 닫기 시 제목 저장
+  useEffect(() => {
+    const handleUnload = () => flushTitle();
+    window.addEventListener("beforeunload", handleUnload);
+    window.addEventListener("pagehide", handleUnload);
+    return () => {
+      window.removeEventListener("beforeunload", handleUnload);
+      window.removeEventListener("pagehide", handleUnload);
+    };
+  }, [flushTitle]);
+
+  // 컴포넌트 언마운트(페이지 이동) 시 제목 저장
+  useEffect(() => {
+    return () => flushTitle();
+  }, [flushTitle]);
 
   // DailyNote 조회 성공 시 사이드바 갱신 (처음 열었을 때도 사이드바에 나타나도록)
   const hasInvalidatedDailyNotes = useRef(false);
@@ -529,11 +603,14 @@ export default function Editor({
             <input
               type="text"
               value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              onChange={(e) => {
+                setTitle(e.target.value);
+                debouncedTitleSave();
+              }}
+              onBlur={() => flushTitle()}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.nativeEvent.isComposing) {
                   e.preventDefault();
-                  onRenameDocument?.(documentId, title.trim());
                   editorRef.current?.focus();
                 }
               }}
