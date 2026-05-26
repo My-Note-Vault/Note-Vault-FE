@@ -1018,6 +1018,7 @@ function AppContent() {
                 unfoldedIds={unfoldedIds}
                 onToggleExpand={handleToggleExpand}
                 open={sidebarOpen}
+                onClose={() => setSidebarOpen(false)}
                 activeTabId={splitState.panes[splitState.focusedPane].activeTabId}
                 searchMode={searchMode}
                 onCloseSearch={() => setSearchMode(false)}

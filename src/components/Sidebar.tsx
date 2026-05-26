@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { ChevronRight, ChevronUp, FileText, CalendarDays, NotebookPen, FolderClosed, Plus, Layout, ListChecks, ListTodo, Sparkles, Search, X, Loader2, Trash2, Columns3, Check, UserPlus } from "lucide-react";
 import { useSearchDocuments } from "@/hooks/useDocuments";
 import { formatLogicalDate, type DailyNoteDetail } from "@/api/documents";
@@ -471,6 +471,7 @@ interface SidebarProps {
   isLoading?: boolean;
   unfoldedIds?: Set<string>;
   open: boolean;
+  onClose?: () => void;
   activeTabId?: string | null;
   searchMode?: boolean;
   onCloseSearch?: () => void;
@@ -479,9 +480,56 @@ interface SidebarProps {
   onToggleExpand?: (noteId: string, docType: DocType, expanded: boolean) => void;
 }
 
-export default function Sidebar({ onSelectSidebarItem, docs, workspaces = [], dailyNotes, onAddItem, onAddSpace, onDeleteItem, isLoading, unfoldedIds, open, activeTabId, searchMode, onCloseSearch, selectedWorkspaceId, onSelectWorkspace, onToggleExpand }: SidebarProps) {
+const SIDEBAR_WIDTH_KEY = "sidebar-width";
+const SIDEBAR_MIN = 80;
+const SIDEBAR_CLOSE_THRESHOLD = 60;
+const SIDEBAR_MAX = 480;
+const SIDEBAR_DEFAULT = 240;
+
+export default function Sidebar({ onSelectSidebarItem, docs, workspaces = [], dailyNotes, onAddItem, onAddSpace, onDeleteItem, isLoading, unfoldedIds, open, onClose, activeTabId, searchMode, onCloseSearch, selectedWorkspaceId, onSelectWorkspace, onToggleExpand }: SidebarProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [sidebarWidth, setSidebarWidth] = useState(() => {
+    const saved = localStorage.getItem(SIDEBAR_WIDTH_KEY);
+    return saved ? Math.min(SIDEBAR_MAX, Math.max(SIDEBAR_MIN, Number(saved))) : SIDEBAR_DEFAULT;
+  });
+  const isResizing = useRef(false);
+
+  const startResize = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    isResizing.current = true;
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+
+    const onMove = (ev: MouseEvent) => {
+      if (!isResizing.current) return;
+      const raw = ev.clientX - 48;
+      if (raw < SIDEBAR_CLOSE_THRESHOLD) {
+        setSidebarWidth(SIDEBAR_MIN);
+        return;
+      }
+      setSidebarWidth(Math.min(SIDEBAR_MAX, Math.max(SIDEBAR_MIN, raw)));
+    };
+
+    const onUp = (ev: MouseEvent) => {
+      isResizing.current = false;
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+      if (ev.clientX - 48 < SIDEBAR_CLOSE_THRESHOLD) {
+        onClose?.();
+      } else {
+        setSidebarWidth((w) => {
+          localStorage.setItem(SIDEBAR_WIDTH_KEY, String(w));
+          return w;
+        });
+      }
+    };
+
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+  }, [onClose]);
 
   // 1초 디바운스 후 검색
   const [debouncedQuery, setDebouncedQuery] = useState("");
@@ -507,9 +555,13 @@ export default function Sidebar({ onSelectSidebarItem, docs, workspaces = [], da
   return (
     <>
       <aside
-        className={`h-screen bg-sidebar-background border-r border-sidebar-border flex flex-col shrink-0 transition-[width] duration-200 overflow-hidden
-          ${open ? "w-60" : "w-0 border-r-0"}`}
+        className={`h-screen bg-sidebar-background border-r border-sidebar-border flex flex-col shrink-0 overflow-hidden relative ${open ? "" : "border-r-0"}`}
+        style={{ width: open ? sidebarWidth : 0, transition: isResizing.current ? "none" : "width 200ms" }}
       >
+        <div
+          className="absolute right-0 top-0 h-full w-1 cursor-col-resize hover:bg-primary/40 z-10"
+          onMouseDown={startResize}
+        />
         {/* 헤더: 검색 입력 (searchMode일 때만) */}
         {isSearchMode && (
           <div className="flex items-center gap-2 px-3 py-2.5 border-b border-sidebar-border">
