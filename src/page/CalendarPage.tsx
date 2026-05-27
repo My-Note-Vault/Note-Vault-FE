@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { ChevronLeft, ChevronRight, Loader2, AlertTriangle, RefreshCw } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2, AlertTriangle, RefreshCw, NotebookPen } from "lucide-react";
 import {
   startOfMonth,
   endOfMonth,
@@ -14,7 +14,7 @@ import {
 } from "date-fns";
 import { ko } from "date-fns/locale";
 import { cn } from "@/lib/utils";
-import { useCalendarStats } from "@/hooks/useDocuments";
+import { useCalendarStats, useDailyNotes } from "@/hooks/useDocuments";
 import CalendarDateModal from "@/components/CalendarDateModal";
 import type { CalendarDateStat, DocType } from "@/types/common";
 
@@ -30,6 +30,16 @@ export default function CalendarPage({ onOpenDocument }: CalendarPageProps) {
   const year = currentMonth.getFullYear();
   const month = currentMonth.getMonth() + 1;
   const { data: stats = {}, isLoading, isError, refetch } = useCalendarStats(year, month);
+  const { data: dailyNotes = [] } = useDailyNotes();
+
+  const dailyNoteDates = useMemo(() => {
+    const set = new Set<string>();
+    for (const dn of dailyNotes) {
+      const [y, m, d] = dn.logicalDate;
+      set.add(`${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`);
+    }
+    return set;
+  }, [dailyNotes]);
 
   const statsMap = useMemo(() => {
     const map = new Map<string, CalendarDateStat>();
@@ -129,6 +139,7 @@ export default function CalendarPage({ onOpenDocument }: CalendarPageProps) {
               const inMonth = isSameMonth(day, currentMonth);
               const today = isToday(day);
               const dayOfWeek = day.getDay();
+              const hasDailyNote = dailyNoteDates.has(dateStr);
 
               return (
                 <div
@@ -140,15 +151,20 @@ export default function CalendarPage({ onOpenDocument }: CalendarPageProps) {
                     today && "bg-primary/5 ring-1 ring-inset ring-primary/30",
                   )}
                 >
-                  <div
-                    className={cn(
-                      "text-sm mb-1.5",
-                      today && "font-bold text-primary",
-                      !today && dayOfWeek === 0 && "text-red-400",
-                      !today && dayOfWeek === 6 && "text-blue-400",
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span
+                      className={cn(
+                        "text-sm",
+                        today && "font-bold text-primary",
+                        !today && dayOfWeek === 0 && "text-red-400",
+                        !today && dayOfWeek === 6 && "text-blue-400",
+                      )}
+                    >
+                      {format(day, "d")}
+                    </span>
+                    {hasDailyNote && (
+                      <NotebookPen className="h-3 w-3 text-amber-400 shrink-0" />
                     )}
-                  >
-                    {format(day, "d")}
                   </div>
                   <div className="flex flex-col gap-0.5">
                     {stat && (stat.START ?? 0) > 0 && (

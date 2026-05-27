@@ -1,4 +1,4 @@
-import { Loader2, Calendar, FileText, ChevronRight } from "lucide-react";
+import { Loader2, Calendar, ChevronRight } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -169,25 +169,29 @@ export default function CalendarDateModal({
                   }}
                   className="w-full text-left px-3 py-3 rounded-md hover:bg-muted/50 transition-colors group"
                 >
-                  <div className="flex items-center gap-2 mb-2">
-                    <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
-                    <span className="text-sm font-medium">{date}</span>
-                    <ChevronRight className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-auto" />
+                  <div className="flex items-start gap-1">
+                    {dailyNote.content ? (
+                      <p className="flex-1 text-xs text-muted-foreground line-clamp-6 whitespace-pre-wrap break-words">
+                        {dailyNote.content}
+                      </p>
+                    ) : (
+                      <p className="flex-1 text-xs text-muted-foreground/50 italic">
+                        내용 없음
+                      </p>
+                    )}
+                    <ChevronRight className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-0.5" />
                   </div>
-                  {dailyNote.content ? (
-                    <p className="text-xs text-muted-foreground line-clamp-6 whitespace-pre-wrap break-words">
-                      {dailyNote.content}
-                    </p>
-                  ) : (
-                    <p className="text-xs text-muted-foreground/50 italic">
-                      내용 없음
-                    </p>
-                  )}
-                  {dailyNote.plans && dailyNote.plans.length > 0 && (
-                    <div className="mt-2 flex items-center gap-2 text-[11px] text-muted-foreground/70">
-                      <span>Plan {dailyNote.plans.length}건</span>
-                    </div>
-                  )}
+                  {(() => {
+                    const pending = dailyNote.plans?.filter((p) => p.type === "PENDING").length ?? 0;
+                    const todo = dailyNote.plans?.filter((p) => p.type === "TODO").length ?? 0;
+                    if (!pending && !todo) return null;
+                    return (
+                      <div className="mt-2 flex items-center gap-2 text-[11px] text-muted-foreground/70">
+                        {pending > 0 && <span>Pending {pending}건</span>}
+                        {todo > 0 && <span>Todo {todo}건</span>}
+                      </div>
+                    );
+                  })()}
                 </button>
               </div>
             )}
