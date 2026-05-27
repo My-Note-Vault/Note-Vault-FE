@@ -49,44 +49,13 @@ function DailyNoteItemList({
   onAdd,
 }: DailyNoteItemListProps) {
   const [newContent, setNewContent] = useState("");
-  const contentRef = useRef("");
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const onAddRef = useRef(onAdd);
-  onAddRef.current = onAdd;
 
-  const flushAdd = useCallback(() => {
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
-      timerRef.current = null;
-    }
-    const trimmed = contentRef.current.trim();
+  const handleAdd = useCallback(() => {
+    const trimmed = newContent.trim();
     if (!trimmed) return;
-    contentRef.current = "";
-    onAddRef.current(trimmed);
+    onAdd(trimmed);
     setNewContent("");
-  }, []);
-
-  const debouncedAdd = useCallback(() => {
-    if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => {
-      timerRef.current = null;
-      flushAdd();
-    }, 1000);
-  }, [flushAdd]);
-
-  useEffect(() => {
-    const handleUnload = () => flushAdd();
-    window.addEventListener("beforeunload", handleUnload);
-    window.addEventListener("pagehide", handleUnload);
-    return () => {
-      window.removeEventListener("beforeunload", handleUnload);
-      window.removeEventListener("pagehide", handleUnload);
-    };
-  }, [flushAdd]);
-
-  useEffect(() => {
-    return () => flushAdd();
-  }, [flushAdd]);
+  }, [newContent, onAdd]);
 
   return (
     <div className="px-12 pt-4 pb-1">
@@ -146,14 +115,11 @@ function DailyNoteItemList({
         <input
           type="text"
           value={newContent}
-          onChange={(e) => {
-            setNewContent(e.target.value);
-            contentRef.current = e.target.value;
-            debouncedAdd();
-          }}
-          onBlur={() => flushAdd()}
+          onChange={(e) => setNewContent(e.target.value)}
+          onBlur={() => {}}
           onKeyDown={(e) => {
-            if (e.key === "Escape") { setNewContent(""); contentRef.current = ""; (e.target as HTMLInputElement).blur(); }
+            if (e.key === "Enter" && !e.nativeEvent.isComposing) { handleAdd(); }
+            if (e.key === "Escape") { setNewContent(""); (e.target as HTMLInputElement).blur(); }
           }}
           placeholder="내용을 입력하세요"
           className="flex-1 py-1 text-sm bg-transparent outline-none placeholder:text-muted-foreground/40"

@@ -8,8 +8,13 @@ import {
 } from "react";
 import { Prec } from "@codemirror/state";
 import { EditorView, keymap, placeholder as placeholderExtension } from "@codemirror/view";
-import { markdown } from "@codemirror/lang-markdown";
+import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
+import { syntaxHighlighting, HighlightStyle } from "@codemirror/language";
+import { GFM, Strikethrough } from "@lezer/markdown";
+import { tags } from "@lezer/highlight";
 import { minimalSetup } from "codemirror";
+import { markdownDecorations } from "@/components/markdownDecorations";
+import { obsidianKeymap } from "@/components/markdownKeymap";
 import { yCollab, yUndoManagerKeymap } from "y-codemirror.next";
 import * as Y from "yjs";
 import { useCollaborativeDocument, type CollaboratorInfo } from "@/collab/useCollaborativeDocument";
@@ -43,6 +48,7 @@ type DisplayStatus =
   | "error";
 
 const editorTheme = EditorView.theme({
+  // ── Base ────────────────────────────────────────────────────────────────
   "&": {
     minHeight: "700px",
     backgroundColor: "transparent",
@@ -82,7 +88,94 @@ const editorTheme = EditorView.theme({
   ".cm-cursor": {
     borderLeftColor: "hsl(var(--foreground))",
   },
+
+  // ── Headings ────────────────────────────────────────────────────────────
+  ".cm-md-heading": {
+    fontWeight: "700",
+    lineHeight: "1.3",
+    display: "block",
+  },
+  ".cm-md-h1": { fontSize: "2em" },
+  ".cm-md-h2": { fontSize: "1.6em" },
+  ".cm-md-h3": { fontSize: "1.3em" },
+  ".cm-md-h4": { fontSize: "1.15em" },
+  ".cm-md-h5": { fontSize: "1em", color: "hsl(var(--muted-foreground))" },
+  ".cm-md-h6": { fontSize: "0.9em", color: "hsl(var(--muted-foreground))" },
+
+  // ── Emphasis ─────────────────────────────────────────────────────────────
+  ".cm-md-bold": { fontWeight: "700" },
+  ".cm-md-italic": { fontStyle: "italic" },
+  ".cm-md-strike": {
+    textDecoration: "line-through",
+    opacity: "0.65",
+  },
+
+  // ── Inline Code ──────────────────────────────────────────────────────────
+  ".cm-md-inline-code": {
+    fontFamily: "ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, monospace",
+    fontSize: "0.875em",
+    backgroundColor: "hsl(var(--muted))",
+    borderRadius: "0.25rem",
+    padding: "0.15em 0.4em",
+    border: "1px solid hsl(var(--border))",
+  },
+
+  // ── Code Block ───────────────────────────────────────────────────────────
+  ".cm-md-code-block": {
+    fontFamily: "ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, monospace",
+    fontSize: "0.875em",
+    backgroundColor: "hsl(var(--muted))",
+    paddingLeft: "1em",
+    paddingRight: "1em",
+    display: "block",
+  },
+
+  // ── Blockquote ───────────────────────────────────────────────────────────
+  ".cm-md-quote": {
+    borderLeft: "3px solid hsl(var(--border))",
+    paddingLeft: "1em",
+    color: "hsl(var(--muted-foreground))",
+  },
+
+  // ── Link ─────────────────────────────────────────────────────────────────
+  ".cm-md-link": {
+    color: "hsl(var(--primary))",
+    textDecoration: "underline",
+    textUnderlineOffset: "2px",
+    cursor: "pointer",
+  },
+
+  // ── Bullet ───────────────────────────────────────────────────────────────
+  ".cm-md-bullet-widget": {
+    color: "hsl(var(--muted-foreground))",
+    paddingRight: "0.3em",
+  },
+
+  // ── HR ───────────────────────────────────────────────────────────────────
+  ".cm-md-hr-widget": {
+    display: "block",
+    height: "1px",
+    borderTop: "2px solid hsl(var(--border))",
+    margin: "0.5em 0",
+    width: "100%",
+    pointerEvents: "none",
+  },
 });
+
+// minimalSetup의 defaultHighlightStyle이 heading에 underline을 붙이므로 덮어씀
+const noHeadingUnderline = Prec.high(
+  syntaxHighlighting(
+    HighlightStyle.define([
+      { tag: tags.heading, textDecoration: "none", fontWeight: "bold" },
+      { tag: tags.heading1, textDecoration: "none", fontWeight: "bold" },
+      { tag: tags.heading2, textDecoration: "none", fontWeight: "bold" },
+      { tag: tags.heading3, textDecoration: "none", fontWeight: "bold" },
+      { tag: tags.heading4, textDecoration: "none", fontWeight: "bold" },
+      { tag: tags.heading5, textDecoration: "none", fontWeight: "bold" },
+      { tag: tags.heading6, textDecoration: "none", fontWeight: "bold" },
+    ])
+  )
+);
 
 function toDisplayStatus(s: ProviderStatus): DisplayStatus {
   if (s === "idle") return "local";
@@ -295,9 +388,12 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(({
       doc: currentContent,
       extensions: [
         minimalSetup,
-        markdown(),
+        markdown({ base: markdownLanguage, extensions: [GFM, Strikethrough] }),
         EditorView.lineWrapping,
         editorTheme,
+        markdownDecorations,
+        noHeadingUnderline,
+        Prec.high(obsidianKeymap),
         collaborationEnabled && !isCollab ? EditorView.editable.of(false) : [],
         placeholder ? placeholderExtension(placeholder) : [],
         Prec.high(keymap.of(yUndoManagerKeymap)),
