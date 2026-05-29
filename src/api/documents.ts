@@ -3,8 +3,14 @@ import { endpoints } from "@/constants/endpoints";
 import type {
   TaskOverview,
   SearchResult,
+  SearchResponse,
   CalendarStatsResponse,
+  JavaLocalDate,
 } from "@/types/common";
+
+interface SearchRequest {
+  targetWord: string;
+}
 
 // DailyNote Plan 타입
 export interface DailyNotePlan {
@@ -29,6 +35,76 @@ export function formatLogicalDate(logicalDate: number[]): string {
   return `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
 }
 
+function formatSearchLogicalDate(logicalDate: JavaLocalDate): string {
+  if (Array.isArray(logicalDate)) {
+    return formatLogicalDate(logicalDate);
+  }
+  return logicalDate.slice(0, 10);
+}
+
+function toSearchResults(response: SearchResponse): SearchResult[] {
+  const results: SearchResult[] = [];
+
+  for (const workspace of response.workSpaces ?? []) {
+    if (workspace.matched) {
+      results.push({
+        id: String(workspace.id),
+        name: workspace.name,
+        type: "space",
+        resultType: "space",
+        content: workspace.content ?? undefined,
+      });
+    }
+
+    for (const task of workspace.tasks ?? []) {
+      if (task.matched) {
+        results.push({
+          id: String(task.id),
+          name: task.title,
+          type: "task",
+          resultType: "task",
+          content: task.content ?? undefined,
+        });
+      }
+
+      for (const subTask of task.subTasks ?? []) {
+        if (subTask.matched) {
+          results.push({
+            id: String(subTask.id),
+            name: subTask.title,
+            type: "subtask",
+            resultType: "subtask",
+            content: subTask.content ?? undefined,
+          });
+        }
+
+        for (const note of subTask.notes ?? []) {
+          if (note.matched) {
+            results.push({
+              id: String(note.id),
+              name: note.title,
+              type: "note",
+              resultType: "note",
+              content: note.content ?? undefined,
+            });
+          }
+        }
+      }
+    }
+  }
+
+  for (const dailyNote of response.dailyNotes ?? []) {
+    results.push({
+      id: `daily-${dailyNote.id}`,
+      name: formatSearchLogicalDate(dailyNote.logicalDate),
+      resultType: "daily",
+      content: dailyNote.content ?? undefined,
+    });
+  }
+
+  return results;
+}
+
 // 전체 NoteInfo 조회 (flat list)
 export const fetchNoteInfoList = async (workspaceId: number): Promise<TaskOverview[]> => {
   const { data } = await apiClient.get<TaskOverview[]>(endpoints.NOTE_INFO_LIST, {
@@ -42,11 +118,9 @@ export const searchDocuments = async (
   query: string,
   signal?: AbortSignal,
 ): Promise<SearchResult[]> => {
-  const { data } = await apiClient.get<SearchResult[]>(endpoints.DOCUMENT_SEARCH, {
-    params: { q: query },
-    signal,
-  });
-  return data;
+  const body: SearchRequest = { targetWord: query };
+  const { data } = await apiClient.post<SearchResponse>(endpoints.DOCUMENT_SEARCH, body, { signal });
+  return toSearchResults(data);
 };
 
 // Daily Notes 목록 조회

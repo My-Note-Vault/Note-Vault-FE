@@ -1,4 +1,4 @@
-import { CalendarDays, PanelLeft, PanelLeftClose, Sun, Moon, Search } from "lucide-react";
+import { CalendarDays, PanelLeft, PanelLeftClose, Sun, Moon, Search, FolderOpen } from "lucide-react";
 import { useTheme } from "next-themes";
 import ProfilePopover from "./ProfilePopover";
 
@@ -8,11 +8,15 @@ interface ActivityBarProps {
   onToggleSidebar: () => void;
   searchMode?: boolean;
   onToggleSearch?: () => void;
+  onToggleDocs?: () => void;
 }
 
-export default function ActivityBar({ onSelectItem, sidebarOpen, onToggleSidebar, searchMode, onToggleSearch }: ActivityBarProps) {
+export default function ActivityBar({ onSelectItem, sidebarOpen, onToggleSidebar, searchMode, onToggleSearch, onToggleDocs }: ActivityBarProps) {
   const { theme, setTheme } = useTheme();
   const isDark = theme === "dark";
+
+  const docsActive = sidebarOpen && !searchMode;
+  const searchActive = sidebarOpen && !!searchMode;
 
   return (
     <aside className="h-screen w-12 bg-sidebar-background border-r border-sidebar-border flex flex-col items-center py-3 gap-2 shrink-0">
@@ -24,8 +28,15 @@ export default function ActivityBar({ onSelectItem, sidebarOpen, onToggleSidebar
         {sidebarOpen ? <PanelLeftClose className="h-5 w-5" /> : <PanelLeft className="h-5 w-5" />}
       </button>
       <button
+        onClick={onToggleDocs}
+        className={`p-2 rounded-md hover:bg-sidebar-accent transition-colors ${docsActive ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-sidebar-foreground"}`}
+        title="문서 목록"
+      >
+        <FolderOpen className="h-5 w-5" />
+      </button>
+      <button
         onClick={onToggleSearch}
-        className={`p-2 rounded-md hover:bg-sidebar-accent transition-colors ${searchMode ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-sidebar-foreground"}`}
+        className={`p-2 rounded-md hover:bg-sidebar-accent transition-colors ${searchActive ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-sidebar-foreground"}`}
         title="문서 검색"
       >
         <Search className="h-5 w-5" />

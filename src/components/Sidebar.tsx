@@ -67,7 +67,11 @@ function SearchResultItem({
   query: string;
   onSelect: (id: string, docType?: DocType) => void;
 }) {
-  const Icon = doc.type ? DOC_TYPE_ICON[doc.type] : FileText;
+  const Icon = doc.resultType === "daily"
+    ? NotebookPen
+    : doc.type
+      ? DOC_TYPE_ICON[doc.type]
+      : FileText;
 
   return (
     <div
@@ -603,7 +607,7 @@ export default function Sidebar({ onSelectSidebarItem, docs, workspaces = [], da
               ) : searchResults.length > 0 ? (
                 searchResults.map((doc) => (
                   <SearchResultItem
-                    key={doc.id}
+                    key={`${doc.resultType ?? doc.type ?? "document"}-${doc.id}`}
                     doc={doc}
                     query={searchQuery}
                     onSelect={handleSelect}

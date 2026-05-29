@@ -998,12 +998,13 @@ function AppContent() {
                 sidebarOpen={sidebarOpen}
                 onToggleSidebar={() => setSidebarOpen((v) => !v)}
                 searchMode={searchMode}
+                onToggleDocs={() => {
+                    setSearchMode(false);
+                    setSidebarOpen(true);
+                }}
                 onToggleSearch={() => {
-                    setSearchMode((v) => {
-                        const next = !v;
-                        if (next && !sidebarOpen) setSidebarOpen(true);
-                        return next;
-                    });
+                    setSearchMode(true);
+                    setSidebarOpen(true);
                 }}
             />
             <Sidebar

@@ -63,6 +63,57 @@ export interface SearchResult {
   name: string;
   type?: DocType;
   content?: string;
+  resultType?: DocType | "daily";
+}
+
+export type JavaLocalDate = string | number[];
+export type JavaLocalDateTime = string | number[];
+
+export interface SearchResponse {
+  workSpaces: SearchWorkSpaceResult[];
+  dailyNotes: SearchDailyNoteResult[];
+}
+
+export interface SearchWorkSpaceResult {
+  id: number;
+  name: string;
+  content: string | null;
+  createdAt: JavaLocalDateTime;
+  matched: boolean;
+  tasks: SearchTaskResult[];
+}
+
+export interface SearchTaskResult {
+  id: number;
+  title: string;
+  content: string | null;
+  createdAt: JavaLocalDateTime;
+  matched: boolean;
+  subTasks: SearchSubTaskResult[];
+}
+
+export interface SearchSubTaskResult {
+  id: number;
+  title: string;
+  content: string | null;
+  createdAt: JavaLocalDateTime;
+  matched: boolean;
+  notes: SearchNoteResult[];
+}
+
+export interface SearchNoteResult {
+  id: number;
+  title: string;
+  content: string | null;
+  createdAt: JavaLocalDateTime;
+  matched: boolean;
+}
+
+export interface SearchDailyNoteResult {
+  id: number;
+  logicalDate: JavaLocalDate;
+  content: string | null;
+  createdAt: JavaLocalDateTime;
 }
 
 // 캘린더 날짜별 통계
