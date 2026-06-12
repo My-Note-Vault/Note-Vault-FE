@@ -8,6 +8,7 @@ import {
 } from "@codemirror/view";
 import { RangeSetBuilder } from "@codemirror/state";
 import { syntaxTree } from "@codemirror/language";
+import { normalizeMarkdownImageUrl, resolveContentImageSrc } from "@/lib/contentImages";
 
 // ─── Widgets ───────────────────────────────────────────────────────────────
 
@@ -39,6 +40,48 @@ class BulletWidget extends WidgetType {
     el.textContent = "•";
     return el;
   }
+  ignoreEvent() {
+    return true;
+  }
+}
+
+class ImageWidget extends WidgetType {
+  constructor(
+    readonly rawUrl: string,
+    readonly alt: string,
+  ) {
+    super();
+  }
+
+  eq(other: WidgetType) {
+    return other instanceof ImageWidget
+      && other.rawUrl === this.rawUrl
+      && other.alt === this.alt;
+  }
+
+  toDOM() {
+    const wrapper = document.createElement("span");
+    wrapper.className = "cm-md-image-widget";
+
+    const img = document.createElement("img");
+    img.alt = this.alt;
+    img.loading = "lazy";
+    img.decoding = "async";
+    img.src = "";
+    wrapper.appendChild(img);
+
+    const fallbackUrl = normalizeMarkdownImageUrl(this.rawUrl);
+    void resolveContentImageSrc(this.rawUrl)
+      .then((src) => {
+        img.src = src;
+      })
+      .catch(() => {
+        img.src = fallbackUrl;
+      });
+
+    return wrapper;
+  }
+
   ignoreEvent() {
     return true;
   }
@@ -77,6 +120,17 @@ function getCursorLines(view: EditorView): Set<number> {
 }
 
 type Entry = { from: number; to: number; dec: Decoration };
+
+const IMAGE_MARKDOWN_PATTERN = /^!\[([^\]]*)\]\((\S+?)(?:\s+["'][^"']*["'])?\)$/;
+
+function parseImageMarkdown(markdown: string): { alt: string; url: string } | null {
+  const match = markdown.match(IMAGE_MARKDOWN_PATTERN);
+  if (!match) return null;
+  return {
+    alt: match[1],
+    url: match[2],
+  };
+}
 
 // ─── Build ─────────────────────────────────────────────────────────────────
 
@@ -187,8 +241,28 @@ function buildDecorations(view: EditorView): DecorationSet {
         return false;
       }
 
+      // ── Images ────────────────────────────────────────────────────────
+      if (node.name === "Image") {
+        if (!onCursorLine(node.from)) {
+          const parsed = parseImageMarkdown(state.doc.sliceString(node.from, node.to));
+          if (parsed) {
+            entries.push({
+              from: node.from,
+              to: node.to,
+              dec: Decoration.replace({
+                widget: new ImageWidget(parsed.url, parsed.alt),
+              }),
+            });
+            return false;
+          }
+
+          entries.push({ from: node.from, to: node.to, dec: linkDec });
+        }
+        return;
+      }
+
       // ── Links ─────────────────────────────────────────────────────────
-      if (node.name === "Link" || node.name === "Image") {
+      if (node.name === "Link") {
         if (!onCursorLine(node.from)) {
           entries.push({ from: node.from, to: node.to, dec: linkDec });
         }

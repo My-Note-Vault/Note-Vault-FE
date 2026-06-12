@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import MarkdownEditor, { type MarkdownEditorHandle, type AutoSaveOptions } from "@/components/MarkdownEditor";
 import { ChevronRight, Loader2, AlertTriangle, RefreshCw, Check, Undo2, ArrowUp, ArrowDown, Trash2, Columns2, Rows2 } from "lucide-react";
 import { sendKeepaliveDailyNoteAutoSave, sendKeepaliveEntityAutoSave } from "@/api/autoSave";
+import type { ContentImageTarget } from "@/api/contentImages";
 import { extractEntityId, type DocType } from "@/types/common";
 import TaskMetadata, { type TaskMetadataValues } from "@/components/TaskMetadata";
 import { useDailyNoteDetail, useUpdateDailyNote, useAddPlan, useUpdatePlan, useDeletePlan, documentKeys } from "@/hooks/useDocuments";
@@ -23,6 +24,16 @@ function hasMetadata(detail: EntityDetail): detail is TaskDetail | SubTaskDetail
 function getErrorStatus(error: unknown): number | null {
   const status = (error as { response?: { status?: unknown } } | null)?.response?.status;
   return typeof status === "number" ? status : null;
+}
+
+function getContentImageTarget(
+  isDailyNote: boolean,
+  docType?: DocType,
+): ContentImageTarget | null {
+  if (isDailyNote) return "daily-note";
+  if (docType === "space") return "workspace";
+  if (docType === "task" || docType === "subtask" || docType === "note") return docType;
+  return null;
 }
 
 interface DailyNoteItemListProps {
@@ -205,6 +216,7 @@ export default function Editor({
   } = useDailyNoteDetail(dailyPk);
 
   const detail = isDailyNote ? dailyDetail : entityDetail;
+  const contentImageTarget = getContentImageTarget(isDailyNote, docType);
   const loading = isNew ? false : isDailyNote ? isDailyLoading : isEntityLoading;
   const isError = isNew ? false : isDailyNote ? isDailyError : isEntityError;
   const queryError = isDailyNote ? dailyError : entityError;
@@ -551,6 +563,7 @@ export default function Editor({
                 initialContent={daily?.content ?? ""}
                 onAutoSave={handleDailyContentAutoSave}
                 collaboration={collaborationConfig}
+                contentImageTarget={contentImageTarget}
               />
             </div>
           </div>
@@ -625,6 +638,7 @@ export default function Editor({
             initialContent={initialContent}
             onAutoSave={handleAutoSave}
             collaboration={collaborationConfig}
+            contentImageTarget={contentImageTarget}
           />
         </div>
       </div>

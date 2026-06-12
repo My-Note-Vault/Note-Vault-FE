@@ -232,10 +232,12 @@ export const useUpdateDailyNote = () => {
   return useMutation({
     mutationFn: ({dailyNoteId, body}: UpdateDailyNoteRequest) =>
       updateDailyNote(dailyNoteId, body),
-    onSuccess: (updatedDailyNote, variables) => {
-      queryClient.setQueryData(
+    onSuccess: (_, variables) => {
+      queryClient.setQueryData<DailyNoteDetail | undefined>(
         documentKeys.dailyNoteDetail(variables.dailyNoteId),
-        updatedDailyNote,
+        (current) => current
+          ? { ...current, content: variables.body.content }
+          : current,
       );
 
       queryClient.setQueryData<DailyNoteDetail[] | undefined>(
@@ -244,8 +246,8 @@ export const useUpdateDailyNote = () => {
           if (!current) return current;
 
           return current.map((note) =>
-            note.dailyNoteId === updatedDailyNote.dailyNoteId
-              ? { ...note, content: updatedDailyNote.content }
+            note.dailyNoteId === variables.dailyNoteId
+              ? { ...note, content: variables.body.content }
               : note,
           );
         },

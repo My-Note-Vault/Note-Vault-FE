@@ -17,9 +17,11 @@ import { markdownDecorations } from "@/components/markdownDecorations";
 import { obsidianKeymap } from "@/components/markdownKeymap";
 import { yCollab, yUndoManagerKeymap } from "y-codemirror.next";
 import * as Y from "yjs";
+import { toast } from "sonner";
 import { useCollaborativeDocument, type CollaboratorInfo } from "@/collab/useCollaborativeDocument";
 import type { CollaborationConfig, ProviderStatus } from "@/collab/types";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { uploadContentImage, type ContentImageTarget } from "@/api/contentImages";
 
 export interface MarkdownEditorHandle {
   focus: () => void;
@@ -38,6 +40,7 @@ interface MarkdownEditorProps {
   ) => void | Promise<unknown>;
   autoSaveDelay?: number;
   collaboration?: CollaborationConfig | null;
+  contentImageTarget?: ContentImageTarget | null;
 }
 
 type DisplayStatus =
@@ -160,6 +163,17 @@ const editorTheme = EditorView.theme({
     width: "100%",
     pointerEvents: "none",
   },
+  ".cm-md-image-widget": {
+    display: "block",
+    margin: "0.75rem 0",
+  },
+  ".cm-md-image-widget img": {
+    display: "block",
+    maxWidth: "100%",
+    maxHeight: "520px",
+    borderRadius: "0.375rem",
+    objectFit: "contain",
+  },
 });
 
 // minimalSetup의 defaultHighlightStyle이 heading에 underline을 붙이므로 덮어씀
@@ -180,6 +194,63 @@ const noHeadingUnderline = Prec.high(
 function toDisplayStatus(s: ProviderStatus): DisplayStatus {
   if (s === "idle") return "local";
   return s;
+}
+
+function getClipboardImageFiles(event: ClipboardEvent): File[] {
+  const items = Array.from(event.clipboardData?.items ?? []);
+  return items
+    .filter((item) => item.kind === "file" && item.type.startsWith("image/"))
+    .map((item) => item.getAsFile())
+    .filter((file): file is File => file !== null);
+}
+
+function escapeMarkdownAlt(value: string): string {
+  return value.replace(/[\[\]\\]/g, "\\$&");
+}
+
+function imageAltText(file: File, index: number): string {
+  const fallback = `image-${index + 1}`;
+  if (!file.name) return fallback;
+  return file.name.replace(/\.[^.]+$/, "") || fallback;
+}
+
+function markdownForImages(files: File[], keys: string[]): string {
+  return keys
+    .map((key, index) => `![${escapeMarkdownAlt(imageAltText(files[index], index))}](${key})`)
+    .join("\n\n");
+}
+
+function insertMarkdownBlock(view: EditorView, markdown: string) {
+  const selection = view.state.selection.main;
+  const line = view.state.doc.lineAt(selection.from);
+  const before = view.state.doc.sliceString(line.from, selection.from);
+  const after = view.state.doc.sliceString(selection.to, line.to);
+  const prefix = before.trim().length > 0 ? "\n\n" : "";
+  const suffix = after.trim().length > 0 ? "\n\n" : "\n";
+
+  view.dispatch(view.state.replaceSelection(`${prefix}${markdown}${suffix}`));
+  view.focus();
+}
+
+async function pasteClipboardImages(
+  view: EditorView,
+  files: File[],
+  target: ContentImageTarget,
+) {
+  const toastId = toast.loading(
+    files.length > 1 ? `${files.length}개 이미지 업로드 중...` : "이미지 업로드 중...",
+  );
+
+  try {
+    const keys = await Promise.all(
+      files.map((file) => uploadContentImage(file, target)),
+    );
+    insertMarkdownBlock(view, markdownForImages(files, keys));
+    toast.success("이미지를 삽입했습니다.", { id: toastId });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "이미지 업로드에 실패했습니다.";
+    toast.error(message, { id: toastId });
+  }
 }
 
 function CollaboratorAvatars({
@@ -253,6 +324,7 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(({
   onAutoSave,
   autoSaveDelay = 1000,
   collaboration = null,
+  contentImageTarget = null,
 }, ref) => {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const viewRef = useRef<EditorView | null>(null);
@@ -394,6 +466,18 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(({
         markdownDecorations,
         noHeadingUnderline,
         Prec.high(obsidianKeymap),
+        contentImageTarget
+          ? EditorView.domEventHandlers({
+              paste(event, view) {
+                const files = getClipboardImageFiles(event);
+                if (files.length === 0) return false;
+
+                event.preventDefault();
+                void pasteClipboardImages(view, files, contentImageTarget);
+                return true;
+              },
+            })
+          : [],
         collaborationEnabled && !isCollab ? EditorView.editable.of(false) : [],
         placeholder ? placeholderExtension(placeholder) : [],
         Prec.high(keymap.of(yUndoManagerKeymap)),
@@ -434,7 +518,7 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(({
       editor.destroy();
       viewRef.current = null;
     };
-  }, [collabKey, collaborationEnabled, isSynced, sharedText, awareness, debouncedSave, flushSave, initialContent, placeholder, resetSaveState]);
+  }, [collabKey, collaborationEnabled, isSynced, sharedText, awareness, debouncedSave, flushSave, initialContent, placeholder, resetSaveState, contentImageTarget]);
 
   useImperativeHandle(ref, () => ({
     focus: () => {

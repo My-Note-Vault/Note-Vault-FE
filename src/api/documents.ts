@@ -151,9 +151,8 @@ export const fetchDailyNoteByDate = async (date: string): Promise<DailyNoteDetai
 export const updateDailyNote = async (
   dailyNoteId: number,
   body: { content: string },
-): Promise<DailyNoteDetail> => {
-  const { data } = await apiClient.patch<DailyNoteDetail>(`${endpoints.DAILY_NOTE}/${dailyNoteId}`, body);
-  return data;
+): Promise<void> => {
+  await apiClient.patch(`${endpoints.DAILY_NOTE}/${dailyNoteId}`, body);
 };
 
 // Daily Note 삭제
