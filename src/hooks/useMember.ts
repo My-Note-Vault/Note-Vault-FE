@@ -8,6 +8,7 @@ import {
   deleteProfileImage,
   uploadFileToPresignedUrl,
 } from "@/api/member";
+import type { UploadProgressHandler } from "@/api/uploadProgress";
 import type { UpdateProfileRequest } from "@/types/member";
 
 export const memberKeys = {
@@ -49,10 +50,16 @@ export const useUploadProfileImage = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ file }: { file: File }) => {
+    mutationFn: async ({
+      file,
+      onProgress,
+    }: {
+      file: File;
+      onProgress?: UploadProgressHandler;
+    }) => {
       const uploadUrlResponse = await generateProfileImageUploadUrl(file.type);
       const { presignedUrl, key } = uploadUrlResponse;
-      await uploadFileToPresignedUrl(presignedUrl, file);
+      await uploadFileToPresignedUrl(presignedUrl, file, onProgress);
       await updateProfileImage({ profileImageKey: key });
     },
     onSuccess: () => {

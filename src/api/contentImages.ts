@@ -1,5 +1,9 @@
 import apiClient from "./client";
 import { endpoints } from "@/constants/endpoints";
+import {
+  uploadFileWithProgress,
+  type UploadProgressHandler,
+} from "@/api/uploadProgress";
 
 export type ContentImageTarget =
   | "daily-note"
@@ -56,6 +60,7 @@ export const fetchContentImageUrl = async (
 export const uploadContentImage = async (
   file: File,
   targetType: ContentImageTarget,
+  onProgress?: UploadProgressHandler,
 ): Promise<string> => {
   const contentType = normalizeImageContentType(file.type);
   const { presignedUrl, key } = await generateContentImageUploadUrl(
@@ -63,15 +68,14 @@ export const uploadContentImage = async (
     contentType,
   );
 
-  const response = await fetch(presignedUrl, {
-    method: "PUT",
-    headers: {
-      "Content-Type": contentType,
-    },
-    body: file,
-  });
-
-  if (!response.ok) {
+  try {
+    await uploadFileWithProgress({
+      presignedUrl,
+      file,
+      contentType,
+      onProgress,
+    });
+  } catch {
     throw new Error("이미지 업로드에 실패했습니다.");
   }
 

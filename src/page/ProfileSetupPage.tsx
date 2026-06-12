@@ -59,6 +59,7 @@ export default function ProfileSetupPage() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(
     profileImage?.profileImageUrl ?? null
   );
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const {
@@ -91,9 +92,15 @@ export default function ProfileSetupPage() {
     reader.readAsDataURL(file);
 
     try {
-      await uploadImage.mutateAsync({ file });
+      setUploadProgress(0);
+      await uploadImage.mutateAsync({
+        file,
+        onProgress: setUploadProgress,
+      });
     } catch {
       toast.error("이미지 업로드에 실패했습니다");
+    } finally {
+      setUploadProgress(null);
     }
   };
 
@@ -156,9 +163,15 @@ export default function ProfileSetupPage() {
                   <User className="h-10 w-10 text-muted-foreground" />
                 </AvatarFallback>
               </Avatar>
-              <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div
+                className={`absolute inset-0 flex items-center justify-center rounded-full bg-black/40 transition-opacity ${
+                  uploadImage.isPending ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                }`}
+              >
                 {uploadImage.isPending ? (
-                  <Loader2 className="h-5 w-5 animate-spin text-white" />
+                  <span className="text-sm font-medium text-white">
+                    {uploadProgress ?? 0}%
+                  </span>
                 ) : (
                   <Camera className="h-5 w-5 text-white" />
                 )}
@@ -172,7 +185,9 @@ export default function ProfileSetupPage() {
               onChange={handleImageSelect}
             />
             <span className="text-xs text-muted-foreground">
-              클릭하여 이미지 업로드
+              {uploadImage.isPending
+                ? `업로드 중 ${uploadProgress ?? 0}%`
+                : "클릭하여 이미지 업로드"}
             </span>
           </div>
 

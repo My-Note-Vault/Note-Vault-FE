@@ -55,6 +55,7 @@ export default function ProfilePopover() {
 
   const [open, setOpen] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const {
@@ -87,9 +88,15 @@ export default function ProfilePopover() {
     reader.readAsDataURL(file);
 
     try {
-      await uploadImage.mutateAsync({ file });
+      setUploadProgress(0);
+      await uploadImage.mutateAsync({
+        file,
+        onProgress: setUploadProgress,
+      });
     } catch {
       toast.error("이미지 업로드에 실패했습니다");
+    } finally {
+      setUploadProgress(null);
     }
   };
 
@@ -163,14 +170,25 @@ export default function ProfilePopover() {
                   <User className="h-7 w-7 text-muted-foreground" />
                 </AvatarFallback>
               </Avatar>
-              <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div
+                className={`absolute inset-0 flex items-center justify-center rounded-full bg-black/40 transition-opacity ${
+                  uploadImage.isPending ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                }`}
+              >
                 {uploadImage.isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin text-white" />
+                  <span className="text-xs font-medium text-white">
+                    {uploadProgress ?? 0}%
+                  </span>
                 ) : (
                   <Camera className="h-4 w-4 text-white" />
                 )}
               </div>
             </button>
+            {uploadImage.isPending && (
+              <span className="text-xs text-muted-foreground">
+                업로드 중 {uploadProgress ?? 0}%
+              </span>
+            )}
             <input
               ref={fileInputRef}
               type="file"

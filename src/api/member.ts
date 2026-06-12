@@ -1,5 +1,9 @@
 import apiClient from "./client";
 import { endpoints } from "@/constants/endpoints";
+import {
+  uploadFileWithProgress,
+  type UploadProgressHandler,
+} from "@/api/uploadProgress";
 import type {
   MemberProfile,
   UpdateProfileRequest,
@@ -40,14 +44,19 @@ export const deleteProfileImage = async (): Promise<void> => {
   await apiClient.delete(endpoints.MEMBER_PROFILE_IMAGE);
 };
 
-export const uploadFileToPresignedUrl = async (presignedUrl: string, file: File): Promise<void> => {
-  const response = await fetch(presignedUrl, {
-    method: "PUT",
-    headers: { "Content-Type": file.type },
-    body: file,
-  });
-
-  if (!response.ok) {
+export const uploadFileToPresignedUrl = async (
+  presignedUrl: string,
+  file: File,
+  onProgress?: UploadProgressHandler,
+): Promise<void> => {
+  try {
+    await uploadFileWithProgress({
+      presignedUrl,
+      file,
+      contentType: file.type,
+      onProgress,
+    });
+  } catch {
     throw new Error("Failed to upload profile image to presigned URL");
   }
 };

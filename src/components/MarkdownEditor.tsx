@@ -232,18 +232,32 @@ function insertMarkdownBlock(view: EditorView, markdown: string) {
   view.focus();
 }
 
+function uploadProgressMessage(fileCount: number, progress: number): string {
+  const prefix = fileCount > 1 ? `${fileCount}개 이미지 업로드 중` : "이미지 업로드 중";
+  return `${prefix}... ${progress}%`;
+}
+
 async function pasteClipboardImages(
   view: EditorView,
   files: File[],
   target: ContentImageTarget,
 ) {
-  const toastId = toast.loading(
-    files.length > 1 ? `${files.length}개 이미지 업로드 중...` : "이미지 업로드 중...",
-  );
+  const progressByFile = files.map(() => 0);
+  const toastId = toast.loading(uploadProgressMessage(files.length, 0));
 
   try {
     const keys = await Promise.all(
-      files.map((file) => uploadContentImage(file, target)),
+      files.map((file, index) =>
+        uploadContentImage(file, target, (progress) => {
+          progressByFile[index] = progress;
+          const totalProgress = Math.round(
+            progressByFile.reduce((sum, value) => sum + value, 0) / files.length,
+          );
+          toast.loading(uploadProgressMessage(files.length, totalProgress), {
+            id: toastId,
+          });
+        }),
+      ),
     );
     insertMarkdownBlock(view, markdownForImages(files, keys));
     toast.success("이미지를 삽입했습니다.", { id: toastId });
