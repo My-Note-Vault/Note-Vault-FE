@@ -1068,7 +1068,7 @@ const App = () => {
                             <Route path="/app/*" element={<ProtectedRoute><AppContent /></ProtectedRoute>} />
                         </Routes>
                     </ErrorBoundary>
-                    <Toaster position="bottom-right" richColors closeButton />
+                    <Toaster position="bottom-right" richColors closeButton expand />
                 </AuthProvider>
             </BrowserRouter>
         </QueryClientProvider>

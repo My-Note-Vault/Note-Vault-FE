@@ -8,6 +8,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import {
   Select,
   SelectContent,
@@ -47,18 +48,38 @@ export default function InviteDialog({ isOpen, onClose, workspaceId, workspaceNa
 
   const createMutation = useCreateInviteLink();
 
+  const markCopied = () => {
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const copyInviteLink = async (code: string, showToast = false) => {
+    try {
+      await navigator.clipboard.writeText(buildShareUrl(code));
+      markCopied();
+      if (showToast) {
+        toast.success("복사가 완료되었습니다");
+      }
+    } catch {
+      setCopied(false);
+    }
+  };
+
   const handleCreate = () => {
     createMutation.mutate(
       { workspaceId, expiresAt: getExpiresAt(expiry) },
-      { onSuccess: (data) => setGeneratedCode(data) },
+      {
+        onSuccess: (data) => {
+          setGeneratedCode(data);
+          void copyInviteLink(data, true);
+        },
+      },
     );
   };
 
   const handleCopy = async () => {
     if (!generatedCode) return;
-    await navigator.clipboard.writeText(buildShareUrl(generatedCode));
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    await copyInviteLink(generatedCode);
   };
 
   return (
