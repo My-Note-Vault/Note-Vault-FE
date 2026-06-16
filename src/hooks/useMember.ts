@@ -23,6 +23,7 @@ export const useMemberProfile = () => {
     queryFn: fetchMemberProfile,
     staleTime: 1000 * 60 * 5,
     retry: false, // 회원가입 직후 profile이 없을 수 있으므로 retry 하지 않음
+    retryOnMount: false,
   });
 };
 
@@ -32,6 +33,7 @@ export const useProfileImage = () => {
     queryFn: fetchProfileImage,
     staleTime: 1000 * 60 * 5,
     retry: false,
+    retryOnMount: false,
   });
 };
 

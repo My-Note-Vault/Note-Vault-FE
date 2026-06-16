@@ -1,12 +1,13 @@
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { useMemberProfile } from "@/hooks/useMember";
+import ProfileLoadError from "@/components/auth/ProfileLoadError";
 import { Loader2 } from "lucide-react";
 import type { ReactNode } from "react";
 
 export default function ProtectedRoute({ children }: { children: ReactNode }) {
-  const { isLoggedIn } = useAuth();
-  const { data: profile, isLoading } = useMemberProfile();
+  const { isLoggedIn, logout } = useAuth();
+  const { data: profile, isLoading, isError, refetch } = useMemberProfile();
 
   if (!isLoggedIn) {
     return <Navigate to="/" replace />;
@@ -20,8 +21,12 @@ export default function ProtectedRoute({ children }: { children: ReactNode }) {
     );
   }
 
+  if (isError || !profile) {
+    return <ProfileLoadError onRetry={() => void refetch()} onLogout={logout} />;
+  }
+
   // profile이 없거나 nickname이 null/빈 문자열인 경우 프로필 설정으로 이동
-  if (!profile || !profile.nickname) {
+  if (!profile.nickname) {
     return <Navigate to="/profile-setup" replace />;
   }
 
