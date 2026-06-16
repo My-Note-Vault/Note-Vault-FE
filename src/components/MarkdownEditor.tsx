@@ -38,6 +38,7 @@ interface MarkdownEditorProps {
     content: string,
     options: AutoSaveOptions,
   ) => void | Promise<unknown>;
+  onContentChange?: (content: string) => void;
   autoSaveDelay?: number;
   collaboration?: CollaborationConfig | null;
   contentImageTarget?: ContentImageTarget | null;
@@ -336,6 +337,7 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(({
   initialContent = "",
   placeholder = "",
   onAutoSave,
+  onContentChange,
   autoSaveDelay = 1000,
   collaboration = null,
   contentImageTarget = null,
@@ -344,6 +346,7 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(({
   const viewRef = useRef<EditorView | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onAutoSaveRef = useRef(onAutoSave);
+  const onContentChangeRef = useRef(onContentChange);
   const lastContentRef = useRef(initialContent);
   const lastSettledContentRef = useRef(initialContent);
   const saveSequenceRef = useRef(0);
@@ -372,6 +375,10 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(({
   useEffect(() => {
     onAutoSaveRef.current = onAutoSave;
   }, [onAutoSave]);
+
+  useEffect(() => {
+    onContentChangeRef.current = onContentChange;
+  }, [onContentChange]);
 
   const resetSaveState = useCallback((content: string) => {
     lastContentRef.current = content;
@@ -469,6 +476,7 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(({
     const currentContent = isCollab ? ytext.toString() : initialContent;
 
     resetSaveState(currentContent);
+    onContentChangeRef.current?.(currentContent);
 
     const editor = new EditorView({
       doc: currentContent,
@@ -503,6 +511,7 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(({
           if (isCollab) return;
 
           const content = update.state.doc.toString();
+          onContentChangeRef.current?.(content);
           debouncedSave(content);
         }),
       ],
@@ -513,6 +522,7 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(({
     const handleCollaborativeUpdate = (event: Y.YTextEvent) => {
       const content = ytext?.toString() ?? "";
       lastContentRef.current = content;
+      onContentChangeRef.current?.(content);
 
       if (event.transaction.local) {
         debouncedSave(content);

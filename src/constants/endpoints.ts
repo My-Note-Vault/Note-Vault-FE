@@ -30,6 +30,9 @@ NOTE_DETAIL: (id: string) => `${API_BASE}/note/${id}`,
 NOTE_INFO_LIST: `${API_BASE}/unfolded-notes/note-info`,
 DOCUMENT_SEARCH: `${API_BASE}/search`,
 
+// AI
+AI_SUMMARIES: `${API_BASE}/ai/summaries`,
+
 // Daily Note Endpoints
 DAILY_NOTES_ALL: `${API_BASE}/daily-notes/all`,
 DAILY_NOTE: `${API_BASE}/daily-notes`,
