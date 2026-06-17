@@ -37,15 +37,17 @@ type ProfileFormValues = z.infer<typeof profileSchema>;
 
 function normalizeProfileDefaults(profile?: {
   nickname?: string | null;
-  dayStartHour?: number | null;
-  dayStartMinute?: number | null;
+  dayStartTime?: {
+    hour?: number | null;
+    minute?: number | null;
+  } | null;
 } | null): ProfileFormValues {
   return {
     nickname: profile?.nickname ?? "",
     dayStartHour:
-      typeof profile?.dayStartHour === "number" ? profile.dayStartHour : 0,
+      typeof profile?.dayStartTime?.hour === "number" ? profile.dayStartTime.hour : 0,
     dayStartMinute:
-      typeof profile?.dayStartMinute === "number" ? profile.dayStartMinute : 0,
+      typeof profile?.dayStartTime?.minute === "number" ? profile.dayStartTime.minute : 0,
   };
 }
 
