@@ -188,6 +188,8 @@ export const useDeleteEntity = () => {
 };
 
 export const useAutoSaveEntity = () => {
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: async ({ id, type, content }: AutoSaveEntityRequest): Promise<void> => {
       switch (type) {
@@ -200,6 +202,13 @@ export const useAutoSaveEntity = () => {
         case "note":
           return updateNote(id, { content });
       }
+    },
+    onSuccess: (_data, variables) => {
+      const keys = entityKeyMap[variables.type];
+      queryClient.setQueryData<EntityDetail | undefined>(
+        keys.detail(variables.id),
+        (current) => current ? { ...current, content: variables.content } : current,
+      );
     },
     onError: () => {
       toast.error("자동 저장에 실패했습니다");

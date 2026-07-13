@@ -6,7 +6,7 @@ import {
   useMemo,
   useRef,
 } from "react";
-import { Prec } from "@codemirror/state";
+import { Compartment, Prec } from "@codemirror/state";
 import { EditorView, keymap, placeholder as placeholderExtension } from "@codemirror/view";
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
 import { syntaxHighlighting, HighlightStyle } from "@codemirror/language";
@@ -22,13 +22,14 @@ import { useCollaborativeDocument, type CollaboratorInfo } from "@/collab/useCol
 import type { CollaborationConfig, ProviderStatus } from "@/collab/types";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { uploadContentImage, type ContentImageTarget } from "@/api/contentImages";
+import { useLocation } from "react-router-dom";
 
 export interface MarkdownEditorHandle {
   focus: () => void;
 }
 
 export interface AutoSaveOptions {
-  reason: "debounced" | "flush" | "unload";
+  reason: "debounced" | "flush" | "unload" | "url";
 }
 
 interface MarkdownEditorProps {
@@ -206,7 +207,7 @@ function getClipboardImageFiles(event: ClipboardEvent): File[] {
 }
 
 function escapeMarkdownAlt(value: string): string {
-  return value.replace(/[\[\]\\]/g, "\\$&");
+  return value.replace(/[[\]\\]/g, "\\$&");
 }
 
 function imageAltText(file: File, index: number): string {
@@ -231,6 +232,27 @@ function insertMarkdownBlock(view: EditorView, markdown: string) {
 
   view.dispatch(view.state.replaceSelection(`${prefix}${markdown}${suffix}`));
   view.focus();
+}
+
+function replaceEditorContent(view: EditorView, content: string) {
+  view.dispatch({
+    changes: {
+      from: 0,
+      to: view.state.doc.length,
+      insert: content,
+    },
+  });
+}
+
+function replaceYText(ytext: Y.Text, content: string, origin: string) {
+  ytext.doc?.transact(() => {
+    if (ytext.length > 0) {
+      ytext.delete(0, ytext.length);
+    }
+    if (content.length > 0) {
+      ytext.insert(0, content);
+    }
+  }, origin);
 }
 
 function uploadProgressMessage(fileCount: number, progress: number): string {
@@ -344,6 +366,12 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(({
 }, ref) => {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const viewRef = useRef<EditorView | null>(null);
+  const collabCompartmentRef = useRef<Compartment | null>(null);
+  const collabCleanupRef = useRef<(() => void) | null>(null);
+  const collabAttachedRef = useRef(false);
+  const activeYTextRef = useRef<Y.Text | null>(null);
+  const hasPreSyncLocalChangesRef = useRef(false);
+  const suppressChangeRef = useRef(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onAutoSaveRef = useRef(onAutoSave);
   const onContentChangeRef = useRef(onContentChange);
@@ -351,6 +379,9 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(({
   const lastSettledContentRef = useRef(initialContent);
   const saveSequenceRef = useRef(0);
   const lastSettledSaveSequenceRef = useRef(0);
+  const location = useLocation();
+  const currentUrl = `${location.pathname}${location.search}${location.hash}`;
+  const lastUrlRef = useRef(currentUrl);
 
   const {
     doc,
@@ -441,6 +472,31 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(({
     runSave(content, reason);
   }, [runSave]);
 
+  const applyEditorContent = useCallback((view: EditorView, content: string) => {
+    if (view.state.doc.toString() === content) return;
+
+    suppressChangeRef.current = true;
+    try {
+      replaceEditorContent(view, content);
+    } finally {
+      suppressChangeRef.current = false;
+    }
+  }, []);
+
+  const cleanupCollabBinding = useCallback((reconfigure = true) => {
+    collabCleanupRef.current?.();
+    collabCleanupRef.current = null;
+
+    if (reconfigure && viewRef.current && collabCompartmentRef.current) {
+      viewRef.current.dispatch({
+        effects: collabCompartmentRef.current.reconfigure([]),
+      });
+    }
+
+    collabAttachedRef.current = false;
+    activeYTextRef.current = null;
+  }, []);
+
   useEffect(() => {
     const handlePageExit = () => {
       flushSave("unload");
@@ -456,24 +512,22 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(({
   }, [flushSave]);
 
   useEffect(() => {
+    if (currentUrl === lastUrlRef.current) return;
+
+    lastUrlRef.current = currentUrl;
+    flushSave("url");
+  }, [currentUrl, flushSave]);
+
+  useEffect(() => {
     const parent = hostRef.current;
     if (!parent) return;
 
     parent.innerHTML = "";
+    cleanupCollabBinding(false);
+    collabCompartmentRef.current = new Compartment();
+    hasPreSyncLocalChangesRef.current = false;
 
-    const isCollab = collaborationEnabled && !!sharedText && isSynced;
-    const ytext = sharedText;
-
-    if (isCollab && ytext.length === 0 && initialContent.length > 0) {
-      ytext.doc?.transact(() => {
-        if (ytext.length === 0) {
-          ytext.insert(0, initialContent);
-        }
-      }, "initial-content-bootstrap");
-    }
-
-    const undoManager = ytext ? new Y.UndoManager(ytext) : null;
-    const currentContent = isCollab ? ytext.toString() : initialContent;
+    const currentContent = initialContent;
 
     resetSaveState(currentContent);
     onContentChangeRef.current?.(currentContent);
@@ -500,18 +554,19 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(({
               },
             })
           : [],
-        collaborationEnabled && !isCollab ? EditorView.editable.of(false) : [],
         placeholder ? placeholderExtension(placeholder) : [],
         Prec.high(keymap.of(yUndoManagerKeymap)),
-        isCollab && ytext && undoManager
-          ? yCollab(ytext, awareness, { undoManager })
-          : [],
+        collabCompartmentRef.current.of([]),
         EditorView.updateListener.of((update) => {
           if (!update.docChanged) return;
-          if (isCollab) return;
+          if (suppressChangeRef.current) return;
+          if (collabAttachedRef.current) return;
 
           const content = update.state.doc.toString();
           onContentChangeRef.current?.(content);
+          if (collaborationEnabled) {
+            hasPreSyncLocalChangesRef.current = true;
+          }
           debouncedSave(content);
         }),
       ],
@@ -519,8 +574,46 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(({
     });
 
     viewRef.current = editor;
+
+    return () => {
+      cleanupCollabBinding(false);
+      flushSave("flush");
+      editor.destroy();
+      viewRef.current = null;
+      collabCompartmentRef.current = null;
+    };
+  }, [collabKey, collaborationEnabled, cleanupCollabBinding, debouncedSave, flushSave, initialContent, placeholder, resetSaveState, contentImageTarget]);
+
+  useEffect(() => {
+    const view = viewRef.current;
+    const collabCompartment = collabCompartmentRef.current;
+    if (!view || !collabCompartment) return;
+    if (!collaborationEnabled || !sharedText || !awareness || !isSynced) return;
+    if (activeYTextRef.current === sharedText) return;
+
+    cleanupCollabBinding();
+
+    const ytext = sharedText;
+    const localContent = view.state.doc.toString();
+    const remoteContent = ytext.toString();
+    const hasPreSyncLocalChanges =
+      hasPreSyncLocalChangesRef.current || localContent !== initialContent;
+
+    let settledContent = remoteContent;
+    if (remoteContent.length === 0) {
+      replaceYText(ytext, localContent, "initial-content-bootstrap");
+      settledContent = ytext.toString();
+    } else if (hasPreSyncLocalChanges) {
+      replaceYText(ytext, localContent, "pre-sync-local-content");
+      settledContent = ytext.toString();
+    } else {
+      settledContent = remoteContent;
+      applyEditorContent(view, settledContent);
+    }
+
+    const undoManager = new Y.UndoManager(ytext);
     const handleCollaborativeUpdate = (event: Y.YTextEvent) => {
-      const content = ytext?.toString() ?? "";
+      const content = ytext.toString();
       lastContentRef.current = content;
       onContentChangeRef.current?.(content);
 
@@ -529,20 +622,34 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(({
       }
     };
 
-    if (ytext) {
-      ytext.observe(handleCollaborativeUpdate);
-    }
+    ytext.observe(handleCollaborativeUpdate);
+    collabAttachedRef.current = true;
+    activeYTextRef.current = ytext;
+    hasPreSyncLocalChangesRef.current = false;
+    resetSaveState(settledContent);
+    onContentChangeRef.current?.(settledContent);
 
-    return () => {
-      if (ytext) {
-        ytext.unobserve(handleCollaborativeUpdate);
-      }
-      flushSave("flush");
-      undoManager?.destroy();
-      editor.destroy();
-      viewRef.current = null;
+    view.dispatch({
+      effects: collabCompartment.reconfigure(
+        yCollab(ytext, awareness, { undoManager }),
+      ),
+    });
+
+    collabCleanupRef.current = () => {
+      ytext.unobserve(handleCollaborativeUpdate);
+      undoManager.destroy();
     };
-  }, [collabKey, collaborationEnabled, isSynced, sharedText, awareness, debouncedSave, flushSave, initialContent, placeholder, resetSaveState, contentImageTarget]);
+  }, [
+    awareness,
+    collaborationEnabled,
+    cleanupCollabBinding,
+    applyEditorContent,
+    debouncedSave,
+    initialContent,
+    isSynced,
+    resetSaveState,
+    sharedText,
+  ]);
 
   useImperativeHandle(ref, () => ({
     focus: () => {

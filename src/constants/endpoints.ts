@@ -14,17 +14,9 @@ SPACES_ALL: `${API_BASE}/workspaces/all`,
 WORKSPACE: (id: string) => `${API_BASE}/workspaces/${id}`,
 SPACE_INFORMATION: (id: string) => `${API_BASE}/workspaces/information/${id}`,
 
-// Task Endpoints
-TASKS: `${API_BASE}/tasks`,
-TASK_DETAIL: (id: string) => `${API_BASE}/tasks/${id}`,
-
-// SubTask Endpoints
-SUBTASKS: `${API_BASE}/subtasks`,
-SUBTASK_DETAIL: (id: string) => `${API_BASE}/subtasks/${id}`,
-
-// Note Endpoints
-NOTES: `${API_BASE}/note`,
-NOTE_DETAIL: (id: string) => `${API_BASE}/note/${id}`,
+// Unified Workspace Document Endpoints
+DOCUMENTS: `${API_BASE}/documents`,
+DOCUMENT_DETAIL: (type: string, id: string) => `${API_BASE}/documents/${type}/${id}`,
 
 // 사이드바 문서 트리
 NOTE_INFO_LIST: `${API_BASE}/unfolded-notes/note-info`,
