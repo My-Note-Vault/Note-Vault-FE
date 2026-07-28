@@ -56,6 +56,7 @@ export function createYjsWsProvider(
   let syncInFlight = false;
   let searchProjectionTimer: ReturnType<typeof setTimeout> | null = null;
   let reconcileTimer: ReturnType<typeof setInterval> | null = null;
+  let roomUrl = "";
 
   const statusListeners = new Set<(s: ProviderStatus) => void>();
   const syncListeners = new Set<(synced: boolean) => void>();
@@ -265,12 +266,24 @@ export function createYjsWsProvider(
           setSynced(true);
           scheduleSearchProjection();
         }
+        console.info("[crdt] bootstrap complete", {
+          room: roomUrl,
+          serverLatestRevision,
+          lastAppliedRevision,
+          contentLength: doc.getText("content").length,
+        });
         break;
       case MSG_DOCUMENT_UPDATE: {
         const revision = decoding.readVarUint(decoder);
         const update = decoding.readVarUint8Array(decoder);
         Y.applyUpdate(doc, update, provider);
         receiveCommittedUpdate(revision, update);
+        console.info("[crdt] document update applied", {
+          room: roomUrl,
+          revision,
+          updateBytes: update.byteLength,
+          contentLength: doc.getText("content").length,
+        });
         break;
       }
       case MSG_UPDATE_ACK: {
@@ -294,6 +307,12 @@ export function createYjsWsProvider(
           }
         });
         applyContiguousCommittedUpdates();
+        console.info("[crdt] snapshot applied", {
+          room: roomUrl,
+          revision,
+          updateBytes: update.byteLength,
+          contentLength: doc.getText("content").length,
+        });
         break;
       }
     }
@@ -364,6 +383,7 @@ export function createYjsWsProvider(
     connectInFlight = false;
     if (destroyed || ws) return;
 
+    roomUrl = new URL(url).pathname;
     const socket = new WebSocket(url);
     socket.binaryType = "arraybuffer";
     ws = socket;
@@ -412,7 +432,7 @@ export function createYjsWsProvider(
         code: event.code,
         reason: event.reason,
         wasClean: event.wasClean,
-        url,
+        room: roomUrl,
       });
       ws = null;
       syncInFlight = false;
@@ -427,7 +447,7 @@ export function createYjsWsProvider(
     });
 
     socket.addEventListener("error", (event) => {
-      console.error("[crdt] WebSocket error", { event, url });
+      console.error("[crdt] WebSocket error", { event, room: roomUrl });
       setStatus("error");
       socket.close();
     });
