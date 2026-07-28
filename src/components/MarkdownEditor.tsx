@@ -700,6 +700,17 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(({
           displayStatus={displayStatus}
         />
       )}
+      {collaboration && !isSynced && (
+        <div
+          className="absolute inset-0 z-20 flex items-start justify-center bg-background/80 pt-24 backdrop-blur-[1px]"
+          aria-live="polite"
+        >
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <span className="h-4 w-4 animate-spin rounded-full border-2 border-muted-foreground/30 border-t-muted-foreground" />
+            본문을 불러오는 중...
+          </div>
+        </div>
+      )}
       <div
         ref={hostRef}
         className="min-h-[700px] cursor-text"

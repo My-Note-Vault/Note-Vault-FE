@@ -68,6 +68,38 @@ const refreshAccessToken = async (): Promise<string> => {
   return accessToken;
 };
 
+function isJwtExpiringSoon(token: string, leewaySeconds = 60): boolean {
+  try {
+    const payloadPart = token.split(".")[1];
+    if (!payloadPart) return true;
+
+    const base64 = payloadPart
+      .replace(/-/g, "+")
+      .replace(/_/g, "/")
+      .padEnd(Math.ceil(payloadPart.length / 4) * 4, "=");
+    const payload = JSON.parse(atob(base64)) as { exp?: unknown };
+    if (typeof payload.exp !== "number") return true;
+
+    return payload.exp * 1000 <= Date.now() + leewaySeconds * 1000;
+  } catch {
+    return true;
+  }
+}
+
+export async function ensureFreshAccessToken(forceRefresh = false): Promise<string> {
+  const accessToken = authStorage.getAccessToken();
+  if (!forceRefresh && accessToken && !isJwtExpiringSoon(accessToken)) {
+    return accessToken;
+  }
+
+  if (!refreshPromise) {
+    refreshPromise = refreshAccessToken().finally(() => {
+      refreshPromise = null;
+    });
+  }
+  return refreshPromise;
+}
+
 // 요청 인터셉터: localStorage에서 토큰을 읽어 Authorization 헤더에 추가
 apiClient.interceptors.request.use((config) => {
   const token = authStorage.getAccessToken();
@@ -109,16 +141,13 @@ apiClient.interceptors.response.use(
 
     try {
       // 진행중인 refresh가 있으면 재사용, 없으면 새로 시작
-      if (!refreshPromise) {
-        console.log("[auth] Starting new refresh flow for:", url);
-        refreshPromise = refreshAccessToken().finally(() => {
-          refreshPromise = null;
-        });
-      } else {
+      if (refreshPromise) {
         console.log("[auth] Awaiting in-flight refresh for:", url);
+      } else {
+        console.log("[auth] Starting new refresh flow for:", url);
       }
 
-      const newAccessToken = await refreshPromise;
+      const newAccessToken = await ensureFreshAccessToken(true);
 
       // 새 토큰으로 원래 요청 재시도
       originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;

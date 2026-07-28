@@ -25,8 +25,14 @@ const INITIAL_RECONNECT_MS = 500;
 const MAX_RECONNECT_MS = 30_000;
 const BACKOFF_FACTOR = 2;
 const CRDT_RECONCILE_INTERVAL_MS = 5_000;
+const DOCUMENT_UPDATE_BATCH_DELAY_MS = 50;
+const DOCUMENT_UPDATE_BATCH_MAX_COUNT = 50;
+const DOCUMENT_UPDATE_BATCH_MAX_BYTES = 64 * 1024;
 
-export function createYjsWsProvider(url: string, persistDocumentUpdates: boolean): YjsWsProvider {
+export function createYjsWsProvider(
+  getUrl: () => Promise<string>,
+  persistDocumentUpdates: boolean,
+): YjsWsProvider {
   const doc = new Y.Doc();
   const searchDoc = new Y.Doc();
   const awareness = new Awareness(doc);
@@ -36,8 +42,12 @@ export function createYjsWsProvider(url: string, persistDocumentUpdates: boolean
   let isSynced = false;
   let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   let reconnectDelay = INITIAL_RECONNECT_MS;
+  let connectInFlight = false;
   let destroyed = false;
   let pendingRealtimeUpdates: Uint8Array[] = [];
+  let pendingDocumentUpdates: Uint8Array[] = [];
+  let pendingDocumentUpdateBytes = 0;
+  let documentUpdateBatchTimer: ReturnType<typeof setTimeout> | null = null;
   const unacknowledgedUpdates = new Map<string, Uint8Array>();
   const bufferedCommittedUpdates = new Map<number, Uint8Array>();
   let lastAppliedRevision = 0;
@@ -76,6 +86,47 @@ export function createYjsWsProvider(url: string, persistDocumentUpdates: boolean
     encoding.writeVarString(encoder, clientUpdateId);
     encoding.writeVarUint8Array(encoder, update);
     send(encoding.toUint8Array(encoder));
+  }
+
+  function flushPendingDocumentUpdates(sendImmediately = true) {
+    if (documentUpdateBatchTimer !== null) {
+      clearTimeout(documentUpdateBatchTimer);
+      documentUpdateBatchTimer = null;
+    }
+    if (pendingDocumentUpdates.length === 0) return;
+
+    const updates = pendingDocumentUpdates;
+    pendingDocumentUpdates = [];
+    pendingDocumentUpdateBytes = 0;
+
+    const update = updates.length === 1
+      ? updates[0]
+      : Y.mergeUpdates(updates);
+    const clientUpdateId = crypto.randomUUID();
+    unacknowledgedUpdates.set(clientUpdateId, update);
+
+    if (sendImmediately && ws?.readyState === WebSocket.OPEN) {
+      sendDocumentUpdate(clientUpdateId, update);
+    }
+  }
+
+  function queueDocumentUpdate(update: Uint8Array) {
+    pendingDocumentUpdates.push(update);
+    pendingDocumentUpdateBytes += update.byteLength;
+
+    if (
+      pendingDocumentUpdates.length >= DOCUMENT_UPDATE_BATCH_MAX_COUNT ||
+      pendingDocumentUpdateBytes >= DOCUMENT_UPDATE_BATCH_MAX_BYTES
+    ) {
+      flushPendingDocumentUpdates();
+      return;
+    }
+    if (documentUpdateBatchTimer === null) {
+      documentUpdateBatchTimer = setTimeout(
+        flushPendingDocumentUpdates,
+        DOCUMENT_UPDATE_BATCH_DELAY_MS,
+      );
+    }
   }
 
   function requestCrdtSync() {
@@ -253,11 +304,7 @@ export function createYjsWsProvider(url: string, persistDocumentUpdates: boolean
   function onDocUpdate(update: Uint8Array, origin: unknown) {
     if (origin === provider) return;
     if (persistDocumentUpdates) {
-      const clientUpdateId = crypto.randomUUID();
-      unacknowledgedUpdates.set(clientUpdateId, update);
-      if (ws?.readyState === WebSocket.OPEN) {
-        sendDocumentUpdate(clientUpdateId, update);
-      }
+      queueDocumentUpdate(update);
       return;
     }
     if (!ws || ws.readyState !== WebSocket.OPEN) {
@@ -292,9 +339,30 @@ export function createYjsWsProvider(url: string, persistDocumentUpdates: boolean
   function connect() {
     if (destroyed) return;
     if (ws) return;
+    if (connectInFlight) return;
 
     setStatus("connecting");
     setSynced(false);
+    connectInFlight = true;
+
+    void openSocket();
+  }
+
+  async function openSocket() {
+    let url: string;
+    try {
+      url = await getUrl();
+    } catch (error) {
+      connectInFlight = false;
+      if (destroyed) return;
+      console.error("[crdt] Failed to prepare WebSocket authentication", error);
+      setStatus("error");
+      scheduleReconnect();
+      return;
+    }
+
+    connectInFlight = false;
+    if (destroyed || ws) return;
 
     const socket = new WebSocket(url);
     socket.binaryType = "arraybuffer";
@@ -309,6 +377,9 @@ export function createYjsWsProvider(url: string, persistDocumentUpdates: boolean
         requestCrdtSync();
       }
       if (persistDocumentUpdates) {
+        // 아직 전송 단위로 확정되지 않은 update를 먼저 하나의 불변 batch로 만든다.
+        // 아래 반복문에서 기존 미확인 batch와 함께 동일한 ID로 전송한다.
+        flushPendingDocumentUpdates(false);
         unacknowledgedUpdates.forEach((update, clientUpdateId) => {
           sendDocumentUpdate(clientUpdateId, update);
         });
@@ -406,6 +477,10 @@ export function createYjsWsProvider(url: string, persistDocumentUpdates: boolean
   function destroy() {
     if (destroyed) return;
     destroyed = true;
+    if (documentUpdateBatchTimer !== null) {
+      clearTimeout(documentUpdateBatchTimer);
+      documentUpdateBatchTimer = null;
+    }
     disconnect();
     doc.off("update", onDocUpdate);
     awareness.off("update", onAwarenessUpdate);

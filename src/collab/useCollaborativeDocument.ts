@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { createYjsWsProvider } from "./createYjsWsProvider";
 import type { CollaborationConfig, ProviderStatus } from "./types";
-import { authStorage } from "@/lib/authStorage";
+import { ensureFreshAccessToken } from "@/api/client";
 
 export interface CollaboratorInfo {
   clientId: number;
@@ -22,20 +22,13 @@ export function useCollaborativeDocument(config: CollaborationConfig | null) {
   const [status, setStatus] = useState<ProviderStatus>("idle");
   const [isSynced, setIsSynced] = useState(false);
   const [collaborators, setCollaborators] = useState<CollaboratorInfo[]>([]);
-  const [accessToken, setAccessToken] = useState(() => authStorage.getAccessToken());
 
   // config를 ref로 유지 → provider 재생성 없이 awareness만 갱신 가능
   const configRef = useRef(config);
   configRef.current = config;
 
-  useEffect(() => {
-    return authStorage.subscribe(() => {
-      setAccessToken(authStorage.getAccessToken());
-    });
-  }, []);
-
-  const wsUrl = config && accessToken
-    ? buildWsUrl(config, accessToken)
+  const collaborationKey = config
+    ? `${config.workspaceId}/${config.documentType}/${config.documentId}`
     : null;
 
   const providerRef = useRef<ReturnType<typeof createYjsWsProvider> | null>(null);
@@ -76,9 +69,9 @@ export function useCollaborativeDocument(config: CollaborationConfig | null) {
     setCollaborators(Array.from(byName.values()));
   }, []);
 
-  // provider 생성 — wsUrl만 의존 (user 표시 정보 변경 시 재생성하지 않음)
+  // provider 생성 — 문서 식별자만 의존 (재연결 시마다 최신 token으로 URL 생성)
   useEffect(() => {
-    if (!wsUrl) {
+    if (!collaborationKey) {
       setStatus("idle");
       setIsSynced(false);
       setCollaborators([]);
@@ -93,7 +86,14 @@ export function useCollaborativeDocument(config: CollaborationConfig | null) {
       return;
     }
 
-    const provider = createYjsWsProvider(wsUrl, true);
+    const provider = createYjsWsProvider(async () => {
+      const latestConfig = configRef.current;
+      if (!latestConfig) {
+        throw new Error("Collaboration config is unavailable");
+      }
+      const token = await ensureFreshAccessToken();
+      return buildWsUrl(latestConfig, token);
+    }, true);
     providerRef.current = provider;
 
     // 초기 awareness user 정보 설정
@@ -112,8 +112,18 @@ export function useCollaborativeDocument(config: CollaborationConfig | null) {
     provider.awareness.on("change", onAwarenessChange);
 
     provider.connect();
+    const reconnectWhenOnline = () => provider.connect();
+    const reconnectWhenVisible = () => {
+      if (document.visibilityState === "visible") {
+        provider.connect();
+      }
+    };
+    window.addEventListener("online", reconnectWhenOnline);
+    document.addEventListener("visibilitychange", reconnectWhenVisible);
 
     return () => {
+      window.removeEventListener("online", reconnectWhenOnline);
+      document.removeEventListener("visibilitychange", reconnectWhenVisible);
       provider.awareness.off("change", onAwarenessChange);
       unsub();
       unsubSync();
@@ -122,7 +132,7 @@ export function useCollaborativeDocument(config: CollaborationConfig | null) {
       setIsSynced(false);
       setCollaborators([]);
     };
-  }, [wsUrl, syncCollaborators]);
+  }, [collaborationKey, syncCollaborators]);
 
   // user 정보만 바뀌면 awareness만 갱신 (provider 재생성 없음)
   useEffect(() => {
