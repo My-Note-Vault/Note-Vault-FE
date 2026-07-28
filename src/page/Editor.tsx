@@ -188,6 +188,7 @@ function DailyNoteItemList({
 }
 
 interface EditorProps {
+  workspaceId: string | null;
   isDailyNote?: boolean;
   docType?: DocType;
   documentId: string;
@@ -202,6 +203,7 @@ interface EditorProps {
 }
 
 export default function Editor({
+  workspaceId,
   isDailyNote = false,
   docType,
   documentId,
@@ -284,8 +286,8 @@ export default function Editor({
   const profileImageUrl = profileImage?.profileImageUrl ?? null;
   const collaborationConfig = useMemo(() => {
     if (isDailyNote || isNew || !entityDetail || !docType || !entityId) return null;
-    const workspaceId = localStorage.getItem("selected_workspace");
-    if (!workspaceId) return null;
+    const collaborationWorkspaceId = docType === "space" ? entityId : workspaceId;
+    if (!collaborationWorkspaceId) return null;
 
     const numericId = Number(entityId);
     if (Number.isNaN(numericId)) return null;
@@ -296,13 +298,19 @@ export default function Editor({
       profileImageUrl,
     );
 
-    return buildCollaborationConfig(workspaceId, docType, numericId, user);
+    return buildCollaborationConfig(
+      collaborationWorkspaceId,
+      docType,
+      numericId,
+      user,
+    );
   }, [
     isDailyNote,
     isNew,
     entityDetail,
     docType,
     entityId,
+    workspaceId,
     collaboratorName,
     profileImageUrl,
   ]);

@@ -24,6 +24,7 @@ export interface PaneState {
 interface TabPaneProps {
   paneId: PaneId;
   paneState: PaneState;
+  selectedWorkspaceId: string | null;
   isFocused: boolean;
   isSplit: boolean;
   isTreeLoaded?: boolean;
@@ -48,6 +49,7 @@ function isTabDrag(e: React.DragEvent) {
 export default function TabPane({
   paneId,
   paneState,
+  selectedWorkspaceId,
   isFocused,
   isSplit,
   isTreeLoaded,
@@ -235,6 +237,7 @@ export default function TabPane({
           ) : (
             <Editor
               key={activeTab.id}
+              workspaceId={selectedWorkspaceId}
               documentId={activeTab.id}
               documentName={activeTab.name}
               isDailyNote={activeTab.isDaily}

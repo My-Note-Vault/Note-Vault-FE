@@ -974,6 +974,7 @@ function AppContent() {
     const paneProps = (paneId: PaneId) => ({
         paneId,
         paneState: resolvePane(splitState.panes[paneId]),
+        selectedWorkspaceId,
         isFocused: splitState.focusedPane === paneId,
         isSplit: splitState.mode === "split",
         isTreeLoaded: !isLoading,
