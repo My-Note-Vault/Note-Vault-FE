@@ -32,12 +32,18 @@ export interface AutoSaveOptions {
   reason: "debounced" | "flush" | "unload" | "url";
 }
 
+export interface YjsSavePayload {
+  yjsState: Uint8Array;
+  yjsUpdate: Uint8Array;
+}
+
 interface MarkdownEditorProps {
   initialContent?: string;
   placeholder?: string;
   onAutoSave?: (
     content: string,
     options: AutoSaveOptions,
+    yjsPayload?: YjsSavePayload,
   ) => void | Promise<unknown>;
   onContentChange?: (content: string) => void;
   autoSaveDelay?: number;
@@ -379,6 +385,7 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(({
   const lastSettledContentRef = useRef(initialContent);
   const saveSequenceRef = useRef(0);
   const lastSettledSaveSequenceRef = useRef(0);
+  const pendingYjsUpdatesRef = useRef<Uint8Array[]>([]);
   const location = useLocation();
   const currentUrl = `${location.pathname}${location.search}${location.hash}`;
   const lastUrlRef = useRef(currentUrl);
@@ -426,14 +433,24 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(({
     if (!save) return;
 
     const saveSequence = ++saveSequenceRef.current;
+    const pendingUpdateCount = pendingYjsUpdatesRef.current.length;
+    const yjsPayload = doc
+      ? {
+          yjsState: Y.encodeStateAsUpdate(doc),
+          yjsUpdate: pendingUpdateCount > 0
+            ? Y.mergeUpdates(pendingYjsUpdatesRef.current.slice(0, pendingUpdateCount))
+            : Y.encodeStateAsUpdate(doc),
+        }
+      : undefined;
     const markSettled = () => {
       if (saveSequence < lastSettledSaveSequenceRef.current) return;
       lastSettledSaveSequenceRef.current = saveSequence;
       lastSettledContentRef.current = content;
+      pendingYjsUpdatesRef.current.splice(0, pendingUpdateCount);
     };
 
     try {
-      const result = save(content, { reason });
+      const result = save(content, { reason }, yjsPayload);
       if (reason === "unload") {
         markSettled();
         return;
@@ -445,7 +462,18 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(({
     } catch {
       // 동기 오류가 난 경우 dirty 상태를 유지해 다음 flush에서 다시 시도한다.
     }
-  }, []);
+  }, [doc]);
+
+  useEffect(() => {
+    pendingYjsUpdatesRef.current = [];
+    if (!doc) return;
+
+    const collectUpdate = (update: Uint8Array) => {
+      pendingYjsUpdatesRef.current.push(update);
+    };
+    doc.on("update", collectUpdate);
+    return () => doc.off("update", collectUpdate);
+  }, [doc]);
 
   const debouncedSave = useCallback((content: string) => {
     lastContentRef.current = content;
@@ -588,7 +616,8 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(({
     const view = viewRef.current;
     const collabCompartment = collabCompartmentRef.current;
     if (!view || !collabCompartment) return;
-    if (!collaborationEnabled || !sharedText || !awareness || !isSynced) return;
+    if (!collaborationEnabled || !sharedText || !awareness) return;
+    if (!isSynced) return;
     if (activeYTextRef.current === sharedText) return;
 
     cleanupCollabBinding();

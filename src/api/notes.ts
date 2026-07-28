@@ -16,7 +16,6 @@ export const fetchNoteDetail = async (id: string): Promise<NoteDetail> => {
   return {
     id: data.id,
     name: data.name,
-    content: data.content,
   };
 };
 

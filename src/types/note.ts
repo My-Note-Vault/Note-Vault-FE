@@ -1,7 +1,6 @@
 export interface NoteDetail {
   id: string;
   name: string;
-  content: string;
 }
 
 export interface CreateNoteRequest {
@@ -15,5 +14,4 @@ export interface CreateNoteResponse {
 
 export interface UpdateNoteRequest {
   name?: string;
-  content?: string;
 }

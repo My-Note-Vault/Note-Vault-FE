@@ -13,7 +13,6 @@ interface RawDocumentResponse {
   id: number;
   type: WorkspaceDocumentType;
   title: string;
-  content: string | null;
   schedule: {
     status: string | null;
     startDateTime: number[] | string | null;
@@ -47,7 +46,6 @@ function mapDocumentResponse(raw: RawDocumentResponse): DocumentDetail {
     id: String(raw.id),
     type: KIND[raw.type],
     name: raw.title,
-    content: raw.content ?? "",
     status: (raw.schedule?.status as DocumentDetail["status"]) ?? null,
     startDateTime: toDateTimeString(raw.schedule?.startDateTime),
     endDateTime: toDateTimeString(raw.schedule?.endDateTime),
@@ -74,7 +72,6 @@ export const createWorkspaceDocument = async (
     workSpaceId: req.workSpaceId ? Number(req.workSpaceId) : undefined,
     parentId: req.parentId ? Number(req.parentId) : undefined,
     title: req.title,
-    content: req.content,
     status: req.status,
     startDateTime: req.startDateTime,
     endDateTime: req.endDateTime,

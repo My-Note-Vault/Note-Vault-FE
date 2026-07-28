@@ -15,22 +15,8 @@ export function sendKeepaliveEntityAutoSave(
       });
       return;
     case "task":
-      sendKeepaliveJsonRequest(endpoints.DOCUMENT_DETAIL("TASK", id), {
-        method: "PATCH",
-        body: { content },
-      });
-      return;
     case "subtask":
-      sendKeepaliveJsonRequest(endpoints.DOCUMENT_DETAIL("SUBTASK", id), {
-        method: "PATCH",
-        body: { content },
-      });
-      return;
     case "note":
-      sendKeepaliveJsonRequest(endpoints.DOCUMENT_DETAIL("NOTE", id), {
-        method: "PATCH",
-        body: { content },
-      });
       return;
   }
 }

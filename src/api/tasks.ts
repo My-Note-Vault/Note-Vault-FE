@@ -21,7 +21,6 @@ export const createTask = async (req: CreateTaskRequest): Promise<CreateTaskResp
       type: "TASK",
       workSpaceId: req.workSpaceId,
       title: req.title,
-      content: req.content,
       status: req.status,
       startDateTime: req.startDateTime,
       endDateTime: req.endDateTime,

@@ -43,66 +43,28 @@ function formatSearchLogicalDate(logicalDate: JavaLocalDate): string {
 }
 
 function toSearchResults(response: SearchResponse): SearchResult[] {
-  const results: SearchResult[] = [];
+  const toDocType = (type: "WORKSPACE" | "TASK" | "SUBTASK" | "NOTE") =>
+    type === "WORKSPACE" ? "space" as const : type.toLowerCase() as "task" | "subtask" | "note";
 
-  for (const workspace of response.workSpaces ?? []) {
-    if (workspace.matched) {
-      results.push({
-        id: String(workspace.id),
-        name: workspace.name,
-        type: "space",
-        resultType: "space",
-        content: workspace.content ?? undefined,
-      });
+  return (response.results ?? []).map((result) => {
+    if (result.type === "DAILY_NOTE") {
+      return {
+        id: `daily-${result.id}`,
+        name: result.logicalDate ? formatSearchLogicalDate(result.logicalDate) : result.title,
+        resultType: "daily",
+        content: result.content ?? undefined,
+      };
     }
 
-    for (const task of workspace.tasks ?? []) {
-      if (task.matched) {
-        results.push({
-          id: String(task.id),
-          name: task.title,
-          type: "task",
-          resultType: "task",
-          content: task.content ?? undefined,
-        });
-      }
-
-      for (const subTask of task.subTasks ?? []) {
-        if (subTask.matched) {
-          results.push({
-            id: String(subTask.id),
-            name: subTask.title,
-            type: "subtask",
-            resultType: "subtask",
-            content: subTask.content ?? undefined,
-          });
-        }
-
-        for (const note of subTask.notes ?? []) {
-          if (note.matched) {
-            results.push({
-              id: String(note.id),
-              name: note.title,
-              type: "note",
-              resultType: "note",
-              content: note.content ?? undefined,
-            });
-          }
-        }
-      }
-    }
-  }
-
-  for (const dailyNote of response.dailyNotes ?? []) {
-    results.push({
-      id: `daily-${dailyNote.id}`,
-      name: formatSearchLogicalDate(dailyNote.logicalDate),
-      resultType: "daily",
-      content: dailyNote.content ?? undefined,
-    });
-  }
-
-  return results;
+    const type = toDocType(result.type);
+    return {
+      id: String(result.id),
+      name: result.title,
+      type,
+      resultType: type,
+      content: result.content ?? undefined,
+    };
+  });
 }
 
 // 전체 NoteInfo 조회 (flat list)

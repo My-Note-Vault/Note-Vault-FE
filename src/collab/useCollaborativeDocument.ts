@@ -93,7 +93,7 @@ export function useCollaborativeDocument(config: CollaborationConfig | null) {
       return;
     }
 
-    const provider = createYjsWsProvider(wsUrl);
+    const provider = createYjsWsProvider(wsUrl, true);
     providerRef.current = provider;
 
     // 초기 awareness user 정보 설정

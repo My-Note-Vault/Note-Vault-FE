@@ -3,14 +3,14 @@ import { useQueryClient } from "@tanstack/react-query";
 import MarkdownEditor, { type MarkdownEditorHandle, type AutoSaveOptions } from "@/components/MarkdownEditor";
 import { ChevronRight, Loader2, AlertTriangle, RefreshCw, Check, Undo2, ArrowUp, ArrowDown, Trash2, Columns2, Rows2, Sparkles, FileText, X } from "lucide-react";
 import { toast } from "sonner";
-import { sendKeepaliveDailyNoteAutoSave, sendKeepaliveEntityAutoSave } from "@/api/autoSave";
+import { sendKeepaliveDailyNoteAutoSave } from "@/api/autoSave";
 import type { ContentImageTarget } from "@/api/contentImages";
 import { AI_SUMMARY_MAX_CONTENT_LENGTH, summarizeMarkdown } from "@/api/aiSummaries";
 import { extractEntityId, type DocType } from "@/types/common";
 import TaskMetadata, { type TaskMetadataValues } from "@/components/TaskMetadata";
 import { useDailyNoteDetail, useUpdateDailyNote, useAddPlan, useUpdatePlan, useDeletePlan, documentKeys } from "@/hooks/useDocuments";
 import { formatLogicalDate, type DailyNoteDetail, type DailyNotePlan } from "@/api/documents";
-import { useEntityDetail, useAutoSaveEntity, useUpdateEntity, type EntityDetail } from "@/hooks/useEntity";
+import { useEntityDetail, useUpdateEntity, type EntityDetail } from "@/hooks/useEntity";
 import { useMemberProfile, useProfileImage } from "@/hooks/useMember";
 import {
   buildCollaborationConfig,
@@ -265,7 +265,9 @@ export default function Editor({
   const detail = isDailyNote ? dailyDetail : entityDetail;
   const loadedContent = isDailyNote
     ? dailyDetail?.content ?? ""
-    : (entityDetail as EntityDetail | undefined)?.content ?? "";
+    : docType === "space" && entityDetail
+      ? entityDetail.content ?? ""
+      : "";
   const contentImageTarget = getContentImageTarget(isDailyNote, docType);
   const loading = isNew ? false : isDailyNote ? isDailyLoading : isEntityLoading;
   const isError = isNew ? false : isDailyNote ? isDailyError : isEntityError;
@@ -542,19 +544,9 @@ export default function Editor({
   }, [isDailyNote, dailyDetail, queryClient]);
 
   // 자동 저장 (엔티티)
-  const autoSaveMutation = useAutoSaveEntity();
-
   const handleAutoSave = useCallback(
-    (content: string, options: AutoSaveOptions) => {
-      if (!docType || !entityId) return Promise.resolve();
-      if (options.reason === "unload") {
-        sendKeepaliveEntityAutoSave(entityId, docType, content);
-        return Promise.resolve();
-      }
-
-      return autoSaveMutation.mutateAsync({ id: entityId, type: docType, content });
-    },
-    [entityId, docType, autoSaveMutation],
+    (_content: string, _options: AutoSaveOptions) => Promise.resolve(),
+    [],
   );
 
   // 자동 저장 (DailyNote content)
@@ -777,8 +769,6 @@ export default function Editor({
     );
   }
 
-  const initialContent = (entityDetail as EntityDetail | undefined)?.content ?? "";
-
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-[54.4rem] mx-auto p-6">
@@ -844,7 +834,7 @@ export default function Editor({
 
           <MarkdownEditor
             ref={editorRef}
-            initialContent={initialContent}
+            initialContent={loadedContent}
             onAutoSave={handleAutoSave}
             onContentChange={setCurrentContent}
             collaboration={collaborationConfig}

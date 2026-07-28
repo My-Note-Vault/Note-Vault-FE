@@ -63,57 +63,25 @@ export interface SearchResult {
   name: string;
   type?: DocType;
   content?: string;
-  resultType?: DocType | "daily";
+  resultType: DocType | "daily";
 }
 
 export type JavaLocalDate = string | number[];
 export type JavaLocalDateTime = string | number[];
 
 export interface SearchResponse {
-  workSpaces: SearchWorkSpaceResult[];
-  dailyNotes: SearchDailyNoteResult[];
+  results: SearchResultResponse[];
 }
 
-export interface SearchWorkSpaceResult {
-  id: number;
-  name: string;
-  content: string | null;
-  createdAt: JavaLocalDateTime;
-  matched: boolean;
-  tasks: SearchTaskResult[];
-}
+export type SearchDocumentType = "WORKSPACE" | "TASK" | "SUBTASK" | "NOTE" | "DAILY_NOTE";
 
-export interface SearchTaskResult {
+export interface SearchResultResponse {
   id: number;
+  type: SearchDocumentType;
   title: string;
   content: string | null;
   createdAt: JavaLocalDateTime;
-  matched: boolean;
-  subTasks: SearchSubTaskResult[];
-}
-
-export interface SearchSubTaskResult {
-  id: number;
-  title: string;
-  content: string | null;
-  createdAt: JavaLocalDateTime;
-  matched: boolean;
-  notes: SearchNoteResult[];
-}
-
-export interface SearchNoteResult {
-  id: number;
-  title: string;
-  content: string | null;
-  createdAt: JavaLocalDateTime;
-  matched: boolean;
-}
-
-export interface SearchDailyNoteResult {
-  id: number;
-  logicalDate: JavaLocalDate;
-  content: string | null;
-  createdAt: JavaLocalDateTime;
+  logicalDate: JavaLocalDate | null;
 }
 
 // 캘린더 날짜별 통계

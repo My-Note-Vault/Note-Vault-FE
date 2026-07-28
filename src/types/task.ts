@@ -3,7 +3,6 @@ import type { TaskStatus } from "./common";
 export interface TaskDetail {
   id: string;
   name: string;
-  content: string;
   status: TaskStatus | null;
   startDateTime: string | null;
   endDateTime: string | null;
@@ -13,7 +12,6 @@ export interface TaskDetail {
 export interface CreateTaskRequest {
   workSpaceId: string;
   title: string;
-  content?: string;
   status?: TaskStatus;
   startDateTime?: string | null;
   endDateTime?: string | null;
@@ -26,7 +24,6 @@ export interface CreateTaskResponse {
 
 export interface UpdateTaskRequest {
   title?: string;
-  content?: string;
   status?: TaskStatus;
   startDateTime?: string | null;
   endDateTime?: string | null;

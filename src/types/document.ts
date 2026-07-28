@@ -7,7 +7,6 @@ export interface DocumentDetail {
   id: string;
   type: WorkspaceDocumentKind;
   name: string;
-  content: string;
   status: TaskStatus | null;
   startDateTime: string | null;
   endDateTime: string | null;
@@ -19,7 +18,6 @@ export interface CreateDocumentRequest {
   workSpaceId?: string;
   parentId?: string;
   title?: string;
-  content?: string;
   status?: TaskStatus;
   startDateTime?: string | null;
   endDateTime?: string | null;
@@ -34,7 +32,6 @@ export interface CreateDocumentResponse {
 export interface UpdateDocumentRequest {
   title?: string;
   name?: string;
-  content?: string;
   status?: TaskStatus;
   startDateTime?: string | null;
   endDateTime?: string | null;

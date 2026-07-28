@@ -49,7 +49,6 @@ interface DeleteEntityRequest {
 
 interface AutoSaveEntityRequest {
   id: string;
-  type: DocType;
   content: string;
 }
 
@@ -120,7 +119,6 @@ export const useUpdateEntity = () => {
         case "task": {
           const taskReq: UpdateTaskRequest = {};
           if (req.name !== undefined) taskReq.title = req.name;
-          if (req.content !== undefined) taskReq.content = req.content;
           if (req.metadata) {
             const meta = req.metadata;
             taskReq.status = meta.status;
@@ -131,17 +129,16 @@ export const useUpdateEntity = () => {
         }
         case "subtask": {
           const subReq: UpdateSubTaskRequest = {};
-          if (req.name !== undefined) subReq.name = req.name;
-          if (req.content !== undefined) subReq.content = req.content;
+          if (req.name !== undefined) subReq.title = req.name;
           if (req.metadata) {
             subReq.status = req.metadata.status;
-            subReq.startDate = req.metadata.startDate;
-            subReq.endDate = req.metadata.endDate;
+            subReq.startDateTime = req.metadata.startDate;
+            subReq.endDateTime = req.metadata.endDate;
           }
           return updateSubTask(id, subReq);
         }
         case "note":
-          return updateNote(id, req as UpdateNoteRequest);
+          return updateNote(id, req.name === undefined ? {} : { name: req.name });
       }
     },
     onSuccess: (_data, variables) => {
@@ -191,22 +188,11 @@ export const useAutoSaveEntity = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, type, content }: AutoSaveEntityRequest): Promise<void> => {
-      switch (type) {
-        case "space":
-          return updateSpace(id, { content });
-        case "task":
-          return updateTask(id, { content });
-        case "subtask":
-          return updateSubTask(id, { content });
-        case "note":
-          return updateNote(id, { content });
-      }
-    },
+    mutationFn: async ({ id, content }: AutoSaveEntityRequest): Promise<void> =>
+      updateSpace(id, { content }),
     onSuccess: (_data, variables) => {
-      const keys = entityKeyMap[variables.type];
       queryClient.setQueryData<EntityDetail | undefined>(
-        keys.detail(variables.id),
+        spaceKeys.detail(variables.id),
         (current) => current ? { ...current, content: variables.content } : current,
       );
     },

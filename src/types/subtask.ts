@@ -9,7 +9,6 @@ export interface SubTaskMetadata {
 export interface SubTaskDetail {
   id: string;
   name: string;
-  content: string;
   status?: TaskStatus;
   startDate?: string | null;
   endDate?: string | null;
@@ -19,7 +18,6 @@ export interface SubTaskDetail {
 export interface CreateSubTaskRequest {
   taskId: string;
   title: string;
-  content?: string;
   startDateTime?: string | null;
   endDateTime?: string | null;
   status?: TaskStatus;
@@ -31,9 +29,8 @@ export interface CreateSubTaskResponse {
 }
 
 export interface UpdateSubTaskRequest {
-  name?: string;
-  content?: string;
+  title?: string;
   status?: TaskStatus;
-  startDate?: string | null;
-  endDate?: string | null;
+  startDateTime?: string | null;
+  endDateTime?: string | null;
 }
