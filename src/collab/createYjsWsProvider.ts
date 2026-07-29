@@ -20,6 +20,7 @@ import {
   MSG_CRDT_SNAPSHOT,
 } from "./messageTypes";
 import type { ProviderStatus, YjsWsProvider } from "./types";
+import type { CollaborationBootstrap } from "@/api/collaboration";
 
 const INITIAL_RECONNECT_MS = 500;
 const MAX_RECONNECT_MS = 30_000;
@@ -40,6 +41,7 @@ export function createYjsWsProvider(
   let ws: WebSocket | null = null;
   let status: ProviderStatus = "idle";
   let isSynced = false;
+  let hasInitialDocumentState = false;
   let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   let reconnectDelay = INITIAL_RECONNECT_MS;
   let connectInFlight = false;
@@ -263,6 +265,7 @@ export function createYjsWsProvider(
         if (lastAppliedRevision < serverLatestRevision) {
           requestCrdtSync();
         } else {
+          hasInitialDocumentState = true;
           setSynced(true);
           scheduleSearchProjection();
         }
@@ -361,10 +364,28 @@ export function createYjsWsProvider(
     if (connectInFlight) return;
 
     setStatus("connecting");
-    setSynced(false);
+    if (!hasInitialDocumentState) {
+      setSynced(false);
+    }
     connectInFlight = true;
 
     void openSocket();
+  }
+
+  function applyRestBootstrap(bootstrap: CollaborationBootstrap) {
+    if (bootstrap.state && bootstrap.state.byteLength > 0) {
+      Y.applyUpdate(doc, bootstrap.state, provider);
+      Y.applyUpdate(searchDoc, bootstrap.state, provider);
+    }
+    bootstrap.updates.forEach(({ update }) => {
+      Y.applyUpdate(doc, update, provider);
+      Y.applyUpdate(searchDoc, update, provider);
+    });
+    lastAppliedRevision = bootstrap.cursor;
+    serverLatestRevision = bootstrap.cursor;
+    lastProjectedRevision = bootstrap.cursor;
+    hasInitialDocumentState = true;
+    setSynced(true);
   }
 
   async function openSocket() {
@@ -533,6 +554,7 @@ export function createYjsWsProvider(
       return isSynced;
     },
     connect,
+    applyRestBootstrap,
     disconnect,
     destroy,
     onStatusChange(cb) {

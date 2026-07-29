@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { createYjsWsProvider } from "./createYjsWsProvider";
 import type { CollaborationConfig, ProviderStatus } from "./types";
 import { ensureFreshAccessToken } from "@/api/client";
+import { fetchCollaborationBootstrap } from "@/api/collaboration";
 
 export interface CollaboratorInfo {
   clientId: number;
@@ -111,7 +112,26 @@ export function useCollaborativeDocument(config: CollaborationConfig | null) {
     const onAwarenessChange = () => syncCollaborators();
     provider.awareness.on("change", onAwarenessChange);
 
-    provider.connect();
+    const abortController = new AbortController();
+    void fetchCollaborationBootstrap(
+      currentConfig.workspaceId,
+      currentConfig.documentType,
+      currentConfig.documentId,
+      abortController.signal,
+    )
+      .then((bootstrap) => {
+        if (abortController.signal.aborted) return;
+        provider.applyRestBootstrap(bootstrap);
+      })
+      .catch((error) => {
+        if (abortController.signal.aborted) return;
+        console.warn("[crdt] REST bootstrap failed; falling back to WebSocket", error);
+      })
+      .finally(() => {
+        if (!abortController.signal.aborted) {
+          provider.connect();
+        }
+      });
     const reconnectWhenOnline = () => provider.connect();
     const reconnectWhenVisible = () => {
       if (document.visibilityState === "visible") {
@@ -122,6 +142,7 @@ export function useCollaborativeDocument(config: CollaborationConfig | null) {
     document.addEventListener("visibilitychange", reconnectWhenVisible);
 
     return () => {
+      abortController.abort();
       window.removeEventListener("online", reconnectWhenOnline);
       document.removeEventListener("visibilitychange", reconnectWhenVisible);
       provider.awareness.off("change", onAwarenessChange);

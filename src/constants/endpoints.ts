@@ -17,6 +17,8 @@ SPACE_INFORMATION: (id: string) => `${API_BASE}/workspaces/information/${id}`,
 // Unified Workspace Document Endpoints
 DOCUMENTS: `${API_BASE}/documents`,
 DOCUMENT_DETAIL: (type: string, id: string) => `${API_BASE}/documents/${type}/${id}`,
+DOCUMENT_COLLABORATION_BOOTSTRAP: (type: string, id: number) =>
+  `${API_BASE}/documents/${type}/${id}/collaboration-bootstrap`,
 
 // 사이드바 문서 트리
 NOTE_INFO_LIST: `${API_BASE}/unfolded-notes/note-info`,

@@ -1,5 +1,6 @@
 import type { Awareness } from "y-protocols/awareness";
 import type * as Y from "yjs";
+import type { CollaborationBootstrap } from "@/api/collaboration";
 
 export type ProviderStatus =
   | "idle"
@@ -21,6 +22,7 @@ export interface YjsWsProvider {
   status: ProviderStatus;
   isSynced: boolean;
   connect(): void;
+  applyRestBootstrap(bootstrap: CollaborationBootstrap): void;
   disconnect(): void;
   destroy(): void;
   onStatusChange(cb: (status: ProviderStatus) => void): () => void;
