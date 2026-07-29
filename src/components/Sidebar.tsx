@@ -535,17 +535,20 @@ export default function Sidebar({ onSelectSidebarItem, docs, workspaces = [], da
     document.addEventListener("mouseup", onUp);
   }, [onClose]);
 
-  // 1초 디바운스 후 검색
+  // 200ms 디바운스 후 검색
   const [debouncedQuery, setDebouncedQuery] = useState("");
+  const normalizedQuery = searchQuery.trim();
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      setDebouncedQuery(searchQuery.trim());
-    }, 1000);
+      setDebouncedQuery(normalizedQuery);
+    }, 200);
     return () => clearTimeout(timer);
-  }, [searchQuery]);
+  }, [normalizedQuery]);
 
-  const { data: searchResults = [], isLoading: isSearching } = useSearchDocuments(debouncedQuery);
+  const { data: searchResults = [], isFetching } = useSearchDocuments(debouncedQuery);
+  const isWaitingForDebounce = normalizedQuery.length > 0 && normalizedQuery !== debouncedQuery;
+  const isSearching = isWaitingForDebounce || isFetching;
 
   const handleSelect = (id: string, docType?: DocType) => {
     setSearchQuery("");
@@ -595,7 +598,7 @@ export default function Sidebar({ onSelectSidebarItem, docs, workspaces = [], da
           {isSearchMode ? (
             /* 검색 결과 */
             <div className="space-y-0.5">
-              {searchQuery.trim().length === 0 ? (
+              {normalizedQuery.length === 0 ? (
                 <div className="px-3 py-4 text-sm text-sidebar-foreground/50 text-center">
                   검색어를 입력하세요
                 </div>
@@ -609,7 +612,7 @@ export default function Sidebar({ onSelectSidebarItem, docs, workspaces = [], da
                   <SearchResultItem
                     key={`${doc.resultType ?? doc.type ?? "document"}-${doc.id}`}
                     doc={doc}
-                    query={searchQuery}
+                    query={normalizedQuery}
                     onSelect={handleSelect}
                   />
                 ))
