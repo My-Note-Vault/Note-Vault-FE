@@ -29,10 +29,14 @@ const CRDT_RECONCILE_INTERVAL_MS = 5_000;
 const DOCUMENT_UPDATE_BATCH_DELAY_MS = 50;
 const DOCUMENT_UPDATE_BATCH_MAX_COUNT = 50;
 const DOCUMENT_UPDATE_BATCH_MAX_BYTES = 64 * 1024;
+const DOCUMENT_INDEXING_IDLE_DELAY_MS = 30_000;
+const DOCUMENT_INDEXING_RETRY_DELAY_MS = 10_000;
 
 export function createYjsWsProvider(
   getUrl: () => Promise<string>,
   persistDocumentUpdates: boolean,
+  deferLocalUpdatesUntilRestore = false,
+  requestDocumentIndexing?: (revision: number) => Promise<void>,
 ): YjsWsProvider {
   const doc = new Y.Doc();
   const searchDoc = new Y.Doc();
@@ -57,8 +61,11 @@ export function createYjsWsProvider(
   let lastProjectedRevision = 0;
   let syncInFlight = false;
   let searchProjectionTimer: ReturnType<typeof setTimeout> | null = null;
+  let documentIndexingTimer: ReturnType<typeof setTimeout> | null = null;
   let reconcileTimer: ReturnType<typeof setInterval> | null = null;
   let roomUrl = "";
+  let restoringLocalState = deferLocalUpdatesUntilRestore;
+  let restoredLocalStatePending = deferLocalUpdatesUntilRestore;
 
   const statusListeners = new Set<(s: ProviderStatus) => void>();
   const syncListeners = new Set<(synced: boolean) => void>();
@@ -132,6 +139,24 @@ export function createYjsWsProvider(
     }
   }
 
+  function enqueueRestoredLocalState() {
+    if (
+      !persistDocumentUpdates ||
+      restoringLocalState ||
+      !restoredLocalStatePending ||
+      !hasInitialDocumentState
+    ) {
+      return;
+    }
+
+    restoredLocalStatePending = false;
+    const serverStateVector = Y.encodeStateVector(searchDoc);
+    const missingUpdate = Y.encodeStateAsUpdate(doc, serverStateVector);
+    if (missingUpdate.byteLength > 2) {
+      queueDocumentUpdate(missingUpdate);
+    }
+  }
+
   function requestCrdtSync() {
     if (
       !persistDocumentUpdates ||
@@ -159,6 +184,7 @@ export function createYjsWsProvider(
   }
 
   function receiveCommittedUpdate(revision: number, update: Uint8Array) {
+    clearDocumentIndexingTimer();
     serverLatestRevision = Math.max(serverLatestRevision, revision);
     if (revision <= lastAppliedRevision) return;
 
@@ -204,7 +230,40 @@ export function createYjsWsProvider(
       encoding.writeVarUint8Array(encoder, crdtState);
       send(encoding.toUint8Array(encoder));
       lastProjectedRevision = revision;
+      scheduleDocumentIndexing(revision);
     }, 500);
+  }
+
+  function clearDocumentIndexingTimer() {
+    if (documentIndexingTimer !== null) {
+      clearTimeout(documentIndexingTimer);
+      documentIndexingTimer = null;
+    }
+  }
+
+  function isCurrentProjectedRevision(revision: number) {
+    return !destroyed && revision === lastProjectedRevision
+      && revision === lastAppliedRevision
+      && revision === serverLatestRevision;
+  }
+
+  function scheduleDocumentIndexing(revision: number, delay = DOCUMENT_INDEXING_IDLE_DELAY_MS) {
+    clearDocumentIndexingTimer();
+    if (!requestDocumentIndexing) return;
+    documentIndexingTimer = setTimeout(() => {
+      documentIndexingTimer = null;
+      if (!isCurrentProjectedRevision(revision)) return;
+      void requestDocumentIndexing(revision).catch((error) => {
+        console.warn("[crdt] Document indexing request failed", {
+          room: roomUrl,
+          revision,
+          error,
+        });
+        if (isCurrentProjectedRevision(revision)) {
+          scheduleDocumentIndexing(revision, DOCUMENT_INDEXING_RETRY_DELAY_MS);
+        }
+      });
+    }, delay);
   }
 
   // ── outbound: sync step 1 ─────────────────────────────────────────
@@ -266,6 +325,7 @@ export function createYjsWsProvider(
           requestCrdtSync();
         } else {
           hasInitialDocumentState = true;
+          enqueueRestoredLocalState();
           setSynced(true);
           scheduleSearchProjection();
         }
@@ -325,6 +385,8 @@ export function createYjsWsProvider(
 
   function onDocUpdate(update: Uint8Array, origin: unknown) {
     if (origin === provider) return;
+    if (restoringLocalState) return;
+    clearDocumentIndexingTimer();
     if (persistDocumentUpdates) {
       queueDocumentUpdate(update);
       return;
@@ -385,7 +447,13 @@ export function createYjsWsProvider(
     serverLatestRevision = bootstrap.cursor;
     lastProjectedRevision = bootstrap.cursor;
     hasInitialDocumentState = true;
+    enqueueRestoredLocalState();
     setSynced(true);
+  }
+
+  function finishLocalRestore() {
+    restoringLocalState = false;
+    enqueueRestoredLocalState();
   }
 
   async function openSocket() {
@@ -518,6 +586,7 @@ export function createYjsWsProvider(
   function destroy() {
     if (destroyed) return;
     destroyed = true;
+    clearDocumentIndexingTimer();
     if (documentUpdateBatchTimer !== null) {
       clearTimeout(documentUpdateBatchTimer);
       documentUpdateBatchTimer = null;
@@ -553,6 +622,7 @@ export function createYjsWsProvider(
     get isSynced() {
       return isSynced;
     },
+    finishLocalRestore,
     connect,
     applyRestBootstrap,
     disconnect,

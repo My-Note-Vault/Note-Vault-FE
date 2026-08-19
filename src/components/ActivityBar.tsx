@@ -1,4 +1,4 @@
-import { CalendarDays, PanelLeft, PanelLeftClose, Sun, Moon, Search, FolderOpen } from "lucide-react";
+import { Bot, CalendarDays, PanelLeft, PanelLeftClose, Sun, Moon, Search, FolderOpen } from "lucide-react";
 import { useTheme } from "next-themes";
 import ProfilePopover from "./ProfilePopover";
 
@@ -9,9 +9,11 @@ interface ActivityBarProps {
   searchMode?: boolean;
   onToggleSearch?: () => void;
   onToggleDocs?: () => void;
+  chatOpen?: boolean;
+  onToggleChat?: () => void;
 }
 
-export default function ActivityBar({ onSelectItem, sidebarOpen, onToggleSidebar, searchMode, onToggleSearch, onToggleDocs }: ActivityBarProps) {
+export default function ActivityBar({ onSelectItem, sidebarOpen, onToggleSidebar, searchMode, onToggleSearch, onToggleDocs, chatOpen, onToggleChat }: ActivityBarProps) {
   const { theme, setTheme } = useTheme();
   const isDark = theme === "dark";
 
@@ -47,6 +49,13 @@ export default function ActivityBar({ onSelectItem, sidebarOpen, onToggleSidebar
         title="오늘의 DailyNote"
       >
         <CalendarDays className="h-5 w-5" />
+      </button>
+      <button
+        onClick={onToggleChat}
+        className={`p-2 rounded-md hover:bg-sidebar-accent transition-colors ${chatOpen ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-sidebar-foreground"}`}
+        title="Workspace Assistant"
+      >
+        <Bot className="h-5 w-5" />
       </button>
 
       <div className="mt-auto flex flex-col items-center gap-2">

@@ -35,6 +35,7 @@ import ProfileSetupPage from "./page/ProfileSetupPage";
 import InvitePage from "./page/InvitePage";
 import { AlertTriangle, RefreshCw } from "lucide-react";
 import { ThemeProvider } from "next-themes";
+import WorkspaceChatPanel from "./components/chat/WorkspaceChatPanel";
 
 const queryClient = new QueryClient({
     defaultOptions: {
@@ -204,6 +205,7 @@ function AppContent() {
             return null;
         }
     });
+    const [chatOpen, setChatOpen] = useState(false);
 
     // 선택된 workspace가 유효하지 않으면 첫 번째로 자동 선택
     useEffect(() => {
@@ -1007,6 +1009,8 @@ function AppContent() {
                     setSearchMode(true);
                     setSidebarOpen(true);
                 }}
+                chatOpen={chatOpen}
+                onToggleChat={() => setChatOpen((open) => !open)}
             />
             <Sidebar
                 onSelectSidebarItem={handleSelectDocumentWithTracking}
@@ -1049,6 +1053,12 @@ function AppContent() {
                     </PanelGroup>
                 )}
             </main>
+            {chatOpen && (
+                <WorkspaceChatPanel
+                    onClose={() => setChatOpen(false)}
+                    onOpenDocument={handleSelectDocumentWithTracking}
+                />
+            )}
         </div>
     );
 }

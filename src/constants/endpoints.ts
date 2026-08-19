@@ -12,6 +12,7 @@ DEV_LOGIN: `${API_BASE}/oauth/dev`,
 SPACES: `${API_BASE}/workspaces`,
 SPACES_ALL: `${API_BASE}/workspaces/all`,
 WORKSPACE: (id: string) => `${API_BASE}/workspaces/${id}`,
+CHAT: `${API_BASE}/chat`,
 SPACE_INFORMATION: (id: string) => `${API_BASE}/workspaces/information/${id}`,
 
 // Unified Workspace Document Endpoints
@@ -19,6 +20,8 @@ DOCUMENTS: `${API_BASE}/documents`,
 DOCUMENT_DETAIL: (type: string, id: string) => `${API_BASE}/documents/${type}/${id}`,
 DOCUMENT_COLLABORATION_BOOTSTRAP: (type: string, id: number) =>
   `${API_BASE}/documents/${type}/${id}/collaboration-bootstrap`,
+DOCUMENT_INDEXING: (type: string, id: number) =>
+  `${API_BASE}/documents/${type}/${id}/indexing`,
 
 // 사이드바 문서 트리
 NOTE_INFO_LIST: `${API_BASE}/unfolded-notes/note-info`,
@@ -33,6 +36,7 @@ DAILY_NOTE: `${API_BASE}/daily-notes`,
 DAILY_NOTE_BY_DATE: (date: string) => `${API_BASE}/daily-notes/date/${date}`,
 DAILY_NOTE_DETAIL: (id: string | number) => `${API_BASE}/daily-notes/${id}`,
 DAILY_NOTE_PLANS: (dailyNoteId: number) => `${API_BASE}/daily-notes/${dailyNoteId}/plans`,
+DAILY_NOTE_INDEXING: (dailyNoteId: number) => `${API_BASE}/daily-notes/${dailyNoteId}/indexing`,
 
 // Calendar Endpoints
 CALENDAR_SCHEDULES: `${API_BASE}/calendar/schedules`,

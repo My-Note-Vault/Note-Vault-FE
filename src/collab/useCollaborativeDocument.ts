@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState, useCallback } from "react";
+import { clearDocument, IndexeddbPersistence } from "y-indexeddb";
 import { createYjsWsProvider } from "./createYjsWsProvider";
 import type { CollaborationConfig, ProviderStatus } from "./types";
 import { ensureFreshAccessToken } from "@/api/client";
 import { fetchCollaborationBootstrap } from "@/api/collaboration";
+import { requestDocumentIndexing } from "@/api/documentIndexing";
 
 export interface CollaboratorInfo {
   clientId: number;
@@ -17,6 +19,15 @@ function buildWsUrl(config: CollaborationConfig, token: string): string {
   const host = window.location.host;
   const path = `/ws/workspaces/${config.workspaceId}/${config.documentType}/${config.documentId}`;
   return `${protocol}//${host}${path}?token=${encodeURIComponent(token)}`;
+}
+
+function offlineDocumentName(config: CollaborationConfig): string {
+  return [
+    "offline-document",
+    config.workspaceId,
+    config.documentType,
+    config.documentId,
+  ].join(":");
 }
 
 export function useCollaborativeDocument(config: CollaborationConfig | null) {
@@ -94,8 +105,16 @@ export function useCollaborativeDocument(config: CollaborationConfig | null) {
       }
       const token = await ensureFreshAccessToken();
       return buildWsUrl(latestConfig, token);
-    }, true);
+    }, true, true, async (revision) => {
+      await requestDocumentIndexing(
+        currentConfig.documentType,
+        currentConfig.documentId,
+        revision,
+      );
+    });
     providerRef.current = provider;
+    const persistenceName = offlineDocumentName(currentConfig);
+    const localPersistence = new IndexeddbPersistence(persistenceName, provider.doc);
 
     // 초기 awareness user 정보 설정
     provider.awareness.setLocalStateField("user", {
@@ -113,25 +132,28 @@ export function useCollaborativeDocument(config: CollaborationConfig | null) {
     provider.awareness.on("change", onAwarenessChange);
 
     const abortController = new AbortController();
-    void fetchCollaborationBootstrap(
-      currentConfig.workspaceId,
-      currentConfig.documentType,
-      currentConfig.documentId,
-      abortController.signal,
-    )
-      .then((bootstrap) => {
+    void localPersistence.whenSynced.then(async () => {
+      if (abortController.signal.aborted) return;
+      provider.finishLocalRestore();
+
+      try {
+        const bootstrap = await fetchCollaborationBootstrap(
+          currentConfig.workspaceId,
+          currentConfig.documentType,
+          currentConfig.documentId,
+          abortController.signal,
+        );
         if (abortController.signal.aborted) return;
         provider.applyRestBootstrap(bootstrap);
-      })
-      .catch((error) => {
+      } catch (error) {
         if (abortController.signal.aborted) return;
         console.warn("[crdt] REST bootstrap failed; falling back to WebSocket", error);
-      })
-      .finally(() => {
+      } finally {
         if (!abortController.signal.aborted) {
           provider.connect();
         }
-      });
+      }
+    });
     const reconnectWhenOnline = () => provider.connect();
     const reconnectWhenVisible = () => {
       if (document.visibilityState === "visible") {
@@ -148,6 +170,11 @@ export function useCollaborativeDocument(config: CollaborationConfig | null) {
       provider.awareness.off("change", onAwarenessChange);
       unsub();
       unsubSync();
+      void localPersistence.destroy()
+        .then(() => clearDocument(persistenceName))
+        .catch((error) => {
+          console.warn("[crdt] Failed to clear the local document cache", error);
+        });
       provider.destroy();
       providerRef.current = null;
       setIsSynced(false);

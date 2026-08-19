@@ -115,7 +115,18 @@ export const updateDailyNote = async (
   body: { content: string },
 ): Promise<void> => {
   await apiClient.patch(`${endpoints.DAILY_NOTE}/${dailyNoteId}`, body);
+  scheduleDailyNoteIndexing(dailyNoteId);
 };
+
+const dailyNoteIndexingTimers = new Map<number, ReturnType<typeof setTimeout>>();
+function scheduleDailyNoteIndexing(dailyNoteId: number) {
+  const current = dailyNoteIndexingTimers.get(dailyNoteId);
+  if (current) clearTimeout(current);
+  dailyNoteIndexingTimers.set(dailyNoteId, setTimeout(() => {
+    dailyNoteIndexingTimers.delete(dailyNoteId);
+    void apiClient.post(endpoints.DAILY_NOTE_INDEXING(dailyNoteId)).catch(() => {});
+  }, 30_000));
+}
 
 // Daily Note 삭제
 export const deleteDailyNote = async (dailyNoteId: number): Promise<void> => {
