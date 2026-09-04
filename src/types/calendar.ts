@@ -9,7 +9,7 @@ export interface ParentTask {
 }
 
 export interface DateEventResponse {
-  type: "TASK" | "SUBTASK";
+  type: "TASK";
   id: number;
   title: string;
   status: TaskStatus;

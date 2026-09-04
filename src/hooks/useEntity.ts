@@ -3,30 +3,32 @@ import { toast } from "sonner";
 import type { DocType } from "@/types/common";
 import type { SpaceDetail } from "@/types/space";
 import type { TaskDetail, UpdateTaskRequest } from "@/types/task";
-import type { SubTaskDetail, SubTaskMetadata, UpdateSubTaskRequest } from "@/types/subtask";
 import type { NoteDetail, UpdateNoteRequest } from "@/types/note";
 
 import { fetchSpaceDetail, createSpace, updateSpace, deleteSpace } from "@/api/spaces";
 import { fetchTaskDetail, createTask, updateTask, deleteTask } from "@/api/tasks";
-import { fetchSubTaskDetail, createSubTask, updateSubTask, deleteSubTask } from "@/api/subtasks";
 import { fetchNoteDetail, createNote, updateNote, deleteNote } from "@/api/notes";
 
 import { invalidateSidebar } from "./useDocuments";
 import { spaceKeys } from "./useSpaces";
 import { taskKeys } from "./useTasks";
-import { subTaskKeys } from "./useSubTasks";
 import { noteKeys } from "./useNotes";
 
 // --- 통합 타입 ---
 
-export type EntityDetail = SpaceDetail | TaskDetail | SubTaskDetail | NoteDetail;
+export type EntityDetail = SpaceDetail | TaskDetail | NoteDetail;
 
-export type EntityMetadata = SubTaskMetadata;
+export interface EntityMetadata {
+  status: import("@/types/common").TaskStatus;
+  startDate?: string | null;
+  endDate?: string | null;
+}
 
 interface CreateEntityRequest {
   type: DocType;
   name: string;
   parentId?: string;
+  workspaceId?: string;
 }
 
 interface CreateEntityResponse {
@@ -57,14 +59,12 @@ interface AutoSaveEntityRequest {
 const detailFetchers: Record<DocType, (id: string) => Promise<EntityDetail>> = {
   space: fetchSpaceDetail,
   task: fetchTaskDetail,
-  subtask: fetchSubTaskDetail,
   note: fetchNoteDetail,
 };
 
 const entityKeyMap = {
   space: spaceKeys,
   task: taskKeys,
-  subtask: subTaskKeys,
   note: noteKeys,
 };
 
@@ -83,16 +83,14 @@ export const useCreateEntity = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ type, name, parentId }: CreateEntityRequest): Promise<CreateEntityResponse> => {
+    mutationFn: async ({ type, name, parentId, workspaceId }: CreateEntityRequest): Promise<CreateEntityResponse> => {
       switch (type) {
         case "space":
           return createSpace({ parentId: parentId ?? null, name, content: null, isPublic: false });
         case "task":
-          return createTask({ title: name, workSpaceId: parentId! });
-        case "subtask":
-          return createSubTask({ title: name, taskId: parentId! });
+          return createTask({ title: name, workSpaceId: workspaceId!, parentId });
         case "note":
-          return createNote({ subTaskId: parentId! });
+          return createNote({ workSpaceId: workspaceId!, parentId });
       }
     },
     onSuccess: () => {
@@ -127,16 +125,6 @@ export const useUpdateEntity = () => {
           }
           return updateTask(id, taskReq);
         }
-        case "subtask": {
-          const subReq: UpdateSubTaskRequest = {};
-          if (req.name !== undefined) subReq.title = req.name;
-          if (req.metadata) {
-            subReq.status = req.metadata.status;
-            subReq.startDateTime = req.metadata.startDate;
-            subReq.endDateTime = req.metadata.endDate;
-          }
-          return updateSubTask(id, subReq);
-        }
         case "note":
           return updateNote(id, req.name === undefined ? {} : { name: req.name });
       }
@@ -167,8 +155,6 @@ export const useDeleteEntity = () => {
           return deleteSpace(id);
         case "task":
           return deleteTask(id);
-        case "subtask":
-          return deleteSubTask(id);
         case "note":
           return deleteNote(id);
       }

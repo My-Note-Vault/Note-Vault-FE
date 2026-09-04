@@ -43,8 +43,8 @@ function formatSearchLogicalDate(logicalDate: JavaLocalDate): string {
 }
 
 function toSearchResults(response: SearchResponse): SearchResult[] {
-  const toDocType = (type: "WORKSPACE" | "TASK" | "SUBTASK" | "NOTE") =>
-    type === "WORKSPACE" ? "space" as const : type.toLowerCase() as "task" | "subtask" | "note";
+  const toDocType = (type: "WORKSPACE" | "TASK" | "NOTE") =>
+    type === "WORKSPACE" ? "space" as const : type.toLowerCase() as "task" | "note";
 
   return (response.results ?? []).map((result) => {
     if (result.type === "DAILY_NOTE") {

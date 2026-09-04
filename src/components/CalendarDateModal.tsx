@@ -33,7 +33,7 @@ function EventItem({
   onOpenDocument: (id: string, docType?: DocType) => void;
   onClose: () => void;
 }) {
-  const docType: DocType = event.type === "TASK" ? "task" : "subtask";
+  const docType: DocType = "task";
   const status = STATUS_MAP[event.status] ?? STATUS_MAP.NOT_STARTED;
 
   return (
@@ -53,7 +53,7 @@ function EventItem({
               : "bg-orange-500/10 text-orange-600 dark:text-orange-400",
           )}
         >
-          {event.type === "TASK" ? "Task" : "SubTask"}
+          Task
         </span>
         <span className="text-sm font-medium truncate flex-1">{event.title}</span>
         <ChevronRight className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
@@ -127,7 +127,7 @@ export default function CalendarDateModal({
           </div>
         ) : (
           <div className={cn("flex", hasEvents && hasDailyNote ? "divide-x divide-border" : "")}>
-            {/* Task/SubTask 목록 */}
+            {/* Task 목록 */}
             {hasEvents && (
               <div className={cn(
                 "flex-1 min-w-0 px-3 pb-4",

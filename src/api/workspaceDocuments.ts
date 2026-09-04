@@ -23,13 +23,11 @@ interface RawDocumentResponse {
 
 const API_TYPE: Record<WorkspaceDocumentKind, WorkspaceDocumentType> = {
   task: "TASK",
-  subtask: "SUBTASK",
   note: "NOTE",
 };
 
 const KIND: Record<WorkspaceDocumentType, WorkspaceDocumentKind> = {
   TASK: "task",
-  SUBTASK: "subtask",
   NOTE: "note",
 };
 

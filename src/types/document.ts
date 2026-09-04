@@ -1,7 +1,7 @@
 import type { TaskStatus } from "./common";
 
-export type WorkspaceDocumentType = "TASK" | "SUBTASK" | "NOTE";
-export type WorkspaceDocumentKind = "task" | "subtask" | "note";
+export type WorkspaceDocumentType = "TASK" | "NOTE";
+export type WorkspaceDocumentKind = "task" | "note";
 
 export interface DocumentDetail {
   id: string;

@@ -5,6 +5,7 @@ import {
 } from "@/api/contentImages";
 
 const CONTENT_IMAGE_KEY_PATTERN =
+  // 타입 통합 이전에 업로드된 content/subtask 경로도 계속 렌더링한다.
   /^content\/(?:daily-note|workspace|task|subtask|note|trivia)\/[^\s"'<>)]*?\.(?:png|jpe?g)$/i;
 const CACHE_SAFETY_WINDOW_MS = 30_000;
 

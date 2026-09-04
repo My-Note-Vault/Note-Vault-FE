@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { ChevronRight, ChevronUp, FileText, CalendarDays, NotebookPen, FolderClosed, Plus, Layout, ListChecks, ListTodo, Sparkles, Search, X, Loader2, Trash2, Columns3, Check, UserPlus } from "lucide-react";
+import { ChevronRight, ChevronUp, FileText, CalendarDays, NotebookPen, StickyNote, FolderClosed, Plus, Layout, ListChecks, ListTodo, Search, X, Loader2, Trash2, Columns3, Check, UserPlus } from "lucide-react";
 import { useSearchDocuments } from "@/hooks/useDocuments";
 import { formatLogicalDate, type DailyNoteDetail } from "@/api/documents";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
@@ -8,18 +8,10 @@ import InviteDialog from "@/components/InviteDialog";
 export type { DocType, SidebarItem, SearchResult } from "@/types/common";
 import { sidebarUnfoldedId, type DocType, type SidebarItem, type SearchResult } from "@/types/common";
 
-const CHILD_TYPE_MAP: Record<DocType, DocType | null> = {
-  space: "task",
-  task: "subtask",
-  subtask: "note",
-  note: null,
-};
-
 const DOC_TYPE_ICON: Record<DocType, typeof Layout> = {
   space: Layout,
   task: ListChecks,
-  subtask: ListTodo,
-  note: Sparkles,
+  note: StickyNote,
 };
 
 function sortFoldersFirst(docs: SidebarItem[]): SidebarItem[] {
@@ -98,7 +90,7 @@ interface DocItemProps {
   depth: number;
   selectedId: string | null;
   onSelect: (id: string, docType?: DocType) => void;
-  onAddItem?: (parentId: string, parentType?: DocType) => void;
+  onAddItem?: (parentId: string, parentType: DocType, childType: "task" | "note") => void;
   onDeleteItem?: (id: string, docType?: DocType) => void;
   icon?: "file" | "calendar";
   unfoldedIds?: Set<string>;
@@ -108,8 +100,7 @@ interface DocItemProps {
 function DocItem({ doc, depth, selectedId, onSelect, onAddItem, onDeleteItem, icon = "file", unfoldedIds, onToggleExpand }: DocItemProps) {
   const [expanded, setExpanded] = useState(() => isDocUnfolded(doc, unfoldedIds));
   const hasChildren = doc.children && doc.children.length > 0;
-  const isExpandable = doc.type && doc.type !== "note";
-  const canAdd = doc.type && CHILD_TYPE_MAP[doc.type] !== null;
+  const canAdd = doc.type === "task" || doc.type === "note";
 
   useEffect(() => {
     setExpanded(isDocUnfolded(doc, unfoldedIds));
@@ -120,7 +111,7 @@ function DocItem({ doc, depth, selectedId, onSelect, onAddItem, onDeleteItem, ic
     if (doc.type) {
       onToggleExpand?.(doc.id, doc.type, next);
     }
-    // 펼칠 때 자식(subtask, note)도 unfolded로 등록
+    // 펼칠 때 모든 하위 문서도 unfolded로 등록
     if (next && doc.children) {
       for (const child of doc.children) {
         if (child.type) {
@@ -167,7 +158,7 @@ function DocItem({ doc, depth, selectedId, onSelect, onAddItem, onDeleteItem, ic
         style={{ paddingLeft: `${depth * 12 + 8}px` }}
         onClick={handleClick}
       >
-        {(hasChildren || isExpandable) ? (
+        {hasChildren ? (
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -184,21 +175,36 @@ function DocItem({ doc, depth, selectedId, onSelect, onAddItem, onDeleteItem, ic
         )}
         <ItemIcon className="h-4 w-4 shrink-0 opacity-60" />
         <span className="truncate flex-1">{doc.name}</span>
-        {canAdd && onAddItem && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onAddItem(doc.id, doc.type);
-              toggleExpand(true);
-            }}
-            className="p-0.5 rounded hover:bg-sidebar-border transition-colors opacity-0 group-hover/item:opacity-100"
-          >
-            <Plus className="h-3.5 w-3.5" />
-          </button>
+        {canAdd && onAddItem && doc.type && (
+          <Popover>
+            <PopoverTrigger asChild>
+              <button
+                onClick={(e) => e.stopPropagation()}
+                className="p-0.5 rounded hover:bg-sidebar-border transition-colors opacity-0 group-hover/item:opacity-100"
+                title="하위 문서 추가"
+              >
+                <Plus className="h-3.5 w-3.5" />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-36 p-1" align="end" onClick={(e) => e.stopPropagation()}>
+              {(["task", "note"] as const).map((childType) => (
+                <button
+                  key={childType}
+                  onClick={() => {
+                    onAddItem(doc.id, doc.type!, childType);
+                    toggleExpand(true);
+                  }}
+                  className="w-full rounded px-2 py-1.5 text-left text-sm hover:bg-accent"
+                >
+                  새 {childType === "task" ? "Task" : "Note"}
+                </button>
+              ))}
+            </PopoverContent>
+          </Popover>
         )}
       </div>
 
-      {(hasChildren || isExpandable) && expanded && (
+      {hasChildren && expanded && (
         <div>
           {doc.children && sortFoldersFirst(doc.children).map((child) => (
             <DocItem
@@ -469,7 +475,7 @@ interface SidebarProps {
   docs: SidebarItem[];
   workspaces?: WorkspaceInfo[];
   dailyNotes?: DailyNoteDetail[];
-  onAddItem?: (parentId: string, parentType?: DocType) => void;
+  onAddItem?: (parentId: string, parentType: DocType, childType: "task" | "note") => void;
   onAddSpace?: () => void;
   onDeleteItem?: (id: string, docType?: DocType) => void;
   isLoading?: boolean;
@@ -681,16 +687,30 @@ export default function Sidebar({ onSelectSidebarItem, docs, workspaces = [], da
                     <span className="w-4.5" />
                     <Layout className="h-4 w-4 shrink-0 opacity-60" />
                     <span className="truncate flex-1 font-medium">{ws.name}</span>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onAddItem?.(selectedWorkspaceId!, "space" as DocType);
-                      }}
-                      className="p-0.5 rounded hover:bg-sidebar-border transition-colors opacity-0 group-hover/ws:opacity-100"
-                      title="Task 추가"
-                    >
-                      <Plus className="h-3.5 w-3.5" />
-                    </button>
+                    {onAddItem && (
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <button
+                            onClick={(e) => e.stopPropagation()}
+                            className="p-0.5 rounded hover:bg-sidebar-border transition-colors opacity-0 group-hover/ws:opacity-100"
+                            title="최상위 문서 추가"
+                          >
+                            <Plus className="h-3.5 w-3.5" />
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-36 p-1" align="end" onClick={(e) => e.stopPropagation()}>
+                          {(["task", "note"] as const).map((childType) => (
+                            <button
+                              key={childType}
+                              onClick={() => onAddItem(selectedWorkspaceId, "space", childType)}
+                              className="w-full rounded px-2 py-1.5 text-left text-sm hover:bg-accent"
+                            >
+                              새 {childType === "task" ? "Task" : "Note"}
+                            </button>
+                          ))}
+                        </PopoverContent>
+                      </Popover>
+                    )}
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -705,7 +725,7 @@ export default function Sidebar({ onSelectSidebarItem, docs, workspaces = [], da
                 );
               })()}
 
-              {/* 트리 영역 (workspace 하위 Task들) */}
+              {/* 트리 영역 (workspace 하위 문서들) */}
               {docs.length > 0 && (
                 <div className="space-y-0.5">
                   {sortFoldersFirst(docs).map((doc) => (

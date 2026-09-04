@@ -18,11 +18,6 @@ const COLUMN_CONFIG: Record<TaskStatus, { label: string; color: string }> = {
 
 const COLUMN_ORDER: TaskStatus[] = ["NOT_STARTED", "IN_PROGRESS", "COMPLETED"];
 
-const TYPE_LABEL: Record<string, string> = {
-  task: "Task",
-  subtask: "SubTask",
-};
-
 interface KanbanPageProps {
   onOpenDocument: (id: string, docType?: DocType) => void;
 }
@@ -42,7 +37,7 @@ function KanbanCard({
       <p className="text-sm font-medium truncate">{item.name}</p>
       <div className="flex items-center gap-2 mt-1.5">
         <span className="text-[11px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
-          {TYPE_LABEL[item.type]}
+          Task
         </span>
         {item.parentName && (
           <span className="text-[11px] text-muted-foreground truncate">

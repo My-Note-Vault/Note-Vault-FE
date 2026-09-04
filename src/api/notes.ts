@@ -21,7 +21,7 @@ export const fetchNoteDetail = async (id: string): Promise<NoteDetail> => {
 
 export const createNote = async (req: CreateNoteRequest): Promise<CreateNoteResponse> => {
   return createWorkspaceDocument(
-    { type: "NOTE", parentId: req.subTaskId, title: "새 Note" },
+    { type: "NOTE", workSpaceId: req.workSpaceId, parentId: req.parentId, title: "새 Note" },
     "새 Note",
   );
 };

@@ -3,17 +3,14 @@ import { useQueries } from "@tanstack/react-query";
 import { useDocumentTree } from "./useDocuments";
 import { useSpaceList } from "./useSpaces";
 import { taskKeys } from "./useTasks";
-import { subTaskKeys } from "./useSubTasks";
 import { fetchTaskDetail } from "@/api/tasks";
-import { fetchSubTaskDetail } from "@/api/subtasks";
 import type { SidebarItem, TaskStatus } from "@/types/common";
 import type { TaskDetail } from "@/types/task";
-import type { SubTaskDetail } from "@/types/subtask";
 
 export interface KanbanItem {
   id: string;
   name: string;
-  type: "task" | "subtask";
+  type: "task";
   status: TaskStatus;
   parentName?: string;
 }
@@ -23,19 +20,19 @@ export type KanbanColumns = Record<TaskStatus, KanbanItem[]>;
 interface TreeItem {
   id: string;
   name: string;
-  type: "task" | "subtask";
+  type: "task";
   parentName?: string;
 }
 
 function collectTaskItems(node: SidebarItem, parentName?: string): TreeItem[] {
   const items: TreeItem[] = [];
 
-  if (node.type === "task" || node.type === "subtask") {
-    items.push({ id: node.id, name: node.name, type: node.type, parentName });
+  if (node.type === "task") {
+    items.push({ id: node.id, name: node.name, type: "task", parentName });
   }
 
   if (node.children) {
-    const nextParent = node.type === "task" ? node.name : parentName;
+    const nextParent = node.name;
     for (const child of node.children) {
       items.push(...collectTaskItems(child, nextParent));
     }
@@ -65,14 +62,8 @@ export function useKanban(spaceId: string | null) {
 
   const queries = useQueries({
     queries: taskItems.map((item) => ({
-      queryKey:
-        item.type === "task"
-          ? taskKeys.detail(item.id)
-          : subTaskKeys.detail(item.id),
-      queryFn: () =>
-        item.type === "task"
-          ? fetchTaskDetail(item.id)
-          : fetchSubTaskDetail(item.id),
+      queryKey: taskKeys.detail(item.id),
+      queryFn: () => fetchTaskDetail(item.id),
       staleTime: 1000 * 30,
       enabled: !!spaceId,
     })),
@@ -94,11 +85,8 @@ export function useKanban(spaceId: string | null) {
       const item = taskItems[i];
       if (!query.data) continue;
 
-      const detail = query.data as TaskDetail | SubTaskDetail;
-      const status: TaskStatus =
-        item.type === "task"
-          ? (detail as TaskDetail).status ?? "NOT_STARTED"
-          : (detail as SubTaskDetail).status ?? "NOT_STARTED";
+      const detail = query.data as TaskDetail;
+      const status: TaskStatus = detail.status ?? "NOT_STARTED";
 
       cols[status].push({
         id: item.id,

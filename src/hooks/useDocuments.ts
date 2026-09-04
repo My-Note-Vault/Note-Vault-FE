@@ -43,7 +43,7 @@ function unfoldedStorageKey(workspaceId: number | null): string {
   return workspaceId === null ? UNFOLDED_CACHE_KEY : `${UNFOLDED_CACHE_KEY}:${workspaceId}`;
 }
 
-function isLegacyUnfoldedNote(value: unknown): value is { type: NoteType; noteId: number } {
+function isLegacyUnfoldedNote(value: unknown): value is { type: string; noteId: number } {
   if (!value || typeof value !== "object") return false;
   const candidate = value as { type?: unknown; noteId?: unknown };
   return typeof candidate.type === "string" && typeof candidate.noteId === "number";
@@ -57,7 +57,10 @@ function normalizeUnfoldedIds(value: unknown): Set<string> {
       .map((item) => {
         if (typeof item === "string") return item;
         if (isLegacyUnfoldedNote(item)) {
-          return sidebarUnfoldedId(noteTypeToDocType(item.type), item.noteId);
+          const docType = item.type === "SUBTASK"
+            ? "task"
+            : noteTypeToDocType(item.type as NoteType);
+          return docType ? sidebarUnfoldedId(docType, item.noteId) : null;
         }
         return null;
       })
@@ -85,21 +88,11 @@ function writeUnfoldedIds(workspaceId: number | null, ids: Set<string>) {
 
 // TaskOverview[] → SidebarItem[] 변환
 function buildTree(overviews: TaskOverview[]): SidebarItem[] {
-  return overviews.map((task) => ({
-    id: String(task.id),
-    name: task.title,
-    type: "task" as DocType,
-    children: (task.subTaskSummaries ?? []).map((sub) => ({
-      id: String(sub.id),
-      name: sub.title,
-      type: "subtask" as DocType,
-      children: (sub.noteSummaries ?? []).map((note) => ({
-        id: String(note.id),
-        name: note.title,
-        type: "note" as DocType,
-        children: [],
-      })),
-    })),
+  return overviews.map((document) => ({
+    id: String(document.id),
+    name: document.title,
+    type: document.type.toLowerCase() as DocType,
+    children: buildTree(document.children ?? []),
   }));
 }
 
@@ -128,8 +121,12 @@ export const useDocumentTree = (workspaceId: number | null) => {
     staleTime: 1000 * 60,
     initialData: () => {
       const cached = readCache<TaskOverview[]>(NOTES_CACHE_KEY);
-      // 이전 NoteInfo 형식 캐시 무시
-      if (cached && cached.length > 0 && !("title" in cached[0])) return undefined;
+      // 고정 Task/Subtask/Note 구조로 저장된 이전 캐시는 무시한다.
+      if (
+        cached &&
+        cached.length > 0 &&
+        (!("type" in cached[0]) || !("children" in cached[0]))
+      ) return undefined;
       return cached;
     },
     initialDataUpdatedAt: () =>

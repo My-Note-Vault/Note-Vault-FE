@@ -1,6 +1,6 @@
 import { expect, test, type APIRequestContext, type Browser, type Page } from "@playwright/test";
 
-type DocType = "space" | "task" | "subtask" | "note";
+type DocType = "space" | "task" | "note";
 
 interface TokenPair {
   accessToken: string;
@@ -24,11 +24,10 @@ const userBId = process.env.E2E_USER_B_ID ?? "2";
 const tabId = documentId ? `${docType}-${documentId}` : "";
 
 function pathForTab(tab: string, type: DocType) {
-  const entityId = tab.replace(/^(?:space|task|subtask|note)-/, "");
+  const entityId = tab.replace(/^(?:space|task|note)-/, "");
   const segmentByType: Record<DocType, string> = {
     space: "workspaces/information",
     task: "tasks",
-    subtask: "subtasks",
     note: "note",
   };
 

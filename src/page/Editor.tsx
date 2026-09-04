@@ -17,9 +17,8 @@ import {
   buildCollaborationUser,
 } from "@/lib/collaboration";
 import type { TaskDetail } from "@/types/task";
-import type { SubTaskDetail } from "@/types/subtask";
 
-function hasMetadata(detail: EntityDetail): detail is TaskDetail | SubTaskDetail {
+function hasMetadata(detail: EntityDetail): detail is TaskDetail {
   return "status" in detail;
 }
 
@@ -79,7 +78,7 @@ function getContentImageTarget(
 ): ContentImageTarget | null {
   if (isDailyNote) return "daily-note";
   if (docType === "space") return "workspace";
-  if (docType === "task" || docType === "subtask" || docType === "note") return docType;
+  if (docType === "task" || docType === "note") return docType;
   return null;
 }
 
@@ -267,7 +266,7 @@ export default function Editor({
   const detail = isDailyNote ? dailyDetail : entityDetail;
   const loadedContent = isDailyNote
     ? dailyDetail?.content ?? ""
-    : docType === "space" && entityDetail
+    : docType === "space" && entityDetail && "content" in entityDetail
       ? entityDetail.content ?? ""
       : "";
   const contentImageTarget = getContentImageTarget(isDailyNote, docType);
@@ -468,24 +467,12 @@ export default function Editor({
   // 서버에서 받은 메타데이터 반영
   useEffect(() => {
     if (detail && !isDailyNote && hasMetadata(detail as EntityDetail)) {
-      const d = detail as TaskDetail | SubTaskDetail;
-      if ("startDateTime" in d) {
-        // Task
-        const task = d as TaskDetail;
-        setMetadata({
-          status: task.status ?? "NOT_STARTED",
-          startDate: task.startDateTime ? new Date(task.startDateTime) : undefined,
-          endDate: task.endDateTime ? new Date(task.endDateTime) : undefined,
-        });
-      } else {
-        // SubTask
-        const sub = d as SubTaskDetail;
-        setMetadata({
-          status: sub.status ?? "NOT_STARTED",
-          startDate: sub.startDate ? new Date(sub.startDate) : undefined,
-          endDate: sub.endDate ? new Date(sub.endDate) : undefined,
-        });
-      }
+      const task = detail as TaskDetail;
+      setMetadata({
+        status: task.status ?? "NOT_STARTED",
+        startDate: task.startDateTime ? new Date(task.startDateTime) : undefined,
+        endDate: task.endDateTime ? new Date(task.endDateTime) : undefined,
+      });
     }
   }, [detail, isDailyNote]);
 
@@ -605,8 +592,8 @@ export default function Editor({
   );
 
   const hasChildren = children && children.length > 0;
-  const showChildrenSection = docType && docType !== "note" && hasChildren;
-  const showMetadata = docType === "task" || docType === "subtask";
+  const showChildrenSection = !!docType && hasChildren;
+  const showMetadata = docType === "task";
 
   if (isNotFound) {
     return (

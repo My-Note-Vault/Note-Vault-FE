@@ -18,14 +18,13 @@ export const updateLastVisited = async (path: string): Promise<void> => {
 const PATH_TO_DOCTYPE: Record<string, DocType> = {
   "workspaces/information": "space",
   tasks: "task",
-  subtasks: "subtask",
+  subtasks: "task",
   note: "note",
 };
 
 const DOCTYPE_TO_PATH: Record<DocType, string> = {
   space: "workspaces/information",
   task: "tasks",
-  subtask: "subtasks",
   note: "note",
 };
 
@@ -56,7 +55,7 @@ export function tabIdToPath(id: string, docType?: DocType): string {
 
   if (docType) {
     const segment = DOCTYPE_TO_PATH[docType];
-    const entityId = id.replace(/^(?:space|task|subtask|note)-/, "");
+    const entityId = id.replace(/^(?:space|task|note)-/, "");
     if (segment) return `/api/v1/${segment}/${entityId}`;
   }
 

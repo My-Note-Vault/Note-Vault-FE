@@ -1,8 +1,8 @@
-export type DocType = "space" | "task" | "subtask" | "note";
+export type DocType = "space" | "task" | "note";
 export type TaskStatus = "NOT_STARTED" | "IN_PROGRESS" | "COMPLETED";
 
 // 백엔드 NoteType (대문자)
-export type NoteType = "WORKSPACE" | "TASK" | "SUBTASK" | "NOTE";
+export type NoteType = "WORKSPACE" | "TASK" | "NOTE";
 
 // NoteInfo (flat list) — /api/v1/unfolded-notes/note-info
 export interface NoteInfo {
@@ -10,38 +10,27 @@ export interface NoteInfo {
   type: NoteType;
   parentId: number | null;
   name?: string;   // WORKSPACE
-  title?: string;  // TASK, SUBTASK, NOTE
+  title?: string;  // TASK, NOTE
 }
 
 // TaskOverview — /api/v1/unfolded-notes/note-info?workspace={id}
 export interface TaskOverview {
   id: number;
+  type: "TASK" | "NOTE";
   title: string;
-  subTaskSummaries: SubTaskSummary[];
-}
-
-export interface SubTaskSummary {
-  id: number;
-  title: string;
-  noteSummaries: NoteSummary[];
-}
-
-export interface NoteSummary {
-  id: number;
-  title: string;
+  parentId: number | null;
+  children: TaskOverview[];
 }
 
 // NoteType ↔ DocType 매핑
 const NOTE_TO_DOC: Record<NoteType, DocType> = {
   WORKSPACE: "space",
   TASK: "task",
-  SUBTASK: "subtask",
   NOTE: "note",
 };
 const DOC_TO_NOTE: Record<DocType, NoteType> = {
   space: "WORKSPACE",
   task: "TASK",
-  subtask: "SUBTASK",
   note: "NOTE",
 };
 export const noteTypeToDocType = (nt: NoteType): DocType => NOTE_TO_DOC[nt];
@@ -73,7 +62,7 @@ export interface SearchResponse {
   results: SearchResultResponse[];
 }
 
-export type SearchDocumentType = "WORKSPACE" | "TASK" | "SUBTASK" | "NOTE" | "DAILY_NOTE";
+export type SearchDocumentType = "WORKSPACE" | "TASK" | "NOTE" | "DAILY_NOTE";
 
 export interface SearchResultResponse {
   id: number;
@@ -89,13 +78,13 @@ export type CalendarEventType = "START" | "END";
 export type CalendarDateStat = Partial<Record<CalendarEventType, number>>;
 export type CalendarStatsResponse = Record<string, CalendarDateStat>;
 
-// 탭 ID: docType + entityId → 유일한 탭 식별자 (예: "task-1", "subtask-2")
+// 탭 ID: docType + entityId → 유일한 탭 식별자
 export function entityTabId(docType: DocType, id: string | number): string {
   return `${docType}-${id}`;
 }
 
 // 탭 ID에서 엔티티 ID 추출 (예: "task-1" → "1", "daily-3" → "daily-3")
 export function extractEntityId(tabId: string): string {
-  const match = tabId.match(/^(?:space|task|subtask|note)-(.+)$/);
+  const match = tabId.match(/^(?:space|task|note)-(.+)$/);
   return match ? match[1] : tabId;
 }

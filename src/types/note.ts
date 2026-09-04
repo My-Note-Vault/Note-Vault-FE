@@ -4,7 +4,8 @@ export interface NoteDetail {
 }
 
 export interface CreateNoteRequest {
-  subTaskId: string;
+  workSpaceId: string;
+  parentId?: string;
 }
 
 export interface CreateNoteResponse {

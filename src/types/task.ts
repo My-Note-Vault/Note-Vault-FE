@@ -11,6 +11,7 @@ export interface TaskDetail {
 
 export interface CreateTaskRequest {
   workSpaceId: string;
+  parentId?: string;
   title: string;
   status?: TaskStatus;
   startDateTime?: string | null;

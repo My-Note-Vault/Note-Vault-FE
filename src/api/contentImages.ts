@@ -9,7 +9,6 @@ export type ContentImageTarget =
   | "daily-note"
   | "workspace"
   | "task"
-  | "subtask"
   | "note"
   | "trivia";
 

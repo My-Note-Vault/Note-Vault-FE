@@ -20,6 +20,7 @@ export const createTask = async (req: CreateTaskRequest): Promise<CreateTaskResp
     {
       type: "TASK",
       workSpaceId: req.workSpaceId,
+      parentId: req.parentId,
       title: req.title,
       status: req.status,
       startDateTime: req.startDateTime,

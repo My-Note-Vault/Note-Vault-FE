@@ -1,4 +1,4 @@
-import { Bot, CalendarDays, PanelLeft, PanelLeftClose, Sun, Moon, Search, FolderOpen } from "lucide-react";
+import { Bot, NotebookPen, PanelLeft, PanelLeftClose, Sun, Moon, Search, FolderOpen } from "lucide-react";
 import { useTheme } from "next-themes";
 import ProfilePopover from "./ProfilePopover";
 
@@ -48,7 +48,7 @@ export default function ActivityBar({ onSelectItem, sidebarOpen, onToggleSidebar
         className="p-2 rounded-md hover:bg-sidebar-accent transition-colors text-sidebar-foreground"
         title="오늘의 DailyNote"
       >
-        <CalendarDays className="h-5 w-5" />
+        <NotebookPen className="h-5 w-5" />
       </button>
       <button
         onClick={onToggleChat}

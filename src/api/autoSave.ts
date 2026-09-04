@@ -15,7 +15,6 @@ export function sendKeepaliveEntityAutoSave(
       });
       return;
     case "task":
-    case "subtask":
     case "note":
       return;
   }
