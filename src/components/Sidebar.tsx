@@ -153,7 +153,7 @@ function DocItem({ doc, depth, selectedId, onSelect, onAddItem, onDeleteItem, ic
   return (
     <div>
       <div
-        className={`group/item flex items-center gap-1 px-2 py-1.5 rounded-md cursor-pointer text-sm transition-colors
+        className={`group/item relative flex items-center gap-1 px-2 py-1.5 rounded-md cursor-pointer text-sm transition-colors
           ${selectedId === (doc.type ? `${doc.type}-${doc.id}` : doc.id) ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium" : "text-sidebar-foreground hover:bg-sidebar-accent/50"}`}
         style={{ paddingLeft: `${depth * 16 + 8}px` }}
         onClick={handleClick}
@@ -180,7 +180,7 @@ function DocItem({ doc, depth, selectedId, onSelect, onAddItem, onDeleteItem, ic
             <PopoverTrigger asChild>
               <button
                 onClick={(e) => e.stopPropagation()}
-                className="p-0.5 rounded hover:bg-sidebar-border transition-colors opacity-0 group-hover/item:opacity-100"
+                className="pointer-events-none absolute right-2 p-0.5 rounded bg-sidebar-accent hover:bg-sidebar-border transition-colors opacity-0 group-hover/item:pointer-events-auto group-hover/item:opacity-100"
                 title="하위 문서 추가"
               >
                 <Plus className="h-3.5 w-3.5" />
@@ -196,7 +196,7 @@ function DocItem({ doc, depth, selectedId, onSelect, onAddItem, onDeleteItem, ic
                   }}
                   className="w-full rounded px-2 py-1.5 text-left text-sm hover:bg-accent"
                 >
-                  새 {childType === "task" ? "Task" : "Note"}
+                  {childType === "task" ? "Task" : "Note"} 생성
                 </button>
               ))}
             </PopoverContent>
@@ -205,7 +205,12 @@ function DocItem({ doc, depth, selectedId, onSelect, onAddItem, onDeleteItem, ic
       </div>
 
       {hasChildren && expanded && (
-        <div>
+        <div className="relative">
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-y-0 w-px rounded-full bg-sidebar-foreground/25"
+            style={{ left: `${depth * 16 + 17}px` }}
+          />
           {doc.children && sortFoldersFirst(doc.children).map((child) => (
             <DocItem
               key={`${child.type ?? "item"}-${child.id}`}
@@ -494,7 +499,7 @@ const SIDEBAR_WIDTH_KEY = "sidebar-width";
 const SIDEBAR_MIN = 80;
 const SIDEBAR_CLOSE_THRESHOLD = 60;
 const SIDEBAR_MAX = 480;
-const SIDEBAR_DEFAULT = 240;
+const SIDEBAR_DEFAULT = 300;
 
 export default function Sidebar({ onSelectSidebarItem, docs, workspaces = [], dailyNotes, onAddItem, onAddSpace, onDeleteItem, isLoading, unfoldedIds, open, onClose, activeTabId, searchMode, onCloseSearch, selectedWorkspaceId, onSelectWorkspace, onToggleExpand }: SidebarProps) {
   const [searchQuery, setSearchQuery] = useState("");
@@ -649,7 +654,6 @@ export default function Sidebar({ onSelectSidebarItem, docs, workspaces = [], da
                     ${activeTabId === "calendar-view"
                       ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
                       : "text-sidebar-foreground hover:bg-sidebar-accent/50"}`}
-                  style={{ paddingLeft: "20px" }}
                   onClick={() => handleSelect("calendar-view")}
                 >
                   <span className="w-[18px] shrink-0" />
@@ -661,7 +665,6 @@ export default function Sidebar({ onSelectSidebarItem, docs, workspaces = [], da
                     ${activeTabId === "kanban-view"
                       ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
                       : "text-sidebar-foreground hover:bg-sidebar-accent/50"}`}
-                  style={{ paddingLeft: "20px" }}
                   onClick={() => handleSelect("kanban-view")}
                 >
                   <span className="w-[18px] shrink-0" />
@@ -678,7 +681,7 @@ export default function Sidebar({ onSelectSidebarItem, docs, workspaces = [], da
                 if (!ws) return null;
                 return (
                   <div
-                    className={`group/ws flex items-center gap-1 px-2 py-1.5 rounded-md cursor-pointer text-sm transition-colors
+                    className={`group/ws relative flex items-center gap-1 px-2 py-1.5 rounded-md cursor-pointer text-sm transition-colors
                       ${activeTabId === `space-${selectedWorkspaceId}`
                         ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
                         : "text-sidebar-foreground hover:bg-sidebar-accent/50"}`}
@@ -687,40 +690,42 @@ export default function Sidebar({ onSelectSidebarItem, docs, workspaces = [], da
                     <span className="w-[18px] shrink-0" />
                     <Layout className="h-4 w-4 shrink-0 opacity-60" />
                     <span className="truncate flex-1 font-medium">{ws.name}</span>
-                    {onAddItem && (
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <button
-                            onClick={(e) => e.stopPropagation()}
-                            className="p-0.5 rounded hover:bg-sidebar-border transition-colors opacity-0 group-hover/ws:opacity-100"
-                            title="최상위 문서 추가"
-                          >
-                            <Plus className="h-3.5 w-3.5" />
-                          </button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-36 p-1" align="end" onClick={(e) => e.stopPropagation()}>
-                          {(["task", "note"] as const).map((childType) => (
+                    <div className="pointer-events-none absolute right-2 flex items-center rounded bg-sidebar-accent opacity-0 transition-opacity group-hover/ws:pointer-events-auto group-hover/ws:opacity-100">
+                      {onAddItem && (
+                        <Popover>
+                          <PopoverTrigger asChild>
                             <button
-                              key={childType}
-                              onClick={() => onAddItem(selectedWorkspaceId, "space", childType)}
-                              className="w-full rounded px-2 py-1.5 text-left text-sm hover:bg-accent"
+                              onClick={(e) => e.stopPropagation()}
+                              className="p-0.5 rounded hover:bg-sidebar-border transition-colors"
+                              title="최상위 문서 추가"
                             >
-                              새 {childType === "task" ? "Task" : "Note"}
+                              <Plus className="h-3.5 w-3.5" />
                             </button>
-                          ))}
-                        </PopoverContent>
-                      </Popover>
-                    )}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setInviteOpen(true);
-                      }}
-                      className="p-0.5 rounded hover:bg-sidebar-border transition-colors opacity-0 group-hover/ws:opacity-100"
-                      title="멤버 초대"
-                    >
-                      <UserPlus className="h-3.5 w-3.5" />
-                    </button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-36 p-1" align="end" onClick={(e) => e.stopPropagation()}>
+                            {(["task", "note"] as const).map((childType) => (
+                              <button
+                                key={childType}
+                                onClick={() => onAddItem(selectedWorkspaceId, "space", childType)}
+                                className="w-full rounded px-2 py-1.5 text-left text-sm hover:bg-accent"
+                              >
+                                {childType === "task" ? "Task" : "Note"} 생성
+                              </button>
+                            ))}
+                          </PopoverContent>
+                        </Popover>
+                      )}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setInviteOpen(true);
+                        }}
+                        className="p-0.5 rounded hover:bg-sidebar-border transition-colors"
+                        title="멤버 초대"
+                      >
+                        <UserPlus className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
                   </div>
                 );
               })()}
