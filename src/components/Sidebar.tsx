@@ -155,7 +155,7 @@ function DocItem({ doc, depth, selectedId, onSelect, onAddItem, onDeleteItem, ic
       <div
         className={`group/item flex items-center gap-1 px-2 py-1.5 rounded-md cursor-pointer text-sm transition-colors
           ${selectedId === (doc.type ? `${doc.type}-${doc.id}` : doc.id) ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium" : "text-sidebar-foreground hover:bg-sidebar-accent/50"}`}
-        style={{ paddingLeft: `${depth * 12 + 8}px` }}
+        style={{ paddingLeft: `${depth * 16 + 8}px` }}
         onClick={handleClick}
       >
         {hasChildren ? (
@@ -171,7 +171,7 @@ function DocItem({ doc, depth, selectedId, onSelect, onAddItem, onDeleteItem, ic
             />
           </button>
         ) : (
-          <span className="w-4.5" />
+          <span className="w-[18px] shrink-0" />
         )}
         <ItemIcon className="h-4 w-4 shrink-0 opacity-60" />
         <span className="truncate flex-1">{doc.name}</span>
@@ -652,7 +652,7 @@ export default function Sidebar({ onSelectSidebarItem, docs, workspaces = [], da
                   style={{ paddingLeft: "20px" }}
                   onClick={() => handleSelect("calendar-view")}
                 >
-                  <span className="w-4.5" />
+                  <span className="w-[18px] shrink-0" />
                   <CalendarDays className="h-4 w-4 shrink-0 opacity-60" />
                   <span className="truncate flex-1">Calendar</span>
                 </div>
@@ -664,7 +664,7 @@ export default function Sidebar({ onSelectSidebarItem, docs, workspaces = [], da
                   style={{ paddingLeft: "20px" }}
                   onClick={() => handleSelect("kanban-view")}
                 >
-                  <span className="w-4.5" />
+                  <span className="w-[18px] shrink-0" />
                   <Columns3 className="h-4 w-4 shrink-0 opacity-60" />
                   <span className="truncate flex-1">Kanban</span>
                 </div>
@@ -684,7 +684,7 @@ export default function Sidebar({ onSelectSidebarItem, docs, workspaces = [], da
                         : "text-sidebar-foreground hover:bg-sidebar-accent/50"}`}
                     onClick={() => handleSelect(selectedWorkspaceId, "space" as DocType)}
                   >
-                    <span className="w-4.5" />
+                    <span className="w-[18px] shrink-0" />
                     <Layout className="h-4 w-4 shrink-0 opacity-60" />
                     <span className="truncate flex-1 font-medium">{ws.name}</span>
                     {onAddItem && (
@@ -732,7 +732,7 @@ export default function Sidebar({ onSelectSidebarItem, docs, workspaces = [], da
                     <DocItem
                       key={`${doc.type ?? "item"}-${doc.id}`}
                       doc={doc}
-                      depth={0}
+                      depth={1}
                       selectedId={activeTabId ?? null}
                       onSelect={handleSelect}
                       onAddItem={onAddItem}
