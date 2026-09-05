@@ -391,6 +391,7 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(({
   const lastUrlRef = useRef(currentUrl);
 
   const {
+    provider,
     doc,
     awareness,
     status: providerStatus,
@@ -402,6 +403,8 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(({
     ? toDisplayStatus(providerStatus)
     : "local";
   const collaborationEnabled = collaboration !== null;
+  const activityProviderRef = useRef(provider);
+  activityProviderRef.current = provider;
   const collabKey = collaboration
     ? `${collaboration.workspaceId}/${collaboration.documentType}/${collaboration.documentId}`
     : "local";
@@ -588,6 +591,13 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(({
         EditorView.updateListener.of((update) => {
           if (!update.docChanged) return;
           if (suppressChangeRef.current) return;
+          if (collaborationEnabled && update.transactions.some((transaction) => transaction.isUserEvent("input"))) {
+            let insertedCharacters = 0;
+            update.changes.iterChanges((_fromA, _toA, _fromB, _toB, inserted) => {
+              insertedCharacters += Array.from(inserted.toString()).length;
+            });
+            activityProviderRef.current?.recordInsertedCharacters(insertedCharacters);
+          }
           if (collabAttachedRef.current) return;
 
           const content = update.state.doc.toString();

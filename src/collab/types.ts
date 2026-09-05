@@ -21,6 +21,7 @@ export interface YjsWsProvider {
   awareness: Awareness;
   status: ProviderStatus;
   isSynced: boolean;
+  recordInsertedCharacters(count: number): void;
   finishLocalRestore(): void;
   connect(): void;
   applyRestBootstrap(bootstrap: CollaborationBootstrap): void;

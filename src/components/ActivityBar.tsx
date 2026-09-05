@@ -1,4 +1,4 @@
-import { Bot, NotebookPen, PanelLeft, PanelLeftClose, Sun, Moon, Search, FolderOpen } from "lucide-react";
+import { Bot, NotebookPen, PanelLeft, PanelLeftClose, Sun, Moon, Search, FolderOpen, Trophy } from "lucide-react";
 import { useTheme } from "next-themes";
 import ProfilePopover from "./ProfilePopover";
 import { Tooltip } from "@/components/ui/tooltip";
@@ -50,6 +50,13 @@ export default function ActivityBar({ onSelectItem, sidebarOpen, onToggleSidebar
         aria-label="오늘의 Daily Note"
       >
         <NotebookPen className="h-5 w-5" />
+      </button></Tooltip>
+      <Tooltip content="추첨 결과"><button
+        onClick={() => onSelectItem?.("draw-results")}
+        className="p-2 rounded-md hover:bg-sidebar-accent transition-colors text-sidebar-foreground"
+        aria-label="추첨 결과"
+      >
+        <Trophy className="h-5 w-5" />
       </button></Tooltip>
       <Tooltip content="Workspace Assistant"><button
         onClick={onToggleChat}

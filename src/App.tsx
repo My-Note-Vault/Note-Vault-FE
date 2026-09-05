@@ -375,7 +375,7 @@ function AppContent() {
             for (const pid of ["left", "right"] as PaneId[]) {
                 const pane = prev.panes[pid];
                 const newTabs = pane.tabs.map((tab) => {
-                    if (tab.isDaily || tab.id === "calendar-view" || tab.id === "kanban-view" || tab.isNew) return tab;
+                    if (tab.isDaily || tab.id === "calendar-view" || tab.id === "kanban-view" || tab.id === "draw-results" || tab.isNew) return tab;
                     const doc = findDocById(docs, extractEntityId(tab.id), tab.docType);
                     if (doc && (tab.name !== doc.name || !tab.docType)) {
                         changed = true;
@@ -421,6 +421,7 @@ function AppContent() {
     const handleSelectDocument = useCallback((id: string, passedDocType?: DocType) => {
         const isCalendar = id === "calendar-view";
         const isKanban = id === "kanban-view";
+        const isDrawResults = id === "draw-results";
         const dailyPkMatch = id.match(/^daily-(\d+)$/);
         const isDaily = !!dailyPkMatch;
 
@@ -432,6 +433,8 @@ function AppContent() {
             name = "Calendar";
         } else if (isKanban) {
             name = "Kanban";
+        } else if (isDrawResults) {
+            name = "추첨 결과";
         } else if (isDaily) {
             const pk = Number(dailyPkMatch[1]);
             const dailyNote = dailyNotesRef.current?.find((dn: DailyNoteDetail) => dn.dailyNoteId === pk);
@@ -887,8 +890,8 @@ function AppContent() {
             return;
         }
 
-        // calendar-view, kanban-view 등 특수 탭은 추적하지 않음
-        if (id === "calendar-view" || id === "kanban-view") {
+        // calendar-view, kanban-view, draw-results 등 특수 탭은 추적하지 않음
+        if (id === "calendar-view" || id === "kanban-view" || id === "draw-results") {
             handleSelectDocument(id);
             return;
         }
@@ -936,13 +939,13 @@ function AppContent() {
     const resolvePane = (pane: PaneState): PaneState => {
         if (!docs.length || isLoading) return pane;
         const needsResolve = pane.tabs.some((tab) =>
-            !tab.isDaily && tab.id !== "calendar-view" && tab.id !== "kanban-view" && !tab.isNew && !tab.docType,
+            !tab.isDaily && tab.id !== "calendar-view" && tab.id !== "kanban-view" && tab.id !== "draw-results" && !tab.isNew && !tab.docType,
         );
         if (!needsResolve) return pane;
         return {
             ...pane,
             tabs: pane.tabs.map((tab) => {
-                if (tab.isDaily || tab.id === "calendar-view" || tab.id === "kanban-view" || tab.isNew || tab.docType) return tab;
+                if (tab.isDaily || tab.id === "calendar-view" || tab.id === "kanban-view" || tab.id === "draw-results" || tab.isNew || tab.docType) return tab;
                 const pfx = tab.id.match(/^(space|task|note)-/);
                 const doc = findDocById(docs, extractEntityId(tab.id), pfx ? pfx[1] as DocType : undefined);
                 if (doc) {

@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { X, FileText, CalendarDays, NotebookPen, Columns3, Plus } from "lucide-react";
+import { X, FileText, CalendarDays, NotebookPen, Columns3, Plus, Trophy } from "lucide-react";
 import Editor from "@/page/Editor";
 import CalendarPage from "@/page/CalendarPage";
 import KanbanPage from "@/page/KanbanPage";
+import DrawResultsPage from "@/page/DrawResultsPage";
 import type { DocType } from "@/types/common";
 
 export type PaneId = "left" | "right";
@@ -171,6 +172,8 @@ export default function TabPane({
             >
               {tab.id === "kanban-view"
                 ? <Columns3 className="h-3.5 w-3.5 shrink-0 opacity-60" />
+                : tab.id === "draw-results"
+                  ? <Trophy className="h-3.5 w-3.5 shrink-0 opacity-60" />
                 : tab.id === "calendar-view"
                   ? <CalendarDays className="h-3.5 w-3.5 shrink-0 opacity-60" />
                   : tab.isDaily
@@ -234,6 +237,8 @@ export default function TabPane({
               key="kanban-view"
               onOpenDocument={onOpenDocument}
             />
+          ) : activeTab.id === "draw-results" ? (
+            <DrawResultsPage key="draw-results" />
           ) : (
             <Editor
               key={activeTab.id}

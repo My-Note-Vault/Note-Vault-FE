@@ -18,6 +18,7 @@ import {
   MSG_SEARCH_PROJECTION,
   MSG_CRDT_SYNC_REQUEST,
   MSG_CRDT_SNAPSHOT,
+  MSG_DOCUMENT_UPDATE_WITH_ACTIVITY,
 } from "./messageTypes";
 import type { ProviderStatus, YjsWsProvider } from "./types";
 import type { CollaborationBootstrap } from "@/api/collaboration";
@@ -27,8 +28,6 @@ const MAX_RECONNECT_MS = 30_000;
 const BACKOFF_FACTOR = 2;
 const CRDT_RECONCILE_INTERVAL_MS = 5_000;
 const DOCUMENT_UPDATE_BATCH_DELAY_MS = 50;
-const DOCUMENT_UPDATE_BATCH_MAX_COUNT = 50;
-const DOCUMENT_UPDATE_BATCH_MAX_BYTES = 64 * 1024;
 const DOCUMENT_INDEXING_IDLE_DELAY_MS = 30_000;
 const DOCUMENT_INDEXING_RETRY_DELAY_MS = 10_000;
 
@@ -53,8 +52,9 @@ export function createYjsWsProvider(
   let pendingRealtimeUpdates: Uint8Array[] = [];
   let pendingDocumentUpdates: Uint8Array[] = [];
   let pendingDocumentUpdateBytes = 0;
+  let pendingInsertedCharacters = 0;
   let documentUpdateBatchTimer: ReturnType<typeof setTimeout> | null = null;
-  const unacknowledgedUpdates = new Map<string, Uint8Array>();
+  const unacknowledgedUpdates = new Map<string, { update: Uint8Array; insertedCharacters: number }>();
   const bufferedCommittedUpdates = new Map<number, Uint8Array>();
   let lastAppliedRevision = 0;
   let serverLatestRevision = 0;
@@ -90,10 +90,11 @@ export function createYjsWsProvider(
     }
   }
 
-  function sendDocumentUpdate(clientUpdateId: string, update: Uint8Array) {
+  function sendDocumentUpdate(clientUpdateId: string, update: Uint8Array, insertedCharacters: number) {
     const encoder = encoding.createEncoder();
-    encoding.writeVarUint(encoder, MSG_DOCUMENT_UPDATE);
+    encoding.writeVarUint(encoder, MSG_DOCUMENT_UPDATE_WITH_ACTIVITY);
     encoding.writeVarString(encoder, clientUpdateId);
+    encoding.writeVarUint(encoder, insertedCharacters);
     encoding.writeVarUint8Array(encoder, update);
     send(encoding.toUint8Array(encoder));
   }
@@ -108,15 +109,17 @@ export function createYjsWsProvider(
     const updates = pendingDocumentUpdates;
     pendingDocumentUpdates = [];
     pendingDocumentUpdateBytes = 0;
+    const insertedCharacters = pendingInsertedCharacters;
+    pendingInsertedCharacters = 0;
 
     const update = updates.length === 1
       ? updates[0]
       : Y.mergeUpdates(updates);
     const clientUpdateId = crypto.randomUUID();
-    unacknowledgedUpdates.set(clientUpdateId, update);
+    unacknowledgedUpdates.set(clientUpdateId, { update, insertedCharacters });
 
     if (sendImmediately && ws?.readyState === WebSocket.OPEN) {
-      sendDocumentUpdate(clientUpdateId, update);
+      sendDocumentUpdate(clientUpdateId, update, insertedCharacters);
     }
   }
 
@@ -124,19 +127,17 @@ export function createYjsWsProvider(
     pendingDocumentUpdates.push(update);
     pendingDocumentUpdateBytes += update.byteLength;
 
-    if (
-      pendingDocumentUpdates.length >= DOCUMENT_UPDATE_BATCH_MAX_COUNT ||
-      pendingDocumentUpdateBytes >= DOCUMENT_UPDATE_BATCH_MAX_BYTES
-    ) {
-      flushPendingDocumentUpdates();
-      return;
-    }
     if (documentUpdateBatchTimer === null) {
       documentUpdateBatchTimer = setTimeout(
         flushPendingDocumentUpdates,
         DOCUMENT_UPDATE_BATCH_DELAY_MS,
       );
     }
+  }
+
+  function recordInsertedCharacters(count: number) {
+    if (!Number.isSafeInteger(count) || count <= 0) return;
+    pendingInsertedCharacters += count;
   }
 
   function enqueueRestoredLocalState() {
@@ -489,8 +490,8 @@ export function createYjsWsProvider(
         // 아직 전송 단위로 확정되지 않은 update를 먼저 하나의 불변 batch로 만든다.
         // 아래 반복문에서 기존 미확인 batch와 함께 동일한 ID로 전송한다.
         flushPendingDocumentUpdates(false);
-        unacknowledgedUpdates.forEach((update, clientUpdateId) => {
-          sendDocumentUpdate(clientUpdateId, update);
+        unacknowledgedUpdates.forEach(({ update, insertedCharacters }, clientUpdateId) => {
+          sendDocumentUpdate(clientUpdateId, update, insertedCharacters);
         });
       } else if (pendingRealtimeUpdates.length > 0) {
         const pendingUpdate = Y.mergeUpdates(pendingRealtimeUpdates);
@@ -622,6 +623,7 @@ export function createYjsWsProvider(
     get isSynced() {
       return isSynced;
     },
+    recordInsertedCharacters,
     finishLocalRestore,
     connect,
     applyRestBootstrap,

@@ -50,6 +50,9 @@ MEMBER_PROFILE: `${API_BASE}/members/profile`,
 MEMBER_PROFILE_IMAGE_UPLOAD_URL: `${API_BASE}/members/profile-image/upload-url`,
 MEMBER_PROFILE_IMAGE: `${API_BASE}/members/profile-image`,
 
+// Daily Draw
+DAILY_DRAWS: `${API_BASE}/draws`,
+
 // Content Images
 CONTENT_IMAGE_UPLOAD_URL: `${API_BASE}/content-images/upload-url`,
 CONTENT_IMAGE_COOKIES: `${API_BASE}/content-images/cookies`,
