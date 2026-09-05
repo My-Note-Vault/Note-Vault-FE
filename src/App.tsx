@@ -36,6 +36,7 @@ import InvitePage from "./page/InvitePage";
 import { AlertTriangle, RefreshCw } from "lucide-react";
 import { ThemeProvider } from "next-themes";
 import WorkspaceChatPanel from "./components/chat/WorkspaceChatPanel";
+import { TooltipProvider } from "./components/ui/tooltip";
 
 const queryClient = new QueryClient({
     defaultOptions: {
@@ -306,7 +307,7 @@ function AppContent() {
             hasRestoredFromUrl.current = true;
             handleSelectDocument(tabId);
         }
-    }, []);
+    }, [appQueryClient, deleteEntityMutation, selectedWorkspaceId]);
 
     // 생성 성공 시 탭 열기 헬퍼
     const openNewTab = useCallback((id: string, name: string, docType: DocType) => {
@@ -556,6 +557,7 @@ function AppContent() {
             {
                 onSuccess: (result) => {
                     const tabId = entityTabId(childType, result.id);
+                    sessionStorage.setItem("focus_document_title", tabId);
                     openNewTab(tabId, result.name, childType);
                     updateLastVisitedMutation.mutate(tabIdToPath(result.id, childType));
                     appQueryClient.setQueryData<TaskOverview[]>(
@@ -695,7 +697,7 @@ function AppContent() {
         const entityId = extractEntityId(id);
         const doc = findDocById(docsRef.current, entityId, passedDocType);
         const idsToRemove = doc ? new Set(collectAllIds(doc)) : new Set([entityId]);
-        const docType = doc?.type;
+        const docType = doc?.type ?? passedDocType;
 
         // 열린 탭에서 제거 (즉시 UI 반응)
         setSplitState((prev) => {
@@ -731,6 +733,10 @@ function AppContent() {
         // API 호출로 서버에서 삭제
         if (docType) {
             deleteEntityMutation.mutate({ id: entityId, type: docType });
+            if (docType === "space") {
+                appQueryClient.setQueryData<SpaceListItem[]>(spaceKeys.list(), (old) => old?.filter((w) => w.id !== Number(entityId)));
+                if (selectedWorkspaceId === entityId) setSelectedWorkspaceId(null);
+            }
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
@@ -974,6 +980,7 @@ function AppContent() {
     });
 
     return (
+        <TooltipProvider>
         <div className="flex h-screen">
             <ActivityBar
                 onSelectItem={handleSelectDocumentWithTracking}
@@ -999,6 +1006,8 @@ function AppContent() {
                 onAddItem={handleAddItem}
                 onAddSpace={handleAddSpace}
                 onDeleteItem={handleDeleteDocument}
+                onRenameItem={handleRenameDocument}
+                onDeleteDailyNote={handleDeleteDailyNote}
                 isLoading={isLoading}
                 unfoldedIds={unfoldedIds}
                 onToggleExpand={handleToggleExpand}
@@ -1039,6 +1048,7 @@ function AppContent() {
                 />
             )}
         </div>
+        </TooltipProvider>
     );
 }
 

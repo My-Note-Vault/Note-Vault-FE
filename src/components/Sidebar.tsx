@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { ChevronRight, ChevronUp, FileText, CalendarDays, NotebookPen, StickyNote, FolderClosed, Plus, Layout, ListChecks, ListTodo, Search, X, Loader2, Trash2, Columns3, Check, UserPlus } from "lucide-react";
+import { ChevronRight, ChevronUp, FileText, CalendarDays, NotebookPen, StickyNote, FolderClosed, Plus, Layout, ListChecks, Search, X, Loader2, Columns3, Check, UserPlus, Copy, Pencil, Trash2 } from "lucide-react";
 import { useSearchDocuments } from "@/hooks/useDocuments";
 import { formatLogicalDate, type DailyNoteDetail } from "@/api/documents";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import InviteDialog from "@/components/InviteDialog";
+import { toast } from "sonner";
+import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger } from "@/components/ui/context-menu";
 
 export type { DocType, SidebarItem, SearchResult } from "@/types/common";
 import { sidebarUnfoldedId, type DocType, type SidebarItem, type SearchResult } from "@/types/common";
@@ -92,12 +94,13 @@ interface DocItemProps {
   onSelect: (id: string, docType?: DocType) => void;
   onAddItem?: (parentId: string, parentType: DocType, childType: "task" | "note") => void;
   onDeleteItem?: (id: string, docType?: DocType) => void;
+  onRenameItem?: (id: string, name: string) => void;
   icon?: "file" | "calendar";
   unfoldedIds?: Set<string>;
   onToggleExpand?: (noteId: string, docType: DocType, expanded: boolean) => void;
 }
 
-function DocItem({ doc, depth, selectedId, onSelect, onAddItem, onDeleteItem, icon = "file", unfoldedIds, onToggleExpand }: DocItemProps) {
+function DocItem({ doc, depth, selectedId, onSelect, onAddItem, onDeleteItem, onRenameItem, icon = "file", unfoldedIds, onToggleExpand }: DocItemProps) {
   const [expanded, setExpanded] = useState(() => isDocUnfolded(doc, unfoldedIds));
   const hasChildren = doc.children && doc.children.length > 0;
   const canAdd = doc.type === "task" || doc.type === "note";
@@ -139,6 +142,24 @@ function DocItem({ doc, depth, selectedId, onSelect, onAddItem, onDeleteItem, ic
     }
   };
 
+  const copyLink = async () => {
+    const tabId = doc.type ? `${doc.type}-${doc.id}` : doc.id;
+    const url = new URL(window.location.href);
+    url.searchParams.set("tab", tabId);
+    try {
+      await navigator.clipboard.writeText(url.toString());
+      toast.success("Note 링크를 복사했습니다");
+    } catch {
+      toast.error("링크를 복사하지 못했습니다");
+    }
+  };
+
+  const rename = () => {
+    if (!onRenameItem || !doc.type) return;
+    const name = window.prompt("새 이름을 입력하세요", doc.name)?.trim();
+    if (name && name !== doc.name) onRenameItem(`${doc.type}-${doc.id}`, name);
+  };
+
   let ItemIcon;
   if (doc.type) {
     ItemIcon = DOC_TYPE_ICON[doc.type];
@@ -152,7 +173,8 @@ function DocItem({ doc, depth, selectedId, onSelect, onAddItem, onDeleteItem, ic
 
   return (
     <div>
-      <div
+      <ContextMenu>
+      <ContextMenuTrigger asChild><div
         className={`group/item relative flex items-center gap-1 px-2 py-1.5 rounded-md cursor-pointer text-sm transition-colors
           ${selectedId === (doc.type ? `${doc.type}-${doc.id}` : doc.id) ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium" : "text-sidebar-foreground hover:bg-sidebar-accent/50"}`}
         style={{ paddingLeft: `${depth * 16 + 8}px` }}
@@ -181,7 +203,7 @@ function DocItem({ doc, depth, selectedId, onSelect, onAddItem, onDeleteItem, ic
               <button
                 onClick={(e) => e.stopPropagation()}
                 className="pointer-events-none absolute right-2 p-0.5 rounded bg-sidebar-accent hover:bg-sidebar-border transition-colors opacity-0 group-hover/item:pointer-events-auto group-hover/item:opacity-100"
-                title="하위 문서 추가"
+                title="하위 Note 추가"
               >
                 <Plus className="h-3.5 w-3.5" />
               </button>
@@ -202,7 +224,33 @@ function DocItem({ doc, depth, selectedId, onSelect, onAddItem, onDeleteItem, ic
             </PopoverContent>
           </Popover>
         )}
-      </div>
+      </div></ContextMenuTrigger>
+      <ContextMenuContent>
+        {canAdd && onAddItem && doc.type && (
+          <ContextMenuItem onSelect={() => onAddItem(doc.id, doc.type!, "note")}>
+            <FileText className="h-4 w-4" />하위 Note 만들기
+          </ContextMenuItem>
+        )}
+        {canAdd && onAddItem && doc.type && (
+          <ContextMenuItem onSelect={() => onAddItem(doc.id, doc.type!, "task")}>
+            <ListChecks className="h-4 w-4" />하위 Task 만들기
+          </ContextMenuItem>
+        )}
+        <ContextMenuItem onSelect={copyLink}><Copy className="h-4 w-4" />링크 복사</ContextMenuItem>
+        {doc.type && onRenameItem && (
+          <ContextMenuItem onSelect={rename}><Pencil className="h-4 w-4" />이름 변경</ContextMenuItem>
+        )}
+        {doc.type && onDeleteItem && <ContextMenuSeparator />}
+        {doc.type && onDeleteItem && (
+          <ContextMenuItem
+            className="text-destructive focus:text-destructive"
+            onSelect={() => {
+              if (window.confirm(`"${doc.name}"을(를) 삭제할까요?\n하위 Note와 Task도 함께 삭제됩니다.`)) onDeleteItem(doc.id, doc.type);
+            }}
+          ><Trash2 className="h-4 w-4" />삭제</ContextMenuItem>
+        )}
+      </ContextMenuContent>
+      </ContextMenu>
 
       {hasChildren && expanded && (
         <div className="relative">
@@ -220,6 +268,7 @@ function DocItem({ doc, depth, selectedId, onSelect, onAddItem, onDeleteItem, ic
               onSelect={onSelect}
               onAddItem={onAddItem}
               onDeleteItem={onDeleteItem}
+              onRenameItem={onRenameItem}
               icon={icon}
               unfoldedIds={unfoldedIds}
               onToggleExpand={onToggleExpand}
@@ -235,16 +284,18 @@ function DailyNoteItem({
   dn,
   selectedId,
   onSelect,
+  onDelete,
   depth,
 }: {
   dn: DailyNoteDetail;
   selectedId: string | null;
   onSelect: (id: string) => void;
+  onDelete?: (id: number) => void;
   depth: number;
 }) {
   const tabId = `daily-${dn.dailyNoteId}`;
   return (
-    <div
+    <ContextMenu><ContextMenuTrigger asChild><div
       key={dn.dailyNoteId}
       className={`group/daily flex items-center gap-1 px-2 py-1.5 rounded-md cursor-pointer text-sm transition-colors
         ${selectedId === tabId
@@ -256,7 +307,19 @@ function DailyNoteItem({
       <span className="shrink-0" style={{ width: 18 }} />
       <NotebookPen className="h-4 w-4 shrink-0 opacity-60" />
       <span className="truncate flex-1">{formatLogicalDate(dn.logicalDate)}</span>
-    </div>
+    </div></ContextMenuTrigger>
+    <ContextMenuContent>
+      <ContextMenuItem onSelect={async () => {
+        const url = new URL(window.location.href);
+        url.searchParams.set("tab", tabId);
+        try { await navigator.clipboard.writeText(url.toString()); toast.success("Daily Note 링크를 복사했습니다"); }
+        catch { toast.error("링크를 복사하지 못했습니다"); }
+      }}><Copy className="h-4 w-4" />링크 복사</ContextMenuItem>
+      {onDelete && <ContextMenuSeparator />}
+      {onDelete && <ContextMenuItem className="text-destructive focus:text-destructive" onSelect={() => {
+        if (window.confirm(`${formatLogicalDate(dn.logicalDate)} Daily Note를 삭제할까요?`)) onDelete(dn.dailyNoteId);
+      }}><Trash2 className="h-4 w-4" />삭제</ContextMenuItem>}
+    </ContextMenuContent></ContextMenu>
   );
 }
 
@@ -265,11 +328,13 @@ function MonthFolder({
   notes,
   selectedId,
   onSelect,
+  onDelete,
 }: {
   month: string;
   notes: DailyNoteDetail[];
   selectedId: string | null;
   onSelect: (id: string) => void;
+  onDelete?: (id: number) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
 
@@ -303,6 +368,7 @@ function MonthFolder({
               dn={dn}
               selectedId={selectedId}
               onSelect={onSelect}
+              onDelete={onDelete}
               depth={3}
             />
           ))}
@@ -316,10 +382,12 @@ function DailyNotesSection({
   dailyNotes,
   selectedId,
   onSelect,
+  onDelete,
 }: {
   dailyNotes: DailyNoteDetail[];
   selectedId: string | null;
   onSelect: (id: string) => void;
+  onDelete?: (id: number) => void;
 }) {
   const [expanded, setExpanded] = useState(true);
 
@@ -371,6 +439,7 @@ function DailyNotesSection({
               notes={notes}
               selectedId={selectedId}
               onSelect={onSelect}
+              onDelete={onDelete}
             />
           ))}
           {recentNotes.map((dn) => (
@@ -379,6 +448,7 @@ function DailyNotesSection({
               dn={dn}
               selectedId={selectedId}
               onSelect={onSelect}
+              onDelete={onDelete}
               depth={1}
             />
           ))}
@@ -483,6 +553,8 @@ interface SidebarProps {
   onAddItem?: (parentId: string, parentType: DocType, childType: "task" | "note") => void;
   onAddSpace?: () => void;
   onDeleteItem?: (id: string, docType?: DocType) => void;
+  onRenameItem?: (id: string, name: string) => void;
+  onDeleteDailyNote?: (id: number) => void;
   isLoading?: boolean;
   unfoldedIds?: Set<string>;
   open: boolean;
@@ -501,7 +573,7 @@ const SIDEBAR_CLOSE_THRESHOLD = 60;
 const SIDEBAR_MAX = 480;
 const SIDEBAR_DEFAULT = 300;
 
-export default function Sidebar({ onSelectSidebarItem, docs, workspaces = [], dailyNotes, onAddItem, onAddSpace, onDeleteItem, isLoading, unfoldedIds, open, onClose, activeTabId, searchMode, onCloseSearch, selectedWorkspaceId, onSelectWorkspace, onToggleExpand }: SidebarProps) {
+export default function Sidebar({ onSelectSidebarItem, docs, workspaces = [], dailyNotes, onAddItem, onAddSpace, onDeleteItem, onRenameItem, onDeleteDailyNote, isLoading, unfoldedIds, open, onClose, activeTabId, searchMode, onCloseSearch, selectedWorkspaceId, onSelectWorkspace, onToggleExpand }: SidebarProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [inviteOpen, setInviteOpen] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(() => {
@@ -586,7 +658,7 @@ export default function Sidebar({ onSelectSidebarItem, docs, workspaces = [], da
             <Search className="h-4 w-4 text-sidebar-foreground/40 shrink-0" />
             <input
               type="text"
-              placeholder="내 문서 검색..."
+              placeholder="내 Note 검색..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="flex-1 min-w-0 bg-transparent text-sm text-sidebar-foreground placeholder:text-sidebar-foreground/40 outline-none"
@@ -647,6 +719,7 @@ export default function Sidebar({ onSelectSidebarItem, docs, workspaces = [], da
                     dailyNotes={dailyNotes}
                     selectedId={activeTabId ?? null}
                     onSelect={handleSelect}
+                    onDelete={onDeleteDailyNote}
                   />
                 )}
                 <div
@@ -680,7 +753,7 @@ export default function Sidebar({ onSelectSidebarItem, docs, workspaces = [], da
                 const ws = workspaces.find((w) => String(w.id) === selectedWorkspaceId);
                 if (!ws) return null;
                 return (
-                  <div
+                  <ContextMenu><ContextMenuTrigger asChild><div
                     className={`group/ws relative flex items-center gap-1 px-2 py-1.5 rounded-md cursor-pointer text-sm transition-colors
                       ${activeTabId === `space-${selectedWorkspaceId}`
                         ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
@@ -697,7 +770,7 @@ export default function Sidebar({ onSelectSidebarItem, docs, workspaces = [], da
                             <button
                               onClick={(e) => e.stopPropagation()}
                               className="p-0.5 rounded hover:bg-sidebar-border transition-colors"
-                              title="최상위 문서 추가"
+                              title="최상위 Note 추가"
                             >
                               <Plus className="h-3.5 w-3.5" />
                             </button>
@@ -726,7 +799,25 @@ export default function Sidebar({ onSelectSidebarItem, docs, workspaces = [], da
                         <UserPlus className="h-3.5 w-3.5" />
                       </button>
                     </div>
-                  </div>
+                  </div></ContextMenuTrigger>
+                  <ContextMenuContent>
+                    {onAddItem && <ContextMenuItem onSelect={() => onAddItem(selectedWorkspaceId, "space", "note")}><FileText className="h-4 w-4" />새 Note</ContextMenuItem>}
+                    {onAddItem && <ContextMenuItem onSelect={() => onAddItem(selectedWorkspaceId, "space", "task")}><ListChecks className="h-4 w-4" />새 Task</ContextMenuItem>}
+                    <ContextMenuItem onSelect={async () => {
+                      const url = new URL(window.location.href);
+                      url.searchParams.set("tab", `space-${selectedWorkspaceId}`);
+                      try { await navigator.clipboard.writeText(url.toString()); toast.success("Workspace 링크를 복사했습니다"); }
+                      catch { toast.error("링크를 복사하지 못했습니다"); }
+                    }}><Copy className="h-4 w-4" />링크 복사</ContextMenuItem>
+                    {onRenameItem && <ContextMenuItem onSelect={() => {
+                      const name = window.prompt("새 Workspace 이름을 입력하세요", ws.name)?.trim();
+                      if (name && name !== ws.name) onRenameItem(`space-${selectedWorkspaceId}`, name);
+                    }}><Pencil className="h-4 w-4" />이름 변경</ContextMenuItem>}
+                    {onDeleteItem && <ContextMenuSeparator />}
+                    {onDeleteItem && <ContextMenuItem className="text-destructive focus:text-destructive" onSelect={() => {
+                      if (window.confirm(`"${ws.name}" Workspace를 삭제할까요?\n모든 하위 Note와 Task도 함께 삭제됩니다.`)) onDeleteItem(selectedWorkspaceId, "space");
+                    }}><Trash2 className="h-4 w-4" />Workspace 삭제</ContextMenuItem>}
+                  </ContextMenuContent></ContextMenu>
                 );
               })()}
 
@@ -742,10 +833,26 @@ export default function Sidebar({ onSelectSidebarItem, docs, workspaces = [], da
                       onSelect={handleSelect}
                       onAddItem={onAddItem}
                       onDeleteItem={onDeleteItem}
+                      onRenameItem={onRenameItem}
                       unfoldedIds={unfoldedIds}
                       onToggleExpand={onToggleExpand}
                     />
                   ))}
+                </div>
+              )}
+              {selectedWorkspaceId && docs.length === 0 && (
+                <div className="mx-2 mt-5 rounded-lg border border-dashed border-sidebar-border px-4 py-5 text-center">
+                  <FileText className="mx-auto h-6 w-6 text-sidebar-foreground/35" />
+                  <p className="mt-2 text-sm font-medium text-sidebar-foreground">아직 Note가 없어요</p>
+                  <p className="mt-1 text-xs leading-5 text-sidebar-foreground/55">첫 Note를 만들고 바로 글을 작성해 보세요.</p>
+                  {onAddItem && (
+                    <button
+                      onClick={() => onAddItem(selectedWorkspaceId, "space", "note")}
+                      className="mt-3 inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+                    >
+                      <Plus className="h-4 w-4" />첫 Note 만들기
+                    </button>
+                  )}
                 </div>
               )}
             </>

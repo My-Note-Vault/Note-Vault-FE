@@ -217,6 +217,7 @@ export default function Editor({
 }: EditorProps) {
   const queryClient = useQueryClient();
   const [title, setTitle] = useState(documentName);
+  const titleInputRef = useRef<HTMLInputElement>(null);
   const editorRef = useRef<MarkdownEditorHandle>(null);
   const titleRef = useRef(title);
   const savedTitleRef = useRef(documentName);
@@ -277,6 +278,16 @@ export default function Editor({
   const refetch = isDailyNote ? refetchDaily : refetchEntity;
   const isMissingDocument = !isDailyNote && !isNew && !docType && !!isTreeLoaded;
   const isNotFound = isMissingDocument || errorStatus === 404;
+
+  useEffect(() => {
+    if (loading || isDailyNote) return;
+    if (sessionStorage.getItem("focus_document_title") !== documentId) return;
+    sessionStorage.removeItem("focus_document_title");
+    requestAnimationFrame(() => {
+      titleInputRef.current?.focus();
+      titleInputRef.current?.select();
+    });
+  }, [documentId, isDailyNote, loading]);
 
   const dailyNoteId = dailyPk ?? dailyDetail?.dailyNoteId;
   const { data: memberProfile } = useMemberProfile();
@@ -646,6 +657,7 @@ export default function Editor({
           {/* Title + Delete */}
           <div className="flex items-start">
             <input
+              ref={titleInputRef}
               type="text"
               value={daily?.logicalDate ? formatLogicalDate(daily.logicalDate) : ""}
               readOnly
@@ -834,6 +846,7 @@ export default function Editor({
             onContentChange={setCurrentContent}
             collaboration={collaborationConfig}
             contentImageTarget={contentImageTarget}
+            placeholder="내용을 입력하거나 Markdown으로 작성해 보세요…"
           />
         </div>
       </div>
