@@ -1,11 +1,10 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import MarkdownEditor, { type MarkdownEditorHandle, type AutoSaveOptions } from "@/components/MarkdownEditor";
-import { ChevronRight, Loader2, AlertTriangle, RefreshCw, Check, Undo2, ArrowUp, ArrowDown, Trash2, Columns2, Rows2, Sparkles, FileText, X } from "lucide-react";
+import { ChevronRight, Loader2, AlertTriangle, RefreshCw, Check, Undo2, ArrowUp, ArrowDown, Trash2, Columns2, Rows2 } from "lucide-react";
 import { toast } from "sonner";
 import { sendKeepaliveDailyNoteAutoSave } from "@/api/autoSave";
 import type { ContentImageTarget } from "@/api/contentImages";
-import { AI_SUMMARY_MAX_CONTENT_LENGTH, summarizeMarkdown } from "@/api/aiSummaries";
 import { extractEntityId, type DocType } from "@/types/common";
 import TaskMetadata, { type TaskMetadataValues } from "@/components/TaskMetadata";
 import { useDailyNoteDetail, useUpdateDailyNote, useAddPlan, useUpdatePlan, useDeletePlan, documentKeys } from "@/hooks/useDocuments";
@@ -22,54 +21,9 @@ function hasMetadata(detail: EntityDetail): detail is TaskDetail {
   return "status" in detail;
 }
 
-interface SummarySection {
-  id: string;
-  title: string;
-  content: string;
-}
-
 function getErrorStatus(error: unknown): number | null {
   const status = (error as { response?: { status?: unknown } } | null)?.response?.status;
   return typeof status === "number" ? status : null;
-}
-
-function getErrorMessage(error: unknown, fallback: string): string {
-  const message = (error as { response?: { data?: { message?: unknown } } } | null)
-    ?.response?.data?.message;
-  return typeof message === "string" && message.trim() ? message : fallback;
-}
-
-function splitH1Sections(content: string): SummarySection[] {
-  const lines = content.split(/\r?\n/);
-  const sections: SummarySection[] = [];
-  let currentTitle: string | null = null;
-  let currentLines: string[] = [];
-
-  const pushCurrent = () => {
-    if (!currentTitle || currentLines.join("\n").trim().length === 0) return;
-    sections.push({
-      id: `${sections.length}-${currentTitle}`,
-      title: currentTitle,
-      content: currentLines.join("\n").trim(),
-    });
-  };
-
-  for (const line of lines) {
-    const match = line.match(/^#(?!#)\s+(.+?)\s*$/);
-    if (match) {
-      pushCurrent();
-      currentTitle = match[1].trim() || "제목 없음";
-      currentLines = [line];
-      continue;
-    }
-
-    if (currentTitle) {
-      currentLines.push(line);
-    }
-  }
-
-  pushCurrent();
-  return sections;
 }
 
 function getContentImageTarget(
@@ -512,156 +466,6 @@ export default function Editor({
     profileImageUrl,
   ]);
 
-  const [currentContent, setCurrentContent] = useState(loadedContent);
-  const [summary, setSummary] = useState("");
-  const [summaryHeading, setSummaryHeading] = useState("");
-  const [summaryRemainingToday, setSummaryRemainingToday] = useState<number | null>(null);
-  const [summarizingKey, setSummarizingKey] = useState<string | null>(null);
-
-  useEffect(() => {
-    setCurrentContent(loadedContent);
-    setSummary("");
-    setSummaryHeading("");
-    setSummaryRemainingToday(null);
-    setSummarizingKey(null);
-  }, [documentId, loadedContent]);
-
-  const h1Sections = useMemo(() => splitH1Sections(currentContent), [currentContent]);
-  const isContentTooLarge = currentContent.length > AI_SUMMARY_MAX_CONTENT_LENGTH;
-  const summaryDocumentTitle = isDailyNote
-    ? dailyDetail?.logicalDate
-      ? formatLogicalDate(dailyDetail.logicalDate)
-      : documentName
-    : title;
-
-  const requestSummary = useCallback(async (
-    content: string,
-    heading: string,
-    sectionTitle?: string,
-  ) => {
-    const trimmed = content.trim();
-    if (!trimmed) {
-      toast.error("요약할 내용이 없습니다.");
-      return;
-    }
-
-    if (trimmed.length > AI_SUMMARY_MAX_CONTENT_LENGTH) {
-      toast.error("요약할 내용이 너무 깁니다.");
-      return;
-    }
-
-    const key = sectionTitle ? `section:${sectionTitle}` : "all";
-    setSummarizingKey(key);
-    try {
-      const result = await summarizeMarkdown({
-        title: summaryDocumentTitle,
-        sectionTitle,
-        content: trimmed,
-      });
-      setSummary(result.summary);
-      setSummaryHeading(heading);
-      setSummaryRemainingToday(result.remainingToday);
-    } catch (error) {
-      toast.error(getErrorMessage(error, "AI 요약에 실패했습니다."));
-    } finally {
-      setSummarizingKey(null);
-    }
-  }, [summaryDocumentTitle]);
-
-  const renderSummaryAction = () => {
-    if (isContentTooLarge) return null;
-
-    return (
-      <button
-        type="button"
-        onClick={() => requestSummary(currentContent, "전체 요약")}
-        disabled={summarizingKey !== null || currentContent.trim().length === 0}
-        className="mt-4 mr-2 inline-flex h-8 items-center gap-1.5 rounded-md border border-border px-2.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50 shrink-0"
-        title="전체 요약"
-      >
-        {summarizingKey === "all" ? (
-          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-        ) : (
-          <Sparkles className="h-3.5 w-3.5" />
-        )}
-        전체 요약
-      </button>
-    );
-  };
-
-  const renderSectionSummaryActions = () => {
-    if (!isContentTooLarge) return null;
-
-    return (
-      <div className="mx-12 mt-4 border-y border-border py-3">
-        <div className="mb-2 flex items-center gap-2 text-sm font-medium text-foreground">
-          <FileText className="h-4 w-4 text-muted-foreground" />
-          H1 섹션 요약
-        </div>
-        {h1Sections.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            본문이 길어 전체 요약을 할 수 없습니다. H1 제목을 추가한 뒤 섹션별로 요약하세요.
-          </p>
-        ) : (
-          <div className="flex flex-wrap gap-2">
-            {h1Sections.map((section) => {
-              const key = `section:${section.title}`;
-              const tooLarge = section.content.length > AI_SUMMARY_MAX_CONTENT_LENGTH;
-              return (
-                <button
-                  key={section.id}
-                  type="button"
-                  onClick={() => requestSummary(section.content, section.title, section.title)}
-                  disabled={summarizingKey !== null || tooLarge}
-                  className="inline-flex h-8 max-w-full items-center gap-1.5 rounded-md border border-border px-2.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
-                  title={tooLarge ? "이 섹션도 너무 깁니다." : `${section.title} 요약`}
-                >
-                  {summarizingKey === key ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  ) : (
-                    <Sparkles className="h-3.5 w-3.5" />
-                  )}
-                  <span className="truncate">{section.title}</span>
-                </button>
-              );
-            })}
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  const renderSummaryResult = () => {
-    if (!summary) return null;
-
-    return (
-      <div className="mx-12 mt-4 rounded-md border border-border bg-muted/20">
-        <div className="flex items-center justify-between gap-3 border-b border-border px-3 py-2">
-          <div className="flex min-w-0 items-center gap-2">
-            <Sparkles className="h-4 w-4 shrink-0 text-muted-foreground" />
-            <span className="truncate text-sm font-medium text-foreground">{summaryHeading}</span>
-            {summaryRemainingToday !== null && (
-              <span className="shrink-0 text-xs text-muted-foreground">
-                오늘 {summaryRemainingToday}회 남음
-              </span>
-            )}
-          </div>
-          <button
-            type="button"
-            onClick={() => setSummary("")}
-            className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-            title="닫기"
-          >
-            <X className="h-3.5 w-3.5" />
-          </button>
-        </div>
-        <pre className="whitespace-pre-wrap break-words px-3 py-3 text-sm leading-6 text-foreground font-sans">
-          {summary}
-        </pre>
-      </div>
-    );
-  };
-
   // 서버에서 받은 메타데이터 반영
   useEffect(() => {
     if (detail && !isDailyNote && hasMetadata(detail as EntityDetail)) {
@@ -850,7 +654,6 @@ export default function Editor({
               readOnly
               className="flex-1 px-12 pt-4 pb-0 text-xl font-semibold bg-transparent outline-none"
             />
-            {renderSummaryAction()}
             {/* Split direction toggle */}
             <div className="mt-4 mr-2 flex gap-0.5 rounded-md border border-border bg-muted/30 p-0.5 shrink-0">
               <button
@@ -891,8 +694,6 @@ export default function Editor({
             )}
           </div>
 
-          {renderSectionSummaryActions()}
-          {renderSummaryResult()}
 
           {/* Split: left(Pending+Todo) / right(Content) */}
           <div className={`flex ${dailyLayout === "horizontal" ? "flex-row gap-6" : "flex-col"}`}>
@@ -958,7 +759,6 @@ export default function Editor({
               <MarkdownEditor
                 initialContent={daily?.content ?? ""}
                 onAutoSave={handleDailyContentAutoSave}
-                onContentChange={setCurrentContent}
                 collaboration={collaborationConfig}
                 contentImageTarget={contentImageTarget}
               />
@@ -990,7 +790,6 @@ export default function Editor({
               }}
               className="flex-1 px-12 pt-4 pb-0 text-xl font-semibold bg-transparent outline-none"
             />
-            {renderSummaryAction()}
             {onDeleteDocument && docType && !isNew && (
               <button
                 onClick={() => onDeleteDocument(documentId, docType)}
@@ -1002,8 +801,6 @@ export default function Editor({
             )}
           </div>
 
-          {renderSectionSummaryActions()}
-          {renderSummaryResult()}
 
           {showMetadata && (
             <>
@@ -1036,7 +833,6 @@ export default function Editor({
             ref={editorRef}
             initialContent={loadedContent}
             onAutoSave={handleAutoSave}
-            onContentChange={setCurrentContent}
             collaboration={collaborationConfig}
             contentImageTarget={contentImageTarget}
             placeholder="내용을 입력하거나 Markdown으로 작성해 보세요…"
