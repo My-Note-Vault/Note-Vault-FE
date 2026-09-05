@@ -50,9 +50,9 @@ export default function LandingPage() {
       {/* Hero */}
       <section className="flex flex-col items-center justify-center px-6 pt-32 pb-24">
         <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-center leading-tight">
-          생각을 정리하고,
+          생각나는 대로 적고,
           <br />
-          <span className="text-primary">업무를 관리하세요</span>
+          <span className="text-primary">편하게 정리하세요</span>
         </h1>
         <p className="mt-5 text-lg text-muted-foreground text-center max-w-md">
           문서, 일정, 칸반 보드를 하나의 공간에서.
