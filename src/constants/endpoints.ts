@@ -37,6 +37,9 @@ DAILY_NOTE_BY_DATE: (date: string) => `${API_BASE}/daily-notes/date/${date}`,
 DAILY_NOTE_DETAIL: (id: string | number) => `${API_BASE}/daily-notes/${id}`,
 DAILY_NOTE_PLANS: (dailyNoteId: number) => `${API_BASE}/daily-notes/${dailyNoteId}/plans`,
 DAILY_NOTE_INDEXING: (dailyNoteId: number) => `${API_BASE}/daily-notes/${dailyNoteId}/indexing`,
+DAILY_NOTE_FOLDER: (dailyNoteId: number) => `${API_BASE}/daily-notes/${dailyNoteId}/folder`,
+DAILY_NOTE_FOLDERS: `${API_BASE}/daily-note-folders`,
+DAILY_NOTE_FOLDER_DETAIL: (folderId: number) => `${API_BASE}/daily-note-folders/${folderId}`,
 
 // Calendar Endpoints
 CALENDAR_SCHEDULES: `${API_BASE}/calendar/schedules`,

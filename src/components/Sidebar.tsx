@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { ChevronRight, ChevronUp, FileText, CalendarDays, NotebookPen, StickyNote, FolderClosed, Plus, Layout, ListChecks, Search, X, Loader2, Columns3, Check, UserPlus, Copy, Pencil, Trash2 } from "lucide-react";
-import { useSearchDocuments } from "@/hooks/useDocuments";
-import { formatLogicalDate, type DailyNoteDetail } from "@/api/documents";
+import { ChevronRight, ChevronUp, FileText, CalendarDays, NotebookPen, StickyNote, FolderClosed, FolderPlus, FilePlus2, Plus, Layout, ListChecks, Search, X, Loader2, Columns3, Check, UserPlus, Copy, Pencil, Trash2 } from "lucide-react";
+import { useCreateDailyNoteFolder, useDeleteDailyNoteFolder, useMoveDailyNote, useRenameDailyNoteFolder, useSearchDocuments } from "@/hooks/useDocuments";
+import { formatLogicalDate, type DailyNoteFolder, type DailyNoteSummary } from "@/api/documents";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import InviteDialog from "@/components/InviteDialog";
 import { toast } from "sonner";
@@ -286,12 +286,14 @@ function DailyNoteItem({
   onSelect,
   onDelete,
   depth,
+  onDragStart,
 }: {
-  dn: DailyNoteDetail;
+  dn: DailyNoteSummary;
   selectedId: string | null;
   onSelect: (id: string) => void;
   onDelete?: (id: number) => void;
   depth: number;
+  onDragStart: (event: React.DragEvent, dailyNoteId: number) => void;
 }) {
   const tabId = `daily-${dn.dailyNoteId}`;
   return (
@@ -303,6 +305,8 @@ function DailyNoteItem({
           : "text-sidebar-foreground hover:bg-sidebar-accent/50"}`}
       style={{ paddingLeft: `${depth * 12 + 8}px` }}
       onClick={() => onSelect(tabId)}
+      draggable
+      onDragStart={(event) => onDragStart(event, dn.dailyNoteId)}
     >
       <span className="shrink-0" style={{ width: 18 }} />
       <NotebookPen className="h-4 w-4 shrink-0 opacity-60" />
@@ -323,27 +327,73 @@ function DailyNoteItem({
   );
 }
 
-function MonthFolder({
-  month,
+function DailyNoteFolderItem({
+  folder,
   notes,
   selectedId,
   onSelect,
   onDelete,
+  onDragStart,
+  onDropNote,
+  onRenameFolder,
+  onDeleteFolder,
+  editing,
+  onCommitRename,
+  onCancelRename,
 }: {
-  month: string;
-  notes: DailyNoteDetail[];
+  folder: DailyNoteFolder;
+  notes: DailyNoteSummary[];
   selectedId: string | null;
   onSelect: (id: string) => void;
   onDelete?: (id: number) => void;
+  onDragStart: (event: React.DragEvent, dailyNoteId: number) => void;
+  onDropNote: (event: React.DragEvent, folderId: number | null) => void;
+  onRenameFolder: (folder: DailyNoteFolder) => void;
+  onDeleteFolder: (folder: DailyNoteFolder) => void;
+  editing: boolean;
+  onCommitRename: (folder: DailyNoteFolder, name: string) => void;
+  onCancelRename: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
+  const [editName, setEditName] = useState(folder.name);
+  const cancelRenameRef = useRef(false);
+
+  useEffect(() => {
+    if (editing) setEditName(folder.name);
+  }, [editing, folder.name]);
+
+  const commitRename = () => {
+    if (cancelRenameRef.current) {
+      cancelRenameRef.current = false;
+      return;
+    }
+    const normalizedName = editName.trim();
+    if (!normalizedName || normalizedName === folder.name) {
+      onCancelRename();
+      return;
+    }
+    onCommitRename(folder, normalizedName);
+  };
 
   return (
     <div>
-      <div
-        className="flex items-center gap-1 px-2 py-1.5 rounded-md cursor-pointer text-sm text-sidebar-foreground hover:bg-sidebar-accent/50 transition-colors"
+      <ContextMenu><ContextMenuTrigger asChild><div
+        className={`flex items-center gap-1 px-2 py-1.5 rounded-md cursor-pointer text-sm text-sidebar-foreground transition-colors ${dragOver ? "bg-primary/15 ring-1 ring-primary/50" : "hover:bg-sidebar-accent/50"}`}
         style={{ paddingLeft: "20px" }}
         onClick={() => setExpanded(!expanded)}
+        onDragOver={(event) => {
+          if (!event.dataTransfer.types.includes("application/x-daily-note")) return;
+          event.preventDefault();
+          event.dataTransfer.dropEffect = "move";
+          setDragOver(true);
+        }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={(event) => {
+          setDragOver(false);
+          setExpanded(true);
+          onDropNote(event, folder.folderId);
+        }}
       >
         <button
           className="shrink-0 flex items-center justify-center rounded hover:bg-sidebar-border transition-colors"
@@ -358,8 +408,35 @@ function MonthFolder({
           />
         </button>
         <FolderClosed className="h-4 w-4 shrink-0 opacity-60" />
-        <span className="truncate flex-1">{month}</span>
-      </div>
+        {editing ? (
+          <input
+            autoFocus
+            value={editName}
+            className="h-6 min-w-0 flex-1 rounded border border-primary bg-background px-1 text-sm outline-none"
+            onClick={(event) => event.stopPropagation()}
+            onChange={(event) => setEditName(event.target.value)}
+            onFocus={(event) => event.currentTarget.select()}
+            onBlur={commitRename}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") event.currentTarget.blur();
+              if (event.key === "Escape") {
+                cancelRenameRef.current = true;
+                onCancelRename();
+                event.currentTarget.blur();
+              }
+            }}
+          />
+        ) : (
+          <span className="truncate flex-1">{folder.name}</span>
+        )}
+      </div></ContextMenuTrigger>
+      <ContextMenuContent>
+        <ContextMenuItem onSelect={() => onRenameFolder(folder)}><Pencil className="h-4 w-4" />이름 변경</ContextMenuItem>
+        <ContextMenuSeparator />
+        <ContextMenuItem className="text-destructive focus:text-destructive" onSelect={() => onDeleteFolder(folder)}>
+          <Trash2 className="h-4 w-4" />삭제
+        </ContextMenuItem>
+      </ContextMenuContent></ContextMenu>
       {expanded && (
         <div>
           {notes.map((dn) => (
@@ -370,6 +447,7 @@ function MonthFolder({
               onSelect={onSelect}
               onDelete={onDelete}
               depth={3}
+              onDragStart={onDragStart}
             />
           ))}
         </div>
@@ -380,40 +458,87 @@ function MonthFolder({
 
 function DailyNotesSection({
   dailyNotes,
+  folders,
   selectedId,
   onSelect,
   onDelete,
 }: {
-  dailyNotes: DailyNoteDetail[];
+  dailyNotes: DailyNoteSummary[];
+  folders: DailyNoteFolder[];
   selectedId: string | null;
   onSelect: (id: string) => void;
   onDelete?: (id: number) => void;
 }) {
   const [expanded, setExpanded] = useState(true);
+  const [rootDragOver, setRootDragOver] = useState(false);
+  const [editingFolderId, setEditingFolderId] = useState<number | null>(null);
+  const createFolder = useCreateDailyNoteFolder();
+  const renameFolder = useRenameDailyNoteFolder();
+  const deleteFolder = useDeleteDailyNoteFolder();
+  const moveNote = useMoveDailyNote();
 
-  // 오름차순 정렬 (오래된 순 위, 최신 아래), 최근 3개는 하단에, 나머지는 월별 폴더로
   const sorted = [...dailyNotes].sort((a, b) => {
     const [ay, am, ad] = a.logicalDate;
     const [by, bm, bd] = b.logicalDate;
     return ay - by || am - bm || ad - bd;
   });
-  const recentNotes = sorted.slice(-3);
-  const olderNotes = sorted.slice(0, -3);
-
-  // yyyy-MM 기준 그룹핑 (순서 유지)
-  const monthGroups = new Map<string, DailyNoteDetail[]>();
-  for (const dn of olderNotes) {
-    const [y, m] = dn.logicalDate;
-    const key = `${y}-${String(m).padStart(2, "0")}`;
-    if (!monthGroups.has(key)) monthGroups.set(key, []);
-    monthGroups.get(key)!.push(dn);
+  const rootNotes = sorted.filter((note) => note.folderId === null);
+  const notesByFolder = new Map<number, DailyNoteSummary[]>();
+  for (const note of sorted) {
+    if (note.folderId === null) continue;
+    const notes = notesByFolder.get(note.folderId) ?? [];
+    notes.push(note);
+    notesByFolder.set(note.folderId, notes);
   }
+
+  const handleCreateFolder = async () => {
+    const usedNames = new Set(folders.map((folder) => folder.name));
+    let name = "새 폴더";
+    let suffix = 2;
+    while (usedNames.has(name)) name = `새 폴더 ${suffix++}`;
+    try {
+      const folderId = await createFolder.mutateAsync(name);
+      setExpanded(true);
+      setEditingFolderId(folderId);
+    }
+    catch { toast.error("폴더를 만들지 못했습니다"); }
+  };
+  const handleRenameFolder = (folder: DailyNoteFolder) => setEditingFolderId(folder.folderId);
+  const handleCommitRename = async (folder: DailyNoteFolder, name: string) => {
+    setEditingFolderId(null);
+    try { await renameFolder.mutateAsync({ folderId: folder.folderId, name }); }
+    catch { toast.error("폴더 이름을 변경하지 못했습니다"); }
+  };
+  const handleDeleteFolder = async (folder: DailyNoteFolder) => {
+    if (!window.confirm(`"${folder.name}" 폴더를 삭제할까요?\n폴더 안의 Daily Note는 루트로 이동합니다.`)) return;
+    try { await deleteFolder.mutateAsync(folder.folderId); }
+    catch { toast.error("폴더를 삭제하지 못했습니다"); }
+  };
+  const handleDragStart = (event: React.DragEvent, dailyNoteId: number) => {
+    event.dataTransfer.setData("application/x-daily-note", String(dailyNoteId));
+    event.dataTransfer.effectAllowed = "move";
+  };
+  const handleDropNote = (event: React.DragEvent, folderId: number | null) => {
+    const dailyNoteId = Number(event.dataTransfer.getData("application/x-daily-note"));
+    if (!Number.isInteger(dailyNoteId)) return;
+    event.preventDefault();
+    const note = dailyNotes.find((item) => item.dailyNoteId === dailyNoteId);
+    if (!note || note.folderId === folderId) return;
+    moveNote.mutate({ dailyNoteId, folderId }, { onError: () => toast.error("Daily Note를 이동하지 못했습니다") });
+  };
 
   return (
     <div>
       <div
-        className="flex items-center gap-1 px-2 py-1.5 rounded-md cursor-pointer text-sm text-sidebar-foreground hover:bg-sidebar-accent/50 transition-colors"
+        className={`group/daily relative flex items-center gap-1 px-2 py-1.5 rounded-md cursor-pointer text-sm text-sidebar-foreground transition-colors ${rootDragOver ? "bg-primary/15 ring-1 ring-primary/50" : "hover:bg-sidebar-accent/50"}`}
         onClick={() => setExpanded(!expanded)}
+        onDragOver={(event) => {
+          if (!event.dataTransfer.types.includes("application/x-daily-note")) return;
+          event.preventDefault();
+          setRootDragOver(true);
+        }}
+        onDragLeave={() => setRootDragOver(false)}
+        onDrop={(event) => { setRootDragOver(false); handleDropNote(event, null); }}
       >
         <button
           className="p-0.5 rounded hover:bg-sidebar-border transition-colors"
@@ -428,21 +553,46 @@ function DailyNotesSection({
         </button>
         <NotebookPen className="h-4 w-4 shrink-0 opacity-60" />
         <span className="truncate flex-1">Daily Notes</span>
+        <div className="pointer-events-none absolute right-2 flex items-center rounded bg-sidebar-accent opacity-0 transition-opacity group-hover/daily:pointer-events-auto group-hover/daily:opacity-100 group-focus-within/daily:pointer-events-auto group-focus-within/daily:opacity-100">
+          <button
+            className="p-0.5 rounded hover:bg-sidebar-border"
+            aria-label="Daily Note 폴더 만들기"
+            title="폴더 만들기"
+            onClick={(event) => { event.stopPropagation(); void handleCreateFolder(); }}
+          >
+            <FolderPlus className="h-3.5 w-3.5" />
+          </button>
+          <button
+            className="p-0.5 rounded hover:bg-sidebar-border"
+            aria-label="Daily Note 만들기"
+            title="Daily Note 만들기"
+            onClick={(event) => { event.stopPropagation(); onSelect("daily-notes"); }}
+          >
+            <FilePlus2 className="h-3.5 w-3.5" />
+          </button>
+        </div>
       </div>
 
       {expanded && (
         <div>
-          {[...monthGroups.entries()].map(([month, notes]) => (
-            <MonthFolder
-              key={month}
-              month={month}
-              notes={notes}
+          {folders.map((folder) => (
+            <DailyNoteFolderItem
+              key={folder.folderId}
+              folder={folder}
+              notes={notesByFolder.get(folder.folderId) ?? []}
               selectedId={selectedId}
               onSelect={onSelect}
               onDelete={onDelete}
+              onDragStart={handleDragStart}
+              onDropNote={handleDropNote}
+              onRenameFolder={handleRenameFolder}
+              onDeleteFolder={handleDeleteFolder}
+              editing={editingFolderId === folder.folderId}
+              onCommitRename={handleCommitRename}
+              onCancelRename={() => setEditingFolderId(null)}
             />
           ))}
-          {recentNotes.map((dn) => (
+          {rootNotes.map((dn) => (
             <DailyNoteItem
               key={dn.dailyNoteId}
               dn={dn}
@@ -450,6 +600,7 @@ function DailyNotesSection({
               onSelect={onSelect}
               onDelete={onDelete}
               depth={1}
+              onDragStart={handleDragStart}
             />
           ))}
         </div>
@@ -549,7 +700,8 @@ interface SidebarProps {
   onSelectSidebarItem?: (id: string, docType?: DocType) => void;
   docs: SidebarItem[];
   workspaces?: WorkspaceInfo[];
-  dailyNotes?: DailyNoteDetail[];
+  dailyNotes?: DailyNoteSummary[];
+  dailyNoteFolders?: DailyNoteFolder[];
   onAddItem?: (parentId: string, parentType: DocType, childType: "task" | "note") => void;
   onAddSpace?: () => void;
   onDeleteItem?: (id: string, docType?: DocType) => void;
@@ -573,7 +725,7 @@ const SIDEBAR_CLOSE_THRESHOLD = 60;
 const SIDEBAR_MAX = 480;
 const SIDEBAR_DEFAULT = 300;
 
-export default function Sidebar({ onSelectSidebarItem, docs, workspaces = [], dailyNotes, onAddItem, onAddSpace, onDeleteItem, onRenameItem, onDeleteDailyNote, isLoading, unfoldedIds, open, onClose, activeTabId, searchMode, onCloseSearch, selectedWorkspaceId, onSelectWorkspace, onToggleExpand }: SidebarProps) {
+export default function Sidebar({ onSelectSidebarItem, docs, workspaces = [], dailyNotes, dailyNoteFolders = [], onAddItem, onAddSpace, onDeleteItem, onRenameItem, onDeleteDailyNote, isLoading, unfoldedIds, open, onClose, activeTabId, searchMode, onCloseSearch, selectedWorkspaceId, onSelectWorkspace, onToggleExpand }: SidebarProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [inviteOpen, setInviteOpen] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(() => {
@@ -714,9 +866,10 @@ export default function Sidebar({ onSelectSidebarItem, docs, workspaces = [], da
             /* 기본 문서 트리 */
             <>
               <div className="space-y-0.5">
-                {dailyNotes && dailyNotes.length > 0 && (
+                {dailyNotes && (
                   <DailyNotesSection
                     dailyNotes={dailyNotes}
+                    folders={dailyNoteFolders}
                     selectedId={activeTabId ?? null}
                     onSelect={handleSelect}
                     onDelete={onDeleteDailyNote}

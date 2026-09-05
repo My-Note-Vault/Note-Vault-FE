@@ -11,8 +11,12 @@ import {
   addPlan,
   updatePlan,
   deletePlan,
+  createDailyNoteFolder,
+  renameDailyNoteFolder,
+  deleteDailyNoteFolder,
+  moveDailyNote,
 } from "@/api/documents";
-import type { DailyNoteDetail } from "@/api/documents";
+import type { DailyNoteDetail, DailyNoteList } from "@/api/documents";
 import { noteTypeToDocType, sidebarUnfoldedId } from "@/types/common";
 import type { TaskOverview, SidebarItem, DocType, NoteType } from "@/types/common";
 
@@ -181,7 +185,10 @@ export const useDailyNotes = () => {
     queryKey: documentKeys.dailyNotes(),
     queryFn: fetchDailyNotes,
     staleTime: 1000 * 60 * 5,
-    initialData: () => readCache<DailyNoteDetail[]>(DAILY_CACHE_KEY),
+    initialData: () => {
+      const cached = readCache<DailyNoteList>(DAILY_CACHE_KEY);
+      return cached && Array.isArray(cached.notes) && Array.isArray(cached.folders) ? cached : undefined;
+    },
     initialDataUpdatedAt: () =>
       Number(localStorage.getItem(DAILY_CACHE_TS_KEY)) || undefined,
   });
@@ -192,7 +199,59 @@ export const useDailyNotes = () => {
     }
   }, [query.data, query.dataUpdatedAt, query.isPlaceholderData]);
 
-  return query;
+  return { ...query, data: query.data?.notes, folders: query.data?.folders ?? [] };
+};
+
+export const useCreateDailyNoteFolder = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (name: string) => createDailyNoteFolder(name),
+    onSuccess: (folderId, name) => {
+      queryClient.setQueryData<DailyNoteList>(documentKeys.dailyNotes(), (current) => current ? {
+        ...current,
+        folders: [...current.folders, { folderId, name }]
+          .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true })),
+      } : current);
+      queryClient.invalidateQueries({ queryKey: documentKeys.dailyNotes() });
+    },
+  });
+};
+
+export const useRenameDailyNoteFolder = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ folderId, name }: { folderId: number; name: string }) => renameDailyNoteFolder(folderId, name),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: documentKeys.dailyNotes() }),
+  });
+};
+
+export const useDeleteDailyNoteFolder = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (folderId: number) => deleteDailyNoteFolder(folderId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: documentKeys.dailyNotes() }),
+  });
+};
+
+export const useMoveDailyNote = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ dailyNoteId, folderId }: { dailyNoteId: number; folderId: number | null }) =>
+      moveDailyNote(dailyNoteId, folderId),
+    onMutate: async ({ dailyNoteId, folderId }) => {
+      await queryClient.cancelQueries({ queryKey: documentKeys.dailyNotes() });
+      const previous = queryClient.getQueryData<DailyNoteList>(documentKeys.dailyNotes());
+      queryClient.setQueryData<DailyNoteList>(documentKeys.dailyNotes(), (current) => current ? {
+        ...current,
+        notes: current.notes.map((note) => note.dailyNoteId === dailyNoteId ? { ...note, folderId } : note),
+      } : current);
+      return { previous };
+    },
+    onError: (_error, _variables, context) => {
+      if (context?.previous) queryClient.setQueryData(documentKeys.dailyNotes(), context.previous);
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: documentKeys.dailyNotes() }),
+  });
 };
 
 // Daily Note 상세 조회 (PK 기반)
@@ -237,16 +296,11 @@ export const useUpdateDailyNote = () => {
           : current,
       );
 
-      queryClient.setQueryData<DailyNoteDetail[] | undefined>(
+      queryClient.setQueryData<DailyNoteList | undefined>(
         documentKeys.dailyNotes(),
         (current) => {
           if (!current) return current;
-
-          return current.map((note) =>
-            note.dailyNoteId === variables.dailyNoteId
-              ? { ...note, content: variables.body.content }
-              : note,
-          );
+          return current;
         },
       );
     },

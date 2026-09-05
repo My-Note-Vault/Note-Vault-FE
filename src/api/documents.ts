@@ -29,6 +29,22 @@ export interface DailyNoteDetail {
   content: string;
 }
 
+export interface DailyNoteSummary {
+  dailyNoteId: number;
+  logicalDate: number[];
+  folderId: number | null;
+}
+
+export interface DailyNoteFolder {
+  folderId: number;
+  name: string;
+}
+
+export interface DailyNoteList {
+  folders: DailyNoteFolder[];
+  notes: DailyNoteSummary[];
+}
+
 // logicalDate 배열을 YYYY-MM-DD 문자열로 변환
 export function formatLogicalDate(logicalDate: number[]): string {
   const [y, m, d] = logicalDate;
@@ -86,9 +102,26 @@ export const searchDocuments = async (
 };
 
 // Daily Notes 목록 조회
-export const fetchDailyNotes = async (): Promise<DailyNoteDetail[]> => {
-  const { data } = await apiClient.get<DailyNoteDetail[]>(endpoints.DAILY_NOTES_ALL);
+export const fetchDailyNotes = async (): Promise<DailyNoteList> => {
+  const { data } = await apiClient.get<DailyNoteList>(endpoints.DAILY_NOTES_ALL);
   return data;
+};
+
+export const createDailyNoteFolder = async (name: string): Promise<number> => {
+  const { data } = await apiClient.post<number>(endpoints.DAILY_NOTE_FOLDERS, { name });
+  return data;
+};
+
+export const renameDailyNoteFolder = async (folderId: number, name: string): Promise<void> => {
+  await apiClient.patch(endpoints.DAILY_NOTE_FOLDER_DETAIL(folderId), { name });
+};
+
+export const deleteDailyNoteFolder = async (folderId: number): Promise<void> => {
+  await apiClient.delete(endpoints.DAILY_NOTE_FOLDER_DETAIL(folderId));
+};
+
+export const moveDailyNote = async (dailyNoteId: number, folderId: number | null): Promise<void> => {
+  await apiClient.patch(endpoints.DAILY_NOTE_FOLDER(dailyNoteId), { folderId });
 };
 
 // Daily Note 상세 조회 (오늘 날짜 기준)

@@ -210,7 +210,7 @@ function AppContent() {
 
     const workspaceIdNum = selectedWorkspaceId ? Number(selectedWorkspaceId) : null;
     const { data: docs = [], unfoldedIds, setUnfolded, isLoading } = useDocumentTree(workspaceIdNum);
-    const { data: dailyNotes } = useDailyNotes();
+    const { data: dailyNotes, folders: dailyNoteFolders } = useDailyNotes();
 
     const handleToggleExpand = useCallback((noteId: string, docType: DocType, expanded: boolean) => {
         setUnfolded(noteId, docType, expanded);
@@ -1003,6 +1003,7 @@ function AppContent() {
                 docs={docs}
                 workspaces={workspaces}
                 dailyNotes={dailyNotes}
+                dailyNoteFolders={dailyNoteFolders}
                 onAddItem={handleAddItem}
                 onAddSpace={handleAddSpace}
                 onDeleteItem={handleDeleteDocument}
