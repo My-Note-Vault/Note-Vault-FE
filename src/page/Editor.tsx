@@ -92,7 +92,158 @@ interface DailyNoteItemListProps {
   onToggleComplete: (item: DailyNotePlan) => void;
   onChangeType: (item: DailyNotePlan) => void;
   onDelete: (item: DailyNotePlan) => void;
-  onAdd: (content: string) => void;
+  onAdd: (content: string) => Promise<number>;
+  onEdit: (planId: number, content: string) => Promise<void>;
+}
+
+interface DailyNotePlanItemProps {
+  item: DailyNotePlan;
+  index: number;
+  promoteLabel: string;
+  promoteIcon: React.ReactNode;
+  onToggleComplete: (item: DailyNotePlan) => void;
+  onChangeType: (item: DailyNotePlan) => void;
+  onDelete: (item: DailyNotePlan) => void;
+  onEdit: (planId: number, content: string) => Promise<void>;
+}
+
+function DailyNotePlanItem({
+  item,
+  index,
+  promoteLabel,
+  promoteIcon,
+  onToggleComplete,
+  onChangeType,
+  onDelete,
+  onEdit,
+}: DailyNotePlanItemProps) {
+  const [content, setContent] = useState(item.content);
+  const savedContentRef = useRef(item.content);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const skipNextBlurRef = useRef(false);
+  const latestContentRef = useRef(item.content);
+  const savePromiseRef = useRef<Promise<void> | null>(null);
+
+  useEffect(() => {
+    if (latestContentRef.current !== savedContentRef.current) return;
+    savedContentRef.current = item.content;
+    latestContentRef.current = item.content;
+    setContent(item.content);
+  }, [item.content]);
+
+  const clearSaveTimer = useCallback(() => {
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = null;
+    }
+  }, []);
+
+  const commit = useCallback((nextContent: string): Promise<void> => {
+    clearSaveTimer();
+    const trimmed = nextContent.trim();
+    if (!trimmed) {
+      setContent(savedContentRef.current);
+      latestContentRef.current = savedContentRef.current;
+      return Promise.resolve();
+    }
+    latestContentRef.current = trimmed;
+    setContent(trimmed);
+
+    if (!savePromiseRef.current) {
+      savePromiseRef.current = (async () => {
+        while (latestContentRef.current !== savedContentRef.current) {
+          const contentToSave = latestContentRef.current;
+          await onEdit(item.planId, contentToSave);
+          savedContentRef.current = contentToSave;
+        }
+      })().finally(() => {
+        savePromiseRef.current = null;
+      });
+    }
+
+    return savePromiseRef.current;
+  }, [clearSaveTimer, item.planId, onEdit]);
+
+  useEffect(() => () => {
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current);
+    }
+  }, []);
+
+  return (
+    <div className="group/item flex items-center gap-2 py-1 rounded-md text-sm">
+      <span className="w-5 text-right text-muted-foreground/60 shrink-0 text-xs">{index + 1}.</span>
+      <input
+        type="text"
+        value={content}
+        onChange={(event) => {
+          const nextContent = event.target.value;
+          setContent(nextContent);
+          latestContentRef.current = nextContent;
+          clearSaveTimer();
+          saveTimerRef.current = setTimeout(() => {
+            void commit(nextContent).catch(() => toast.error("Plan을 저장하지 못했습니다."));
+          }, 600);
+        }}
+        onBlur={() => {
+          if (skipNextBlurRef.current) {
+            skipNextBlurRef.current = false;
+            return;
+          }
+          void commit(content).catch(() => toast.error("Plan을 저장하지 못했습니다."));
+        }}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" && !event.nativeEvent.isComposing) {
+            event.currentTarget.blur();
+          }
+          if (event.key === "Escape") {
+            clearSaveTimer();
+            skipNextBlurRef.current = true;
+            latestContentRef.current = savedContentRef.current;
+            setContent(savedContentRef.current);
+            event.currentTarget.blur();
+          }
+        }}
+        aria-label={`${index + 1}번째 Plan 내용`}
+        className={`flex-1 min-w-0 py-0.5 bg-transparent outline-none rounded-sm focus:bg-muted/40 ${item.isDone ? "line-through text-muted-foreground/50" : ""}`}
+      />
+      <div className="flex items-center gap-0.5 opacity-0 group-hover/item:opacity-100 focus-within:opacity-100 transition-opacity shrink-0">
+        {item.isDone ? (
+          <button
+            onClick={() => onToggleComplete(item)}
+            className="p-1 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+            title="되돌리기"
+          >
+            <Undo2 className="h-3.5 w-3.5" />
+          </button>
+        ) : (
+          <>
+            <button
+              onClick={() => onChangeType(item)}
+              className="p-1 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+              title={`${promoteLabel}(으)로 이동`}
+            >
+              {promoteIcon}
+            </button>
+            <button
+              onClick={() => onToggleComplete(item)}
+              className="p-1 rounded hover:bg-green-500/20 text-muted-foreground hover:text-green-600 transition-colors"
+              title="완료"
+            >
+              <Check className="h-3.5 w-3.5" />
+            </button>
+          </>
+        )}
+        <button
+          onClick={() => onDelete(item)}
+          className="p-1 rounded hover:bg-red-500/20 text-muted-foreground hover:text-red-500 transition-colors"
+          title="삭제"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </button>
+      </div>
+    </div>
+  );
 }
 
 function DailyNoteItemList({
@@ -104,79 +255,115 @@ function DailyNoteItemList({
   onChangeType,
   onDelete,
   onAdd,
+  onEdit,
 }: DailyNoteItemListProps) {
   const [newContent, setNewContent] = useState("");
+  const [activePlanId, setActivePlanId] = useState<number | null>(null);
+  const newContentRef = useRef("");
+  const activePlanIdRef = useRef<number | null>(null);
+  const lastSavedNewContentRef = useRef("");
+  const addSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const addSavePromiseRef = useRef<Promise<void> | null>(null);
 
-  const handleAdd = useCallback(() => {
-    const trimmed = newContent.trim();
-    if (!trimmed) return;
-    onAdd(trimmed);
+  const clearAddSaveTimer = useCallback(() => {
+    if (addSaveTimerRef.current) {
+      clearTimeout(addSaveTimerRef.current);
+      addSaveTimerRef.current = null;
+    }
+  }, []);
+
+  const saveNewContent = useCallback((): Promise<void> => {
+    clearAddSaveTimer();
+    if (!newContentRef.current.trim()) return Promise.resolve();
+
+    if (!addSavePromiseRef.current) {
+      let succeeded = false;
+      addSavePromiseRef.current = (async () => {
+        while (newContentRef.current.trim() !== lastSavedNewContentRef.current) {
+          const contentToSave = newContentRef.current.trim();
+          if (activePlanIdRef.current === null) {
+            const planId = await onAdd(contentToSave);
+            activePlanIdRef.current = planId;
+            setActivePlanId(planId);
+          } else {
+            await onEdit(activePlanIdRef.current, contentToSave);
+          }
+          lastSavedNewContentRef.current = contentToSave;
+        }
+        succeeded = true;
+      })().finally(() => {
+        addSavePromiseRef.current = null;
+        if (succeeded && newContentRef.current.trim() !== lastSavedNewContentRef.current) {
+          void saveNewContent().catch(() => toast.error("Plan을 저장하지 못했습니다."));
+        }
+      });
+    }
+
+    return addSavePromiseRef.current;
+  }, [clearAddSaveTimer, onAdd, onEdit]);
+
+  const finishNewPlan = useCallback(async () => {
+    if (!newContentRef.current.trim()) return;
+    try {
+      await saveNewContent();
+    } catch {
+      toast.error("Plan을 저장하지 못했습니다.");
+      return;
+    }
+    newContentRef.current = "";
+    lastSavedNewContentRef.current = "";
+    activePlanIdRef.current = null;
     setNewContent("");
-  }, [newContent, onAdd]);
+    setActivePlanId(null);
+  }, [saveNewContent]);
+
+  useEffect(() => () => clearAddSaveTimer(), [clearAddSaveTimer]);
+
+  const visibleItems = items.filter((item) => item.planId !== activePlanId);
 
   return (
     <div className="px-12 pt-4 pb-1">
       <div className="border-t border-border mb-4" />
       <h3 className="text-base font-semibold text-foreground mb-2">{label}</h3>
       <div className="space-y-1">
-        {items.map((item, idx) => (
-          <div
+        {visibleItems.map((item, idx) => (
+          <DailyNotePlanItem
             key={item.planId}
-            className="group/item flex items-center gap-2 py-1 rounded-md text-sm"
-          >
-            <span className="w-5 text-right text-muted-foreground/60 shrink-0 text-xs">{idx + 1}.</span>
-            <span className={`flex-1 min-w-0 truncate ${item.isDone ? "line-through text-muted-foreground/50" : ""}`}>
-              {item.content}
-            </span>
-            <div className="flex items-center gap-0.5 opacity-0 group-hover/item:opacity-100 transition-opacity shrink-0">
-              {item.isDone ? (
-                <button
-                  onClick={() => onToggleComplete(item)}
-                  className="p-1 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
-                  title="되돌리기"
-                >
-                  <Undo2 className="h-3.5 w-3.5" />
-                </button>
-              ) : (
-                <>
-                  <button
-                    onClick={() => onChangeType(item)}
-                    className="p-1 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
-                    title={`${promoteLabel}(으)로 이동`}
-                  >
-                    {promoteIcon}
-                  </button>
-                  <button
-                    onClick={() => onToggleComplete(item)}
-                    className="p-1 rounded hover:bg-green-500/20 text-muted-foreground hover:text-green-600 transition-colors"
-                    title="완료"
-                  >
-                    <Check className="h-3.5 w-3.5" />
-                  </button>
-                </>
-              )}
-              <button
-                onClick={() => onDelete(item)}
-                className="p-1 rounded hover:bg-red-500/20 text-muted-foreground hover:text-red-500 transition-colors"
-                title="삭제"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </button>
-            </div>
-          </div>
+            item={item}
+            index={idx}
+            promoteLabel={promoteLabel}
+            promoteIcon={promoteIcon}
+            onToggleComplete={onToggleComplete}
+            onChangeType={onChangeType}
+            onDelete={onDelete}
+            onEdit={onEdit}
+          />
         ))}
       </div>
 
       <div className="flex items-center gap-2 mt-1">
-        <span className="w-5 text-right text-muted-foreground/60 shrink-0 text-xs">{items.length + 1}.</span>
+        <span className="w-5 text-right text-muted-foreground/60 shrink-0 text-xs">{visibleItems.length + 1}.</span>
         <input
           type="text"
           value={newContent}
-          onChange={(e) => setNewContent(e.target.value)}
-          onBlur={() => {}}
+          onChange={(e) => {
+            const nextContent = e.target.value;
+            newContentRef.current = nextContent;
+            setNewContent(nextContent);
+            clearAddSaveTimer();
+            addSaveTimerRef.current = setTimeout(() => {
+              void saveNewContent().catch(() => toast.error("Plan을 저장하지 못했습니다."));
+            }, 600);
+          }}
+          onBlur={() => void finishNewPlan()}
           onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.nativeEvent.isComposing) { handleAdd(); }
-            if (e.key === "Escape") { setNewContent(""); (e.target as HTMLInputElement).blur(); }
+            if (e.key === "Enter" && !e.nativeEvent.isComposing) { void finishNewPlan(); }
+            if (e.key === "Escape" && activePlanIdRef.current === null) {
+              clearAddSaveTimer();
+              newContentRef.current = "";
+              setNewContent("");
+              e.currentTarget.blur();
+            }
           }}
           placeholder="내용을 입력하세요"
           className="flex-1 py-1 text-sm bg-transparent outline-none placeholder:text-muted-foreground/40"
@@ -727,8 +914,11 @@ export default function Editor({
                 onDelete={(plan) =>
                   deleteItemMutation.mutate({ dailyNoteId: dailyNoteId!, planId: plan.planId })
                 }
+                onEdit={(planId, content) =>
+                  updateItemMutation.mutateAsync({ dailyNoteId: dailyNoteId!, body: { planId, content } })
+                }
                 onAdd={(content) =>
-                  addItemMutation.mutate({ dailyNoteId: dailyNoteId!, body: { type: "PENDING", content } })
+                  addItemMutation.mutateAsync({ dailyNoteId: dailyNoteId!, body: { type: "PENDING", content } })
                 }
               />
 
@@ -749,7 +939,10 @@ export default function Editor({
                   deleteItemMutation.mutate({ dailyNoteId: dailyNoteId!, planId: plan.planId })
                 }
                 onAdd={(content) =>
-                  addItemMutation.mutate({ dailyNoteId: dailyNoteId!, body: { type: "TODO", content } })
+                  addItemMutation.mutateAsync({ dailyNoteId: dailyNoteId!, body: { type: "TODO", content } })
+                }
+                onEdit={(planId, content) =>
+                  updateItemMutation.mutateAsync({ dailyNoteId: dailyNoteId!, body: { planId, content } })
                 }
               />
             </div>

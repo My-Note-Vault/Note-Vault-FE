@@ -260,43 +260,26 @@ export const useAddPlan = () => {
   return useMutation({
     mutationFn: ({ dailyNoteId, body }: { dailyNoteId: number; body: { type: "TODO" | "PENDING"; content: string } }) =>
       addPlan(dailyNoteId, body),
-    onMutate: async (variables) => {
-      await queryClient.cancelQueries({ queryKey: documentKeys.dailyNoteDetail(variables.dailyNoteId) });
-
-      const previous = queryClient.getQueryData<DailyNoteDetail>(
+    onSuccess: (planId, variables) => {
+      queryClient.setQueryData<DailyNoteDetail>(
         documentKeys.dailyNoteDetail(variables.dailyNoteId),
+        (previous) => previous
+          ? {
+              ...previous,
+              plans: previous.plans.some((plan) => plan.planId === planId)
+                ? previous.plans
+                : [
+                    ...previous.plans,
+                    {
+                      planId,
+                      type: variables.body.type,
+                      content: variables.body.content,
+                      isDone: false,
+                    },
+                  ],
+            }
+          : previous,
       );
-
-      if (previous) {
-        queryClient.setQueryData<DailyNoteDetail>(
-          documentKeys.dailyNoteDetail(variables.dailyNoteId),
-          {
-            ...previous,
-            plans: [
-              ...previous.plans,
-              {
-                planId: -Date.now(),
-                type: variables.body.type,
-                content: variables.body.content,
-                isDone: false,
-              },
-            ],
-          },
-        );
-      }
-
-      return { previous };
-    },
-    onError: (_err, variables, context) => {
-      if (context?.previous) {
-        queryClient.setQueryData(
-          documentKeys.dailyNoteDetail(variables.dailyNoteId),
-          context.previous,
-        );
-      }
-    },
-    onSettled: (_data, _error, variables) => {
-      queryClient.invalidateQueries({ queryKey: documentKeys.dailyNoteDetail(variables.dailyNoteId) });
     },
   });
 };
@@ -311,7 +294,24 @@ export const useUpdatePlan = () => {
       body: { planId: number; type?: "TODO" | "PENDING"; content?: string; isDone?: boolean };
     }) => updatePlan(dailyNoteId, body),
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: documentKeys.dailyNoteDetail(variables.dailyNoteId) });
+      queryClient.setQueryData<DailyNoteDetail>(
+        documentKeys.dailyNoteDetail(variables.dailyNoteId),
+        (previous) => previous
+          ? {
+              ...previous,
+              plans: previous.plans.map((plan) =>
+                plan.planId === variables.body.planId
+                  ? {
+                      ...plan,
+                      ...(variables.body.type !== undefined && { type: variables.body.type }),
+                      ...(variables.body.content !== undefined && { content: variables.body.content }),
+                      ...(variables.body.isDone !== undefined && { isDone: variables.body.isDone }),
+                    }
+                  : plan,
+              ),
+            }
+          : previous,
+      );
     },
   });
 };
