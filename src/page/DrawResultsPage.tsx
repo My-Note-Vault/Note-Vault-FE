@@ -49,7 +49,8 @@ export default function DrawResultsPage() {
               <p className="text-sm font-medium">{LABELS[eligible.category].title}</p>
               <p className="mt-1 text-xl font-bold">{eligible.count.toLocaleString()}명</p>
               <p className="mt-1 text-xs text-muted-foreground">
-                내가 참여한다면 당첨 확률 {winningProbability(eligible.count, eligible.participating)}%
+                {eligible.participating ? "내 당첨 확률" : "내가 참여한다면 당첨 확률"}{" "}
+                {winningProbability(eligible.count, eligible.participating)}%
               </p>
             </div>
           ))}
