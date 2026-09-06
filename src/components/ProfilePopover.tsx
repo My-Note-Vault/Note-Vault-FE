@@ -25,7 +25,12 @@ import {
 import { useAuth } from "@/context/AuthContext";
 
 const profileSchema = z.object({
-  nickname: z.string().min(1, "닉네임을 입력해 주세요"),
+  nickname: z
+    .string()
+    .trim()
+    .min(1, "닉네임을 입력해 주세요")
+    .max(20, "닉네임은 20자 이하여야 합니다")
+    .refine((value) => !value.includes("#"), "닉네임에는 #을 사용할 수 없습니다"),
   dayStartHour: z.number().min(0).max(23),
   dayStartMinute: z.number().min(0).max(59),
 });
@@ -222,6 +227,18 @@ export default function ProfilePopover() {
               <Input
                 id="popover-name"
                 value={profile.name}
+                disabled
+                className="disabled:opacity-70"
+              />
+            </div>
+          )}
+
+          {profile?.memberTag && (
+            <div className="space-y-1">
+              <Label htmlFor="popover-member-tag" className="text-xs">식별 태그</Label>
+              <Input
+                id="popover-member-tag"
+                value={`#${profile.memberTag}`}
                 disabled
                 className="disabled:opacity-70"
               />

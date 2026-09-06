@@ -27,8 +27,10 @@ import {
 const profileSchema = z.object({
   nickname: z
     .string()
-    .min(2, "닉네임은 2자 이상이어야 합니다")
-    .max(20, "닉네임은 20자 이하여야 합니다"),
+    .trim()
+    .min(1, "닉네임을 입력해 주세요")
+    .max(20, "닉네임은 20자 이하여야 합니다")
+    .refine((value) => !value.includes("#"), "닉네임에는 #을 사용할 수 없습니다"),
   dayStartHour: z.number().min(0).max(23),
   dayStartMinute: z.number().min(0).max(59),
 });

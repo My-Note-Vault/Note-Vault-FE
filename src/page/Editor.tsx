@@ -433,7 +433,10 @@ export default function Editor({
   const dailyNoteId = dailyPk ?? dailyDetail?.dailyNoteId;
   const { data: memberProfile } = useMemberProfile();
   const { data: profileImage } = useProfileImage();
-  const collaboratorName = memberProfile?.nickname ?? memberProfile?.name ?? null;
+  const collaboratorNickname = memberProfile?.nickname ?? memberProfile?.name ?? null;
+  const collaboratorName = collaboratorNickname && memberProfile?.memberTag
+    ? `${collaboratorNickname}#${memberProfile.memberTag}`
+    : collaboratorNickname;
   const profileImageUrl = profileImage?.profileImageUrl ?? null;
   const collaborationConfig = useMemo(() => {
     if (isDailyNote || isNew || !entityDetail || !docType || !entityId) return null;

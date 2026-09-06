@@ -1,6 +1,7 @@
 export interface MemberProfile {
   name: string | null;
   nickname: string | null;
+  memberTag: string | null;
   dayStartTime: {
     hour: number;
     minute: number;
