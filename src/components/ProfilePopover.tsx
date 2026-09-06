@@ -3,7 +3,7 @@ import { Controller, useForm, type SubmitErrorHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { Loader2, Camera, User, LogOut } from "lucide-react";
+import { Loader2, Camera, User, LogOut, Trash2 } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,8 @@ import {
   useProfileImage,
   useUpdateMemberProfile,
   useUploadProfileImage,
+  usePayoutAccount,
+  useDeletePayoutAccount,
 } from "@/hooks/useMember";
 import { useAuth } from "@/context/AuthContext";
 
@@ -59,6 +61,8 @@ export default function ProfilePopover() {
   const { data: profileImage } = useProfileImage();
   const updateProfile = useUpdateMemberProfile();
   const uploadImage = useUploadProfileImage();
+  const { data: payoutAccount } = usePayoutAccount();
+  const deletePayoutAccount = useDeletePayoutAccount();
 
   const [open, setOpen] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -242,6 +246,46 @@ export default function ProfilePopover() {
                 disabled
                 className="disabled:opacity-70"
               />
+            </div>
+          )}
+
+          {payoutAccount?.configured && (
+            <div className="space-y-1">
+              <Label className="text-xs">송금 계좌</Label>
+              <div className="flex items-center gap-2">
+                <div className="min-w-0 flex-1 rounded-md border border-input bg-muted/50 px-3 py-2">
+                  <p className="truncate text-sm">
+                    {payoutAccount.bankName} {payoutAccount.maskedAccountNumber}
+                  </p>
+                  {payoutAccount.maskedHolderName && (
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      예금주 {payoutAccount.maskedHolderName}
+                      {payoutAccount.verified ? " · 인증 완료" : " · 미인증"}
+                    </p>
+                  )}
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="shrink-0 text-destructive hover:text-destructive"
+                  disabled={deletePayoutAccount.isPending}
+                  title="송금 계좌 삭제"
+                  onClick={async () => {
+                    if (!window.confirm("등록된 송금 계좌를 삭제할까요?")) return;
+                    try {
+                      await deletePayoutAccount.mutateAsync();
+                      toast.success("송금 계좌가 삭제되었습니다");
+                    } catch {
+                      toast.error("송금 계좌 삭제에 실패했습니다");
+                    }
+                  }}
+                >
+                  {deletePayoutAccount.isPending
+                    ? <Loader2 className="h-4 w-4 animate-spin" />
+                    : <Trash2 className="h-4 w-4" />}
+                </Button>
+              </div>
             </div>
           )}
 

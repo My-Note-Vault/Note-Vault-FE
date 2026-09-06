@@ -10,6 +10,9 @@ import type {
   GenerateProfileImageUploadUrlResponse,
   ProfileImageResponse,
   UpdateProfileImageRequest,
+  PayoutAccount,
+  PayoutAccountVerification,
+  VerifyPayoutAccountRequest,
 } from "@/types/member";
 
 export const fetchMemberProfile = async (): Promise<MemberProfile> => {
@@ -42,6 +45,29 @@ export const updateProfileImage = async (req: UpdateProfileImageRequest): Promis
 
 export const deleteProfileImage = async (): Promise<void> => {
   await apiClient.delete(endpoints.MEMBER_PROFILE_IMAGE);
+};
+
+export const fetchPayoutAccount = async (): Promise<PayoutAccount> => {
+  const { data } = await apiClient.get<PayoutAccount>(endpoints.MEMBER_PAYOUT_ACCOUNT);
+  return data;
+};
+
+export const verifyPayoutAccount = async (
+  request: VerifyPayoutAccountRequest,
+): Promise<PayoutAccountVerification> => {
+  const { data } = await apiClient.post<PayoutAccountVerification>(
+    endpoints.MEMBER_PAYOUT_ACCOUNT_VERIFICATIONS,
+    request,
+  );
+  return data;
+};
+
+export const saveVerifiedPayoutAccount = async (verificationToken: string): Promise<void> => {
+  await apiClient.put(endpoints.MEMBER_PAYOUT_ACCOUNT, { verificationToken });
+};
+
+export const deletePayoutAccount = async (): Promise<void> => {
+  await apiClient.delete(endpoints.MEMBER_PAYOUT_ACCOUNT);
 };
 
 export const uploadFileToPresignedUrl = async (

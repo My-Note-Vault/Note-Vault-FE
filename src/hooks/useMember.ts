@@ -7,14 +7,51 @@ import {
   updateProfileImage,
   deleteProfileImage,
   uploadFileToPresignedUrl,
+  fetchPayoutAccount,
+  verifyPayoutAccount,
+  saveVerifiedPayoutAccount,
+  deletePayoutAccount,
 } from "@/api/member";
 import type { UploadProgressHandler } from "@/api/uploadProgress";
-import type { UpdateProfileRequest } from "@/types/member";
+import type { UpdateProfileRequest, VerifyPayoutAccountRequest } from "@/types/member";
 
 export const memberKeys = {
   all: ["member"] as const,
   profile: () => [...memberKeys.all, "profile"] as const,
   profileImage: () => [...memberKeys.all, "profile-image"] as const,
+  payoutAccount: () => [...memberKeys.all, "payout-account"] as const,
+};
+
+export const usePayoutAccount = () => useQuery({
+  queryKey: memberKeys.payoutAccount(),
+  queryFn: fetchPayoutAccount,
+  retry: false,
+});
+
+export const useVerifyPayoutAccount = () => useMutation({
+  mutationFn: (request: VerifyPayoutAccountRequest) => verifyPayoutAccount(request),
+});
+
+export const useSaveVerifiedPayoutAccount = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: saveVerifiedPayoutAccount,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: memberKeys.payoutAccount() });
+      queryClient.invalidateQueries({ queryKey: memberKeys.profile() });
+    },
+  });
+};
+
+export const useDeletePayoutAccount = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: deletePayoutAccount,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: memberKeys.payoutAccount() });
+      queryClient.invalidateQueries({ queryKey: memberKeys.profile() });
+    },
+  });
 };
 
 export const useMemberProfile = () => {

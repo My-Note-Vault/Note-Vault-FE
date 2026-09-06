@@ -47,6 +47,8 @@ LAST_VISITED: `${API_BASE}/members/last-visited-path`,
 
 // Member Profile
 MEMBER_PROFILE: `${API_BASE}/members/profile`,
+MEMBER_PAYOUT_ACCOUNT: `${API_BASE}/members/payout-account`,
+MEMBER_PAYOUT_ACCOUNT_VERIFICATIONS: `${API_BASE}/members/payout-account/verifications`,
 MEMBER_PROFILE_IMAGE_UPLOAD_URL: `${API_BASE}/members/profile-image/upload-url`,
 MEMBER_PROFILE_IMAGE: `${API_BASE}/members/profile-image`,
 

@@ -1,12 +1,34 @@
+import { useEffect, useState, type FormEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { CalendarDays, Gift, Loader2, Trophy } from "lucide-react";
+import axios from "axios";
+import { AlertTriangle, CalendarDays, Gift, Landmark, Loader2, Trophy } from "lucide-react";
 import { fetchDrawOverview } from "@/api/draws";
 import type { DrawCategory } from "@/types/draw";
+import type { BankCode, PayoutAccountVerification } from "@/types/member";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toast } from "sonner";
+import {
+  usePayoutAccount,
+  useSaveVerifiedPayoutAccount,
+  useVerifyPayoutAccount,
+} from "@/hooks/useMember";
 
 const LABELS: Record<DrawCategory, { title: string; description: string }> = {
   NEW_MEMBER: { title: "새 회원", description: "해당 날짜에 계정을 만든 회원" },
   DOCUMENT_WRITER: { title: "100자 이상 작성", description: "Workspace의 Task 또는 Note에 100자 이상 직접 입력한 회원" },
 };
+
+const BANKS: Array<{ code: BankCode; name: string }> = [
+  { code: "KB", name: "국민은행" },
+  { code: "SHINHAN", name: "신한은행" },
+  { code: "HANA", name: "하나은행" },
+  { code: "KAKAO", name: "카카오뱅크" },
+  { code: "TOSS", name: "토스뱅크" },
+  { code: "K_BANK", name: "케이뱅크" },
+];
 
 function winningProbability(count: number, participating: boolean) {
   const participantCount = Math.max(1, participating ? count : count + 1);
@@ -16,6 +38,165 @@ function winningProbability(count: number, participating: boolean) {
 function resultWinningProbability(count: number) {
   if (count === 0) return "0";
   return (100 / count).toLocaleString(undefined, { maximumFractionDigits: 2 });
+}
+
+function PayoutAccountSection() {
+  const [isEditing, setIsEditing] = useState(false);
+  const [bankCode, setBankCode] = useState<BankCode | "">("");
+  const [accountNumber, setAccountNumber] = useState("");
+  const [verification, setVerification] = useState<PayoutAccountVerification | null>(null);
+  const { data: account, isLoading } = usePayoutAccount();
+  const verifyAccount = useVerifyPayoutAccount();
+  const saveAccount = useSaveVerifiedPayoutAccount();
+
+  useEffect(() => {
+    if (account?.bankCode && !bankCode) {
+      setBankCode(account.bankCode);
+    }
+  }, [account?.bankCode, bankCode]);
+
+  const showForm = !account?.verified || isEditing;
+  const errorMessage = (error: unknown, fallback: string) => {
+    const message = axios.isAxiosError<{ message?: string }>(error)
+      ? error.response?.data?.message
+      : null;
+    return message ?? fallback;
+  };
+
+  const handleVerify = async (event: FormEvent) => {
+    event.preventDefault();
+    const normalized = accountNumber.replace(/-/g, "");
+    if (!bankCode) {
+      toast.error("은행을 선택해 주세요.");
+      return;
+    }
+    if (!/^\d{6,14}$/.test(normalized)) {
+      toast.error("계좌번호는 숫자 6~14자리로 입력해 주세요.");
+      return;
+    }
+    try {
+      const result = await verifyAccount.mutateAsync({ bankCode, accountNumber: normalized });
+      setVerification(result);
+      toast.success("계좌 인증이 완료되었습니다. 저장을 눌러 등록을 마쳐 주세요.");
+    } catch (error) {
+      setVerification(null);
+      toast.error(errorMessage(error, "계좌 인증에 실패했습니다."));
+    }
+  };
+
+  const handleSave = async () => {
+    if (!verification) return;
+    try {
+      await saveAccount.mutateAsync(verification.verificationToken);
+      setVerification(null);
+      setAccountNumber("");
+      setIsEditing(false);
+      toast.success("송금 계좌가 저장되었습니다.");
+    } catch (error) {
+      toast.error(errorMessage(error, "계좌 저장에 실패했습니다."));
+    }
+  };
+
+  return (
+    <section className="mb-8 rounded-2xl border bg-card p-5">
+      <div className="flex items-start gap-3">
+        <Landmark className="mt-0.5 h-5 w-5 text-primary" />
+        <div className="min-w-0 flex-1">
+          <h2 className="font-semibold">송금받을 계좌</h2>
+          <p className="mt-1 text-xs text-muted-foreground">
+            당첨금 지급에 사용할 본인 계좌를 등록해 주세요.
+          </p>
+
+          {!isLoading && !account?.verified && (
+            <div className="mt-4 flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 text-sm text-amber-700 dark:text-amber-300">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              <p>
+                {account?.configured
+                  ? "등록된 계좌가 아직 인증되지 않았습니다. 계좌를 다시 확인해 주세요."
+                  : "송금받을 계좌가 등록되지 않았습니다. 당첨금 지급을 위해 계좌를 입력해 주세요."}
+              </p>
+            </div>
+          )}
+
+          {account?.verified && !showForm && (
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg bg-muted/50 px-4 py-3">
+              <div>
+                <p className="text-sm font-medium">{account.bankName} · 인증 완료</p>
+                <p className="mt-0.5 font-mono text-xs text-muted-foreground">{account.maskedAccountNumber}</p>
+                {account.maskedHolderName && (
+                  <p className="mt-0.5 text-xs text-muted-foreground">예금주 {account.maskedHolderName}</p>
+                )}
+              </div>
+              <Button type="button" variant="outline" size="sm" onClick={() => {
+                setBankCode(account.bankCode ?? "");
+                setVerification(null);
+                setAccountNumber("");
+                setIsEditing(true);
+              }}>
+                변경
+              </Button>
+            </div>
+          )}
+
+          {showForm && !isLoading && (
+            <form onSubmit={handleVerify} className="mt-4 space-y-3">
+              <div className="grid gap-3 sm:grid-cols-[180px_1fr_auto] sm:items-end">
+              <div className="space-y-1.5">
+                <Label htmlFor="payout-bank">은행</Label>
+                <Select value={bankCode} onValueChange={(value) => {
+                  setBankCode(value as BankCode);
+                  setVerification(null);
+                }}>
+                  <SelectTrigger id="payout-bank"><SelectValue placeholder="은행 선택" /></SelectTrigger>
+                  <SelectContent>
+                    {BANKS.map((bank) => <SelectItem key={bank.code} value={bank.code}>{bank.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="payout-account-number">계좌번호</Label>
+                <Input
+                  id="payout-account-number"
+                  inputMode="numeric"
+                  autoComplete="off"
+                  placeholder="숫자만 입력"
+                  value={accountNumber}
+                  onChange={(event) => {
+                    setAccountNumber(event.target.value.replace(/[^0-9-]/g, ""));
+                    setVerification(null);
+                  }}
+                />
+              </div>
+              <div className="flex gap-2">
+                {account?.verified && <Button type="button" variant="ghost" onClick={() => {
+                  setVerification(null);
+                  setIsEditing(false);
+                }}>취소</Button>}
+                <Button type="submit" variant="outline" disabled={verifyAccount.isPending}>
+                  {verifyAccount.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "계좌 인증"}
+                </Button>
+              </div>
+              </div>
+
+              {verification && (
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-green-500/30 bg-green-500/10 px-4 py-3">
+                  <div>
+                    <p className="text-sm font-medium text-green-700 dark:text-green-300">계좌 인증 완료</p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      {verification.bankName} · {verification.maskedAccountNumber} · 예금주 {verification.maskedHolderName}
+                    </p>
+                  </div>
+                  <Button type="button" onClick={handleSave} disabled={saveAccount.isPending}>
+                    {saveAccount.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "저장"}
+                  </Button>
+                </div>
+              )}
+            </form>
+          )}
+        </div>
+      </div>
+    </section>
+  );
 }
 
 export default function DrawResultsPage() {
@@ -36,6 +217,8 @@ export default function DrawResultsPage() {
           <p className="mt-2 text-sm text-muted-foreground">매일 00:00에 전날의 대상자 중 당첨자를 선정합니다.</p>
         </div>
       </div>
+
+      <PayoutAccountSection />
 
       <section className="mb-10 rounded-2xl border border-primary/20 bg-primary/5 p-5">
         <div className="mb-4">
@@ -58,7 +241,6 @@ export default function DrawResultsPage() {
       </section>
 
       <div className="mb-4 border-b pb-3">
-        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Published Results</p>
         <h2 className="mt-1 text-xl font-semibold">공개된 추첨 결과</h2>
         <p className="mt-1 text-xs text-muted-foreground">가장 최근에 공개된 전날 결과부터 표시합니다.</p>
       </div>

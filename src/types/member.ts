@@ -6,6 +6,7 @@ export interface MemberProfile {
     hour: number;
     minute: number;
   };
+  payoutAccount: PayoutAccount;
 }
 
 export interface UpdateProfileRequest {
@@ -25,4 +26,28 @@ export interface ProfileImageResponse {
 
 export interface UpdateProfileImageRequest {
   profileImageKey: string;
+}
+
+export type BankCode = "KB" | "SHINHAN" | "HANA" | "KAKAO" | "TOSS" | "K_BANK";
+
+export interface PayoutAccount {
+  configured: boolean;
+  verified: boolean;
+  bankCode: BankCode | null;
+  bankName: string | null;
+  maskedAccountNumber: string | null;
+  maskedHolderName: string | null;
+}
+
+export interface VerifyPayoutAccountRequest {
+  bankCode: BankCode;
+  accountNumber: string;
+}
+
+export interface PayoutAccountVerification {
+  verificationToken: string;
+  bankName: string;
+  maskedAccountNumber: string;
+  maskedHolderName: string;
+  expiresAt: string;
 }
