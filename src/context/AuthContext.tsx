@@ -11,9 +11,12 @@ type AuthContextType = {
   login: (token: string) => void;
   logout: () => void;
   redirectToGoogle: () => Promise<void>;
-  loginWithOAuthCode: (code: string, state: string) => Promise<void>;
+  redirectToKakao: () => Promise<void>;
+  loginWithOAuthCode: (provider: OAuthProvider, code: string, state: string) => Promise<void>;
   devLogin: (userId?: number) => Promise<void>;
 };
+
+export type OAuthProvider = "google" | "kakao";
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
@@ -46,10 +49,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     window.location.href = url;
   };
 
-  const loginWithOAuthCode = async (code: string, state: string) => {
+  const redirectToKakao = async () => {
+    const response = await apiClient.get(endpoints.LOGIN_KAKAO);
+    const url = response.data.url;
+    if (!url) throw new Error("No redirect URL returned");
+    window.location.href = url;
+  };
+
+  const loginWithOAuthCode = async (provider: OAuthProvider, code: string, state: string) => {
     setIsOAuthLoading(true);
     try {
-      const response = await apiClient.get(endpoints.CALLBACK_FROM_GOOGLE, {
+      const callbackEndpoint = provider === "kakao"
+        ? endpoints.CALLBACK_FROM_KAKAO
+        : endpoints.CALLBACK_FROM_GOOGLE;
+      const response = await apiClient.get(callbackEndpoint, {
         params: { code, state },
       });
 
@@ -78,7 +91,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ accessToken, isLoggedIn, isOAuthLoading, login, logout, redirectToGoogle, loginWithOAuthCode, devLogin }}>
+    <AuthContext.Provider value={{ accessToken, isLoggedIn, isOAuthLoading, login, logout, redirectToGoogle, redirectToKakao, loginWithOAuthCode, devLogin }}>
       {children}
     </AuthContext.Provider>
   );

@@ -29,11 +29,15 @@ const FEATURES = [
 const DEV_USERS = [1, 2, 3] as const;
 
 export default function LandingPage() {
-  const { devLogin, redirectToGoogle } = useAuth();
+  const { devLogin, redirectToGoogle, redirectToKakao } = useAuth();
   const navigate = useNavigate();
 
   const handleGoogleLogin = () => {
     redirectToGoogle();
+  };
+
+  const handleKakaoLogin = () => {
+    redirectToKakao();
   };
 
   const handleDevLogin = async (userId: number) => {
@@ -72,6 +76,17 @@ export default function LandingPage() {
               <path fill="#fff" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
             </svg>
             Google로 시작하기
+            <ArrowRight className="h-4 w-4" />
+          </button>
+
+          <button
+            onClick={handleKakaoLogin}
+            className="flex w-full items-center justify-center gap-3 px-6 py-3 rounded-lg bg-[#FEE500] text-[#191919] font-medium text-base shadow-sm hover:brightness-95 transition-all"
+          >
+            <svg className="h-5 w-5" viewBox="0 0 24 24" aria-hidden="true">
+              <path fill="currentColor" d="M12 3C6.48 3 2 6.49 2 10.8c0 2.78 1.87 5.22 4.68 6.6l-.95 3.49a.4.4 0 0 0 .61.44l4.16-2.75c.49.05.99.08 1.5.08 5.52 0 10-3.49 10-7.86S17.52 3 12 3Z" />
+            </svg>
+            카카오로 시작하기
             <ArrowRight className="h-4 w-4" />
           </button>
 

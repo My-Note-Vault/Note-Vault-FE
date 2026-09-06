@@ -1,9 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth, type OAuthProvider } from "@/context/AuthContext";
 import { Loader2, AlertTriangle } from "lucide-react";
 
-export default function OAuthCallbackPage() {
+type OAuthCallbackPageProps = {
+  provider?: OAuthProvider;
+};
+
+export default function OAuthCallbackPage({ provider = "google" }: OAuthCallbackPageProps) {
   const [searchParams] = useSearchParams();
   const { loginWithOAuthCode } = useAuth();
   const navigate = useNavigate();
@@ -16,13 +20,19 @@ export default function OAuthCallbackPage() {
 
     const code = searchParams.get("code");
     const state = searchParams.get("state") ?? "";
+    const oauthError = searchParams.get("error");
+
+    if (oauthError) {
+      setError(oauthError === "access_denied" ? "로그인이 취소되었습니다." : "인증 요청에 실패했습니다.");
+      return;
+    }
 
     if (!code) {
       setError("인증 코드가 없습니다");
       return;
     }
 
-    loginWithOAuthCode(code, state)
+    loginWithOAuthCode(provider, code, state)
       .then(() => {
         window.history.replaceState({}, document.title, "/");
         navigate("/profile-setup", { replace: true });

@@ -1066,6 +1066,7 @@ const App = () => {
                         <Routes>
                             <Route path="/" element={<PublicRoute><LandingPage /></PublicRoute>} />
                             <Route path="/oauth/callback" element={<OAuthCallbackPage />} />
+                            <Route path="/oauth/callback/kakao" element={<OAuthCallbackPage provider="kakao" />} />
                             <Route path="/profile-setup" element={<ProfileSetupRoute><ProfileSetupPage /></ProfileSetupRoute>} />
                             <Route path="/invite/:code" element={<InvitePage />} />
                             <Route path="/api/v1/workspaces/invitations" element={<InvitePage />} />
