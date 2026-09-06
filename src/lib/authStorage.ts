@@ -17,15 +17,9 @@ export const authStorage = {
     return localStorage.getItem("accessToken");
   },
 
-  getRefreshToken() {
-    return localStorage.getItem("refreshToken");
-  },
-
-  setTokens(accessToken: string, refreshToken?: string | null) {
+  setAccessToken(accessToken: string) {
     localStorage.setItem("accessToken", accessToken);
-    if (refreshToken) {
-      localStorage.setItem("refreshToken", refreshToken);
-    }
+    localStorage.removeItem("refreshToken");
     window.dispatchEvent(new Event(AUTH_TOKEN_EVENT));
   },
 

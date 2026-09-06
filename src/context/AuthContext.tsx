@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import axios from "axios";
-import apiClient from "@/api/client";
+import apiClient, { ensureFreshAccessToken } from "@/api/client";
 import { endpoints } from "@/constants/endpoints";
 import { authStorage } from "@/lib/authStorage";
 
@@ -24,21 +24,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [accessToken, setAccessToken] = useState<string | null>(
     authStorage.getAccessToken()
   );
-  const [isOAuthLoading, setIsOAuthLoading] = useState(false);
+  const [isOAuthLoading, setIsOAuthLoading] = useState(!authStorage.getAccessToken());
 
   const isLoggedIn = !!accessToken;
 
   useEffect(() => {
-    return authStorage.subscribe(() => {
+    const unsubscribe = authStorage.subscribe(() => {
       setAccessToken(authStorage.getAccessToken());
     });
+    if (!authStorage.getAccessToken()) {
+      ensureFreshAccessToken(true)
+        .then(setAccessToken)
+        .catch(() => setAccessToken(null))
+        .finally(() => setIsOAuthLoading(false));
+    }
+    return unsubscribe;
   }, []);
 
   const login = (token: string) => {
-    authStorage.setTokens(token, authStorage.getRefreshToken());
+    authStorage.setAccessToken(token);
   };
 
   const logout = () => {
+    void axios.post(endpoints.LOGOUT, undefined, { withCredentials: true });
     authStorage.clearTokens();
   };
 
@@ -69,9 +77,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const { token } = response.data;
       if (!token?.accessToken) throw new Error("No access token returned");
 
-      const { accessToken, refreshToken } = token;
+      const { accessToken } = token;
       authStorage.clearAppState();
-      authStorage.setTokens(accessToken, refreshToken);
+      authStorage.setAccessToken(accessToken);
     } catch (error) {
       console.error("OAuth login failed:", error);
       throw error;
@@ -87,7 +95,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const { token } = response.data;
     if (!token?.accessToken) throw new Error("No access token returned");
     authStorage.clearAppState();
-    authStorage.setTokens(token.accessToken, token.refreshToken);
+    authStorage.setAccessToken(token.accessToken);
   };
 
   return (

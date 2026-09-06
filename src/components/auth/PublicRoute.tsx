@@ -3,7 +3,11 @@ import { useAuth } from "@/context/AuthContext";
 import type { ReactNode } from "react";
 
 export default function PublicRoute({ children }: { children: ReactNode }) {
-  const { isLoggedIn } = useAuth();
+  const { isLoggedIn, isOAuthLoading } = useAuth();
+
+  if (isOAuthLoading) {
+    return null;
+  }
 
   if (isLoggedIn) {
     return <Navigate to="/app" replace />;

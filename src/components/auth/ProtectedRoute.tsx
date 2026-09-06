@@ -6,8 +6,16 @@ import { Loader2 } from "lucide-react";
 import type { ReactNode } from "react";
 
 export default function ProtectedRoute({ children }: { children: ReactNode }) {
-  const { isLoggedIn, logout } = useAuth();
+  const { isLoggedIn, isOAuthLoading, logout } = useAuth();
   const { data: profile, isLoading, isError, refetch } = useMemberProfile();
+
+  if (isOAuthLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   if (!isLoggedIn) {
     return <Navigate to="/" replace />;

@@ -9,6 +9,7 @@ interface KeepaliveJsonRequestOptions {
 
 // 인증 토큰이 자동으로 포함되는 axios 인스턴스
 const apiClient = axios.create({
+  withCredentials: true,
   headers: {
     "Content-Type": "application/json",
   },
@@ -41,31 +42,42 @@ export function sendKeepaliveJsonRequest(
 // 진행 중인 refresh Promise. 동시 요청 중복 refresh 방지용.
 let refreshPromise: Promise<string> | null = null;
 
-const refreshAccessToken = async (): Promise<string> => {
-  const refreshToken = authStorage.getRefreshToken();
-  if (!refreshToken) {
-    throw new Error("No refresh token available");
-  }
-
+const requestNewAccessToken = async (): Promise<string> => {
   console.log("[auth] Attempting to refresh access token...");
 
   const response = await axios.post(
     endpoints.REFRESH_TOKEN,
-    { refreshToken },
+    undefined,
+    { withCredentials: true },
   );
 
   const tokenPayload = response.data?.token ?? response.data;
   const accessToken = tokenPayload?.accessToken;
-  const newRefreshToken = tokenPayload?.refreshToken ?? refreshToken;
 
   if (!accessToken) {
     throw new Error("No access token returned from refresh endpoint");
   }
 
-  authStorage.setTokens(accessToken, newRefreshToken);
+  authStorage.setAccessToken(accessToken);
   console.log("[auth] Access token refreshed successfully");
 
   return accessToken;
+};
+
+const refreshAccessToken = async (): Promise<string> => {
+  const accessTokenAtStart = authStorage.getAccessToken();
+  if (!("locks" in navigator)) {
+    return requestNewAccessToken();
+  }
+
+  return navigator.locks.request("note-vault-refresh-token", async () => {
+    // 다른 탭이 먼저 회전했다면 그 탭이 저장한 access token을 사용한다.
+    const currentAccessToken = authStorage.getAccessToken();
+    if (currentAccessToken && currentAccessToken !== accessTokenAtStart) {
+      return currentAccessToken;
+    }
+    return requestNewAccessToken();
+  });
 };
 
 function isJwtExpiringSoon(token: string, leewaySeconds = 60): boolean {
@@ -160,16 +172,13 @@ apiClient.interceptors.response.use(
         ?.response?.status;
       const refreshData = (refreshError as { response?: { data?: unknown } })
         ?.response?.data;
-      const hasRefreshToken = !!authStorage.getRefreshToken();
-
       console.log("[auth] Refresh failed detail:", {
         refreshStatus,
         refreshData,
-        hasRefreshToken,
         errorMessage: refreshError instanceof Error ? refreshError.message : refreshError,
       });
 
-      if (refreshStatus === 401 || !hasRefreshToken) {
+      if (refreshStatus === 401 || refreshStatus === 403) {
         console.log("[auth] Refresh unrecoverable, logging out");
         authStorage.clearTokens();
         window.location.href = "/";

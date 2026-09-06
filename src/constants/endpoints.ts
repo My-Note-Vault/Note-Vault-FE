@@ -8,6 +8,7 @@ CALLBACK_FROM_GOOGLE: `${API_BASE}/oauth/callback/google`,
 LOGIN_KAKAO: `${API_BASE}/oauth/login/kakao`,
 CALLBACK_FROM_KAKAO: `${API_BASE}/oauth/callback/kakao`,
 REFRESH_TOKEN: `${API_BASE}/oauth/refresh`,
+LOGOUT: `${API_BASE}/oauth/logout`,
 DEV_LOGIN: `${API_BASE}/oauth/dev`,
 
 // Space Endpoints
