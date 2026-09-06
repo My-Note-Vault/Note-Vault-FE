@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import MarkdownEditor, { type MarkdownEditorHandle, type AutoSaveOptions } from "@/components/MarkdownEditor";
-import { ChevronRight, Loader2, AlertTriangle, RefreshCw, Check, Undo2, ArrowUp, ArrowDown, Trash2, Columns2, Rows2 } from "lucide-react";
+import { ChevronRight, Loader2, AlertTriangle, RefreshCw, Check, Undo2, ArrowUp, ArrowDown, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { sendKeepaliveDailyNoteAutoSave } from "@/api/autoSave";
 import type { ContentImageTarget } from "@/api/contentImages";
@@ -365,14 +365,6 @@ export default function Editor({
 
   titleRef.current = title;
 
-  const [dailyLayout, _setDailyLayout] = useState<"horizontal" | "vertical">(() => {
-    return (localStorage.getItem("dailyLayout") as "horizontal" | "vertical") ?? "horizontal";
-  });
-  const setDailyLayout = (v: "horizontal" | "vertical") => {
-    _setDailyLayout(v);
-    localStorage.setItem("dailyLayout", v);
-  };
-
   const [metadata, setMetadata] = useState<TaskMetadataValues>({
     status: "NOT_STARTED",
     startDate: undefined,
@@ -657,31 +649,6 @@ export default function Editor({
               readOnly
               className="flex-1 px-12 pt-4 pb-0 text-xl font-semibold bg-transparent outline-none"
             />
-            {/* Split direction toggle */}
-            <div className="mt-4 mr-2 flex gap-0.5 rounded-md border border-border bg-muted/30 p-0.5 shrink-0">
-              <button
-                onClick={() => setDailyLayout("horizontal")}
-                className={`p-1 rounded transition-colors ${
-                  dailyLayout === "horizontal"
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:bg-muted"
-                }`}
-                title="좌우 분할"
-              >
-                <Columns2 className="h-3.5 w-3.5" />
-              </button>
-              <button
-                onClick={() => setDailyLayout("vertical")}
-                className={`p-1 rounded transition-colors ${
-                  dailyLayout === "vertical"
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:bg-muted"
-                }`}
-                title="상하 분할"
-              >
-                <Rows2 className="h-3.5 w-3.5" />
-              </button>
-            </div>
             {onDeleteDailyNote && dailyNoteId && (
               <button
                 onClick={() => {
@@ -698,10 +665,9 @@ export default function Editor({
           </div>
 
 
-          {/* Split: left(Pending+Todo) / right(Content) */}
-          <div className={`flex ${dailyLayout === "horizontal" ? "flex-row gap-6" : "flex-col"}`}>
-            {/* Left: Pending + Todo */}
-            <div className={dailyLayout === "horizontal" ? "w-1/2 shrink-0" : ""}>
+          {/* Plans above / content below */}
+          <div className="flex flex-col">
+            <div>
               <DailyNoteItemList
                 label="Pending"
                 items={pendingItems}
@@ -752,13 +718,10 @@ export default function Editor({
             </div>
 
             {/* Divider */}
-            <div className={dailyLayout === "horizontal"
-              ? "border-l border-border/50"
-              : "border-t border-border/50"
-            } />
+            <div className="border-t border-border/50" />
 
-            {/* Right: Content (no label) */}
-            <div className={dailyLayout === "horizontal" ? "w-1/2 pt-4" : "pt-4"}>
+            {/* Content (no label) */}
+            <div className="pt-4">
               <MarkdownEditor
                 initialContent={daily?.content ?? ""}
                 onAutoSave={handleDailyContentAutoSave}
