@@ -8,12 +8,11 @@ import {
   deleteProfileImage,
   uploadFileToPresignedUrl,
   fetchPayoutAccount,
-  verifyPayoutAccount,
-  saveVerifiedPayoutAccount,
+  updatePayoutAccount,
   deletePayoutAccount,
 } from "@/api/member";
 import type { UploadProgressHandler } from "@/api/uploadProgress";
-import type { UpdateProfileRequest, VerifyPayoutAccountRequest } from "@/types/member";
+import type { UpdatePayoutAccountRequest, UpdateProfileRequest } from "@/types/member";
 
 export const memberKeys = {
   all: ["member"] as const,
@@ -28,14 +27,10 @@ export const usePayoutAccount = () => useQuery({
   retry: false,
 });
 
-export const useVerifyPayoutAccount = () => useMutation({
-  mutationFn: (request: VerifyPayoutAccountRequest) => verifyPayoutAccount(request),
-});
-
-export const useSaveVerifiedPayoutAccount = () => {
+export const useUpdatePayoutAccount = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: saveVerifiedPayoutAccount,
+    mutationFn: (request: UpdatePayoutAccountRequest) => updatePayoutAccount(request),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: memberKeys.payoutAccount() });
       queryClient.invalidateQueries({ queryKey: memberKeys.profile() });

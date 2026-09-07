@@ -11,8 +11,7 @@ import type {
   ProfileImageResponse,
   UpdateProfileImageRequest,
   PayoutAccount,
-  PayoutAccountVerification,
-  VerifyPayoutAccountRequest,
+  UpdatePayoutAccountRequest,
 } from "@/types/member";
 
 export const fetchMemberProfile = async (): Promise<MemberProfile> => {
@@ -52,18 +51,8 @@ export const fetchPayoutAccount = async (): Promise<PayoutAccount> => {
   return data;
 };
 
-export const verifyPayoutAccount = async (
-  request: VerifyPayoutAccountRequest,
-): Promise<PayoutAccountVerification> => {
-  const { data } = await apiClient.post<PayoutAccountVerification>(
-    endpoints.MEMBER_PAYOUT_ACCOUNT_VERIFICATIONS,
-    request,
-  );
-  return data;
-};
-
-export const saveVerifiedPayoutAccount = async (verificationToken: string): Promise<void> => {
-  await apiClient.put(endpoints.MEMBER_PAYOUT_ACCOUNT, { verificationToken });
+export const updatePayoutAccount = async (request: UpdatePayoutAccountRequest): Promise<void> => {
+  await apiClient.put(endpoints.MEMBER_PAYOUT_ACCOUNT, request);
 };
 
 export const deletePayoutAccount = async (): Promise<void> => {

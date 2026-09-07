@@ -257,12 +257,6 @@ export default function ProfilePopover() {
                   <p className="truncate text-sm">
                     {payoutAccount.bankName} {payoutAccount.maskedAccountNumber}
                   </p>
-                  {payoutAccount.maskedHolderName && (
-                    <p className="mt-0.5 text-xs text-muted-foreground">
-                      예금주 {payoutAccount.maskedHolderName}
-                      {payoutAccount.verified ? " · 인증 완료" : " · 미인증"}
-                    </p>
-                  )}
                 </div>
                 <Button
                   type="button"

@@ -4,7 +4,7 @@ import axios from "axios";
 import { AlertTriangle, CalendarDays, Gift, Landmark, Loader2, Trophy } from "lucide-react";
 import { fetchDrawOverview } from "@/api/draws";
 import type { DrawCategory } from "@/types/draw";
-import type { BankCode, PayoutAccountVerification } from "@/types/member";
+import type { BankCode } from "@/types/member";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,8 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import {
   usePayoutAccount,
-  useSaveVerifiedPayoutAccount,
-  useVerifyPayoutAccount,
+  useUpdatePayoutAccount,
 } from "@/hooks/useMember";
 
 const LABELS: Record<DrawCategory, { title: string; description: string }> = {
@@ -44,10 +43,8 @@ function PayoutAccountSection() {
   const [isEditing, setIsEditing] = useState(false);
   const [bankCode, setBankCode] = useState<BankCode | "">("");
   const [accountNumber, setAccountNumber] = useState("");
-  const [verification, setVerification] = useState<PayoutAccountVerification | null>(null);
   const { data: account, isLoading } = usePayoutAccount();
-  const verifyAccount = useVerifyPayoutAccount();
-  const saveAccount = useSaveVerifiedPayoutAccount();
+  const updateAccount = useUpdatePayoutAccount();
 
   useEffect(() => {
     if (account?.bankCode && !bankCode) {
@@ -55,7 +52,7 @@ function PayoutAccountSection() {
     }
   }, [account?.bankCode, bankCode]);
 
-  const showForm = !account?.verified || isEditing;
+  const showForm = !account?.configured || isEditing;
   const errorMessage = (error: unknown, fallback: string) => {
     const message = axios.isAxiosError<{ message?: string }>(error)
       ? error.response?.data?.message
@@ -63,7 +60,7 @@ function PayoutAccountSection() {
     return message ?? fallback;
   };
 
-  const handleVerify = async (event: FormEvent) => {
+  const handleSave = async (event: FormEvent) => {
     event.preventDefault();
     const normalized = accountNumber.replace(/-/g, "");
     if (!bankCode) {
@@ -75,20 +72,7 @@ function PayoutAccountSection() {
       return;
     }
     try {
-      const result = await verifyAccount.mutateAsync({ bankCode, accountNumber: normalized });
-      setVerification(result);
-      toast.success("계좌 인증이 완료되었습니다. 저장을 눌러 등록을 마쳐 주세요.");
-    } catch (error) {
-      setVerification(null);
-      toast.error(errorMessage(error, "계좌 인증에 실패했습니다."));
-    }
-  };
-
-  const handleSave = async () => {
-    if (!verification) return;
-    try {
-      await saveAccount.mutateAsync(verification.verificationToken);
-      setVerification(null);
+      await updateAccount.mutateAsync({ bankCode, accountNumber: normalized });
       setAccountNumber("");
       setIsEditing(false);
       toast.success("송금 계좌가 저장되었습니다.");
@@ -107,29 +91,23 @@ function PayoutAccountSection() {
             당첨금 지급에 사용할 본인 계좌를 등록해 주세요.
           </p>
 
-          {!isLoading && !account?.verified && (
+          {!isLoading && !account?.configured && (
             <div className="mt-4 flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 text-sm text-amber-700 dark:text-amber-300">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
               <p>
-                {account?.configured
-                  ? "등록된 계좌가 아직 인증되지 않았습니다. 계좌를 다시 확인해 주세요."
-                  : "송금받을 계좌가 등록되지 않았습니다. 당첨금 지급을 위해 계좌를 입력해 주세요."}
+                송금받을 계좌가 등록되지 않았습니다. 당첨금 지급을 위해 계좌를 입력해 주세요.
               </p>
             </div>
           )}
 
-          {account?.verified && !showForm && (
+          {account?.configured && !showForm && (
             <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg bg-muted/50 px-4 py-3">
               <div>
-                <p className="text-sm font-medium">{account.bankName} · 인증 완료</p>
+                <p className="text-sm font-medium">{account.bankName} · 등록됨</p>
                 <p className="mt-0.5 font-mono text-xs text-muted-foreground">{account.maskedAccountNumber}</p>
-                {account.maskedHolderName && (
-                  <p className="mt-0.5 text-xs text-muted-foreground">예금주 {account.maskedHolderName}</p>
-                )}
               </div>
               <Button type="button" variant="outline" size="sm" onClick={() => {
                 setBankCode(account.bankCode ?? "");
-                setVerification(null);
                 setAccountNumber("");
                 setIsEditing(true);
               }}>
@@ -139,58 +117,44 @@ function PayoutAccountSection() {
           )}
 
           {showForm && !isLoading && (
-            <form onSubmit={handleVerify} className="mt-4 space-y-3">
+            <form onSubmit={handleSave} className="mt-4 space-y-3">
               <div className="grid gap-3 sm:grid-cols-[180px_1fr_auto] sm:items-end">
-              <div className="space-y-1.5">
-                <Label htmlFor="payout-bank">은행</Label>
-                <Select value={bankCode} onValueChange={(value) => {
-                  setBankCode(value as BankCode);
-                  setVerification(null);
-                }}>
-                  <SelectTrigger id="payout-bank"><SelectValue placeholder="은행 선택" /></SelectTrigger>
-                  <SelectContent>
-                    {BANKS.map((bank) => <SelectItem key={bank.code} value={bank.code}>{bank.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="payout-account-number">계좌번호</Label>
-                <Input
-                  id="payout-account-number"
-                  inputMode="numeric"
-                  autoComplete="off"
-                  placeholder="숫자만 입력"
-                  value={accountNumber}
-                  onChange={(event) => {
-                    setAccountNumber(event.target.value.replace(/[^0-9-]/g, ""));
-                    setVerification(null);
-                  }}
-                />
-              </div>
-              <div className="flex gap-2">
-                {account?.verified && <Button type="button" variant="ghost" onClick={() => {
-                  setVerification(null);
-                  setIsEditing(false);
-                }}>취소</Button>}
-                <Button type="submit" variant="outline" disabled={verifyAccount.isPending}>
-                  {verifyAccount.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "계좌 인증"}
-                </Button>
-              </div>
-              </div>
-
-              {verification && (
-                <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-green-500/30 bg-green-500/10 px-4 py-3">
-                  <div>
-                    <p className="text-sm font-medium text-green-700 dark:text-green-300">계좌 인증 완료</p>
-                    <p className="mt-0.5 text-xs text-muted-foreground">
-                      {verification.bankName} · {verification.maskedAccountNumber} · 예금주 {verification.maskedHolderName}
-                    </p>
-                  </div>
-                  <Button type="button" onClick={handleSave} disabled={saveAccount.isPending}>
-                    {saveAccount.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "저장"}
+                <div className="space-y-1.5">
+                  <Label htmlFor="payout-bank">은행</Label>
+                  <Select value={bankCode} onValueChange={(value) => {
+                    setBankCode(value as BankCode);
+                  }}>
+                    <SelectTrigger id="payout-bank"><SelectValue placeholder="은행 선택" /></SelectTrigger>
+                    <SelectContent>
+                      {BANKS.map((bank) => <SelectItem key={bank.code} value={bank.code}>{bank.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="payout-account-number">계좌번호</Label>
+                  <Input
+                    id="payout-account-number"
+                    inputMode="numeric"
+                    autoComplete="off"
+                    placeholder="숫자만 입력"
+                    value={accountNumber}
+                    onChange={(event) => {
+                      setAccountNumber(event.target.value.replace(/[^0-9-]/g, ""));
+                    }}
+                  />
+                </div>
+                <div className="flex gap-2">
+                  {account?.configured && <Button type="button" variant="ghost" onClick={() => {
+                    setIsEditing(false);
+                  }}>취소</Button>}
+                  <Button type="submit" disabled={updateAccount.isPending}>
+                    {updateAccount.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "저장"}
                   </Button>
                 </div>
-              )}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                별도의 계좌 확인 절차 없이 입력한 정보가 그대로 저장됩니다. 은행과 계좌번호를 다시 확인해 주세요.
+              </p>
             </form>
           )}
         </div>

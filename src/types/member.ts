@@ -32,22 +32,12 @@ export type BankCode = "KB" | "SHINHAN" | "HANA" | "KAKAO" | "TOSS" | "K_BANK";
 
 export interface PayoutAccount {
   configured: boolean;
-  verified: boolean;
   bankCode: BankCode | null;
   bankName: string | null;
   maskedAccountNumber: string | null;
-  maskedHolderName: string | null;
 }
 
-export interface VerifyPayoutAccountRequest {
+export interface UpdatePayoutAccountRequest {
   bankCode: BankCode;
   accountNumber: string;
-}
-
-export interface PayoutAccountVerification {
-  verificationToken: string;
-  bankName: string;
-  maskedAccountNumber: string;
-  maskedHolderName: string;
-  expiresAt: string;
 }
