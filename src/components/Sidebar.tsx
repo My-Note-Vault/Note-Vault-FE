@@ -792,7 +792,7 @@ export default function Sidebar({ onSelectSidebarItem, docs, workspaces = [], da
     setDebouncedQuery("");
     onCloseSearch?.();
     onSelectSidebarItem?.(id, docType);
-    if (window.matchMedia("(max-width: 767px)").matches) onClose?.();
+    if (window.matchMedia("(max-width: 479px)").matches) onClose?.();
   };
 
   const isSearchMode = !!searchMode;
@@ -800,7 +800,8 @@ export default function Sidebar({ onSelectSidebarItem, docs, workspaces = [], da
   return (
     <>
       <aside
-        className={`relative z-40 flex h-screen shrink-0 flex-col overflow-hidden border-r border-sidebar-border bg-sidebar-background max-md:fixed max-md:inset-y-0 max-md:left-12 max-md:h-dvh max-md:!w-[calc(100vw-3rem)] max-md:max-w-[320px] ${open ? "max-md:translate-x-0" : "border-r-0 max-md:pointer-events-none max-md:-translate-x-full"}`}
+        className={`app-sidebar relative z-40 flex h-screen shrink-0 flex-col overflow-hidden border-r border-sidebar-border bg-sidebar-background ${open ? "" : "pointer-events-none border-r-0"}`}
+        data-open={open}
         style={{ width: open ? sidebarWidth : 0, transition: isResizing.current ? "none" : "width 200ms, transform 200ms" }}
       >
         <div

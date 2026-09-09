@@ -246,7 +246,7 @@ function AppContent() {
     const workspaceSelectionRequestId = useRef(0);
 
     const [sidebarOpen, setSidebarOpen] = useState(() =>
-        typeof window === "undefined" || !window.matchMedia("(max-width: 767px)").matches,
+        typeof window === "undefined" || !window.matchMedia("(max-width: 479px)").matches,
     );
     const [searchMode, setSearchMode] = useState(false);
 
@@ -1004,7 +1004,7 @@ function AppContent() {
 
     return (
         <TooltipProvider>
-        <div className="flex h-dvh min-w-0 md:h-screen">
+        <div className="app-shell flex h-dvh min-w-0 md:h-screen" data-sidebar-open={sidebarOpen}>
             <ActivityBar
                 onSelectItem={handleSelectDocumentWithTracking}
                 sidebarOpen={sidebarOpen}
@@ -1050,15 +1050,7 @@ function AppContent() {
                     });
                 }}
             />
-            {sidebarOpen && (
-                <button
-                    type="button"
-                    className="fixed inset-y-0 left-12 right-0 z-30 bg-black/40 md:hidden"
-                    onClick={() => setSidebarOpen(false)}
-                    aria-label={i18n.t("sidebar.close")}
-                />
-            )}
-            <main className="flex min-w-0 flex-1 overflow-hidden">
+            <main className="app-main flex min-w-0 flex-1 overflow-hidden">
                 {splitState.mode === "single" || isMobile ? (
                     <TabPane {...paneProps(isMobile ? splitState.focusedPane : "left")} />
                 ) : (

@@ -123,6 +123,41 @@ All colors MUST be HSL.
   }
 }
 
+/* Keep narrow desktop windows in a side-by-side layout. */
+@media (min-width: 480px) and (max-width: 767px) {
+  .app-sidebar {
+    width: clamp(160px, 24vw, 200px) !important;
+    height: 100dvh;
+  }
+
+  .app-sidebar[data-open="false"] {
+    width: 0 !important;
+  }
+}
+
+/* On phone-sized screens the sidebar becomes a separate full view. */
+@media (max-width: 479px) {
+  .app-sidebar {
+    position: fixed;
+    inset-block: 0;
+    left: 3rem;
+    width: calc(100vw - 3rem) !important;
+    height: 100dvh;
+  }
+
+  .app-sidebar[data-open="false"] {
+    transform: translateX(-100%);
+  }
+
+  .app-sidebar[data-open="true"] {
+    transform: translateX(0);
+  }
+
+  .app-shell[data-sidebar-open="true"] .app-main {
+    display: none;
+  }
+}
+
 @layer base {
   * {
     @apply border-border;
