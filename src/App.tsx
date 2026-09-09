@@ -129,6 +129,22 @@ const TYPE_LABELS: Record<DocType, string> = {
     note: "새 Note",
 };
 
+function useMediaQuery(query: string) {
+    const [matches, setMatches] = useState(() =>
+        typeof window !== "undefined" && window.matchMedia(query).matches,
+    );
+
+    useEffect(() => {
+        const media = window.matchMedia(query);
+        const update = () => setMatches(media.matches);
+        update();
+        media.addEventListener("change", update);
+        return () => media.removeEventListener("change", update);
+    }, [query]);
+
+    return matches;
+}
+
 function addCreatedEntityToTree(
     tasks: TaskOverview[] | undefined,
     type: DocType,
@@ -180,6 +196,7 @@ interface SplitState {
 
 function AppContent() {
     const appQueryClient = useQueryClient();
+    const isMobile = useMediaQuery("(max-width: 767px)");
     const { data: workspaces = [] } = useSpaceList();
 
     // Workspace 선택 상태 (Sidebar에서 끌어올림)
@@ -227,7 +244,9 @@ function AppContent() {
     const hasRestoredLastVisited = useRef(false);
     const workspaceSelectionRequestId = useRef(0);
 
-    const [sidebarOpen, setSidebarOpen] = useState(true);
+    const [sidebarOpen, setSidebarOpen] = useState(() =>
+        typeof window === "undefined" || !window.matchMedia("(max-width: 767px)").matches,
+    );
     const [searchMode, setSearchMode] = useState(false);
 
     // localStorage에서 초기 상태 복원 (tabs만 복원, activeTabId는 lastVisited에서 결정)
@@ -984,7 +1003,7 @@ function AppContent() {
 
     return (
         <TooltipProvider>
-        <div className="flex h-screen">
+        <div className="flex h-dvh min-w-0 md:h-screen">
             <ActivityBar
                 onSelectItem={handleSelectDocumentWithTracking}
                 sidebarOpen={sidebarOpen}
@@ -1030,9 +1049,17 @@ function AppContent() {
                     });
                 }}
             />
-            <main className="flex-1 overflow-hidden flex">
-                {splitState.mode === "single" ? (
-                    <TabPane {...paneProps("left")} />
+            {sidebarOpen && (
+                <button
+                    type="button"
+                    className="fixed inset-y-0 left-12 right-0 z-30 bg-black/40 md:hidden"
+                    onClick={() => setSidebarOpen(false)}
+                    aria-label="사이드바 닫기"
+                />
+            )}
+            <main className="flex min-w-0 flex-1 overflow-hidden">
+                {splitState.mode === "single" || isMobile ? (
+                    <TabPane {...paneProps(isMobile ? splitState.focusedPane : "left")} />
                 ) : (
                     <PanelGroup direction="horizontal">
                         <Panel defaultSize={50} minSize={30}>

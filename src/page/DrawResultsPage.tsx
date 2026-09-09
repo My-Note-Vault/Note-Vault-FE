@@ -167,6 +167,7 @@ export default function DrawResultsPage() {
   const { data, isLoading, isError } = useQuery({
     queryKey: ["daily-draws"],
     queryFn: fetchDrawOverview,
+    refetchInterval: 30_000,
   });
 
   if (isLoading) return <div className="flex h-full items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;

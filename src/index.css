@@ -130,5 +130,19 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
+    overscroll-behavior: none;
+  }
+
+  html,
+  body,
+  #root {
+    width: 100%;
+    min-height: 100%;
+  }
+
+  button,
+  input,
+  textarea {
+    touch-action: manipulation;
   }
 }

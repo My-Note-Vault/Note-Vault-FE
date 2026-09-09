@@ -55,15 +55,15 @@ export default function KanbanPage({ onOpenDocument }: KanbanPageProps) {
 
   return (
     <div className="h-full overflow-auto bg-background">
-      <div className="h-full flex flex-col p-6">
+      <div className="flex h-full flex-col p-3 sm:p-6">
         {/* Header */}
-        <div className="flex items-center gap-4 mb-6">
+        <div className="mb-4 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-center sm:gap-4">
           <h2 className="text-lg font-semibold shrink-0">Kanban</h2>
           <Select
             value={selectedSpaceId ?? ""}
             onValueChange={(v) => setSelectedSpaceId(v)}
           >
-            <SelectTrigger className="w-[200px]">
+            <SelectTrigger className="w-full sm:w-[200px]">
               <SelectValue placeholder="Space 선택" />
             </SelectTrigger>
             <SelectContent>
@@ -98,7 +98,7 @@ export default function KanbanPage({ onOpenDocument }: KanbanPageProps) {
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
         ) : (
-          <div className="flex-1 grid grid-cols-3 gap-4 min-h-0">
+          <div className="flex min-h-0 flex-1 gap-4 overflow-x-auto pb-2 md:grid md:grid-cols-3 md:overflow-x-visible md:pb-0">
             {COLUMN_ORDER.map((status) => {
               const config = COLUMN_CONFIG[status];
               const items = columns[status];
@@ -106,7 +106,7 @@ export default function KanbanPage({ onOpenDocument }: KanbanPageProps) {
               return (
                 <div
                   key={status}
-                  className="flex flex-col min-h-0 rounded-lg bg-muted/30 border border-border"
+                  className="flex min-h-0 w-[min(82vw,320px)] shrink-0 flex-col rounded-lg border border-border bg-muted/30 md:w-auto md:shrink"
                 >
                   {/* Column header */}
                   <div className="flex items-center gap-2 px-3 py-2.5 border-b border-border shrink-0">

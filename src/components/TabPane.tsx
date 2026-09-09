@@ -117,7 +117,7 @@ export default function TabPane({
 
   return (
     <div
-      className={`flex-1 flex flex-col overflow-hidden ${
+      className={`flex min-w-0 flex-1 flex-col overflow-hidden ${
         isSplit && isFocused ? "ring-1 ring-primary/30" : ""
       }`}
       onMouseDown={onFocusPane}
@@ -125,7 +125,7 @@ export default function TabPane({
       {/* Tab bar (also a drop target) */}
       {paneState.tabs.length > 0 && (
         <div
-          className={`flex items-center border-b border-border bg-muted/30 shrink-0 transition-colors ${
+          className={`flex shrink-0 items-center overflow-x-auto border-b border-border bg-muted/30 transition-colors ${
             dropHighlight ? "bg-primary/10" : ""
           }`}
           onDragOver={(e) => {
@@ -151,7 +151,7 @@ export default function TabPane({
           {paneState.tabs.map((tab) => (
             <div
               key={tab.id}
-              draggable
+              draggable={typeof window === "undefined" || !window.matchMedia("(max-width: 767px)").matches}
               onDragStart={(e) => {
                 e.dataTransfer.setData("application/x-tab-id", tab.id);
                 e.dataTransfer.setData("application/x-source-pane", paneId);
@@ -163,7 +163,7 @@ export default function TabPane({
                 setDropSide(null);
                 setDropHighlight(false);
               }}
-              className={`group flex items-center gap-1.5 px-3 py-2 text-sm cursor-grab border-r border-border max-w-[180px] transition-colors
+              className={`group flex max-w-[180px] shrink-0 items-center gap-1.5 border-r border-border px-3 py-2 text-sm transition-colors md:cursor-grab
                 ${tab.id === paneState.activeTabId
                   ? "bg-background text-foreground"
                   : "text-muted-foreground hover:bg-background/50"}
@@ -185,7 +185,7 @@ export default function TabPane({
                   e.stopPropagation();
                   onCloseTab(tab.id);
                 }}
-                className="ml-auto p-0.5 rounded opacity-0 group-hover:opacity-100 hover:bg-muted transition-opacity"
+                className="ml-auto rounded p-0.5 opacity-100 transition-opacity hover:bg-muted md:opacity-0 md:group-hover:opacity-100"
               >
                 <X className="h-3 w-3" />
               </button>

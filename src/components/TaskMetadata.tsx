@@ -76,7 +76,7 @@ export default function TaskMetadata({ value, onChange }: TaskMetadataProps) {
   const currentStatus = STATUS_OPTIONS.find((s) => s.value === value.status);
 
   return (
-    <div className="flex flex-wrap items-center gap-x-5 gap-y-2 px-12 pt-3 pb-2">
+    <div className="flex flex-wrap items-center gap-x-5 gap-y-2 px-3 pb-2 pt-3 sm:px-12">
       {/* Status */}
       <div className="flex items-center gap-2">
         <span className="text-xs font-medium text-muted-foreground">상태</span>

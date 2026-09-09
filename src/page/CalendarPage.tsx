@@ -69,9 +69,9 @@ export default function CalendarPage({ onOpenDocument }: CalendarPageProps) {
 
   return (
     <div className="h-full overflow-auto bg-background">
-      <div className="max-w-4xl mx-auto p-6">
+      <div className="mx-auto max-w-4xl p-3 sm:p-6">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="mb-4 flex items-center justify-between sm:mb-6">
           <button
             onClick={handlePrevMonth}
             className="p-2 rounded-md border border-border hover:bg-muted transition-colors"
@@ -79,8 +79,8 @@ export default function CalendarPage({ onOpenDocument }: CalendarPageProps) {
             <ChevronLeft className="h-4 w-4" />
           </button>
 
-          <div className="flex items-center gap-3">
-            <h2 className="text-lg font-semibold">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <h2 className="text-base font-semibold sm:text-lg">
               {format(currentMonth, "yyyy년 M월", { locale: ko })}
             </h2>
             <button
@@ -146,12 +146,12 @@ export default function CalendarPage({ onOpenDocument }: CalendarPageProps) {
                   key={dateStr}
                   onClick={() => setSelectedDate(dateStr)}
                   className={cn(
-                    "min-h-[90px] p-2 border-r border-b border-border cursor-pointer transition-colors hover:bg-muted/50",
+                    "min-h-[54px] p-1 border-r border-b border-border cursor-pointer transition-colors hover:bg-muted/50 sm:min-h-[90px] sm:p-2",
                     !inMonth && "opacity-35 bg-muted/20",
                     today && "bg-primary/5 ring-1 ring-inset ring-primary/30",
                   )}
                 >
-                  <div className="flex items-center justify-between mb-1.5">
+                  <div className="mb-1 flex items-center justify-between sm:mb-1.5">
                     <span
                       className={cn(
                         "text-sm",
@@ -170,7 +170,7 @@ export default function CalendarPage({ onOpenDocument }: CalendarPageProps) {
                     {stat && (stat.START ?? 0) > 0 && (
                       <div className="flex items-center gap-1">
                         <span className="h-2 w-2 rounded-full bg-blue-500 shrink-0" />
-                        <span className="text-xs text-blue-600 dark:text-blue-400 truncate">
+                        <span className="hidden truncate text-xs text-blue-600 dark:text-blue-400 sm:inline">
                           시작 {stat.START}
                         </span>
                       </div>
@@ -178,7 +178,7 @@ export default function CalendarPage({ onOpenDocument }: CalendarPageProps) {
                     {stat && (stat.END ?? 0) > 0 && (
                       <div className="flex items-center gap-1">
                         <span className="h-2 w-2 rounded-full bg-red-500 shrink-0" />
-                        <span className="text-xs text-red-500 dark:text-red-400 truncate">
+                        <span className="hidden truncate text-xs text-red-500 dark:text-red-400 sm:inline">
                           마감 {stat.END}
                         </span>
                       </div>

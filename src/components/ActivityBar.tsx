@@ -22,7 +22,7 @@ export default function ActivityBar({ onSelectItem, sidebarOpen, onToggleSidebar
   const searchActive = sidebarOpen && !!searchMode;
 
   return (
-    <aside className="h-screen w-12 bg-sidebar-background border-r border-sidebar-border flex flex-col items-center py-3 gap-2 shrink-0">
+    <aside className="z-50 flex h-dvh w-12 shrink-0 flex-col items-center gap-2 border-r border-sidebar-border bg-sidebar-background py-3 md:h-screen">
       <Tooltip content={sidebarOpen ? "사이드바 접기" : "사이드바 펼치기"}><button
         onClick={onToggleSidebar}
         className="p-2 rounded-md hover:bg-sidebar-accent transition-colors text-sidebar-foreground"

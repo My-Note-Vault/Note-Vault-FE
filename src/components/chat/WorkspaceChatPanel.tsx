@@ -65,7 +65,7 @@ export default function WorkspaceChatPanel({ onClose, onOpenDocument }: Workspac
   };
 
   return (
-    <aside className="flex h-screen w-[380px] shrink-0 flex-col border-l border-border bg-background">
+    <aside className="fixed inset-0 z-[60] flex h-dvh w-full shrink-0 flex-col bg-background md:static md:z-auto md:h-screen md:w-[380px] md:border-l md:border-border">
       <header className="flex h-12 shrink-0 items-center gap-2 border-b border-border px-4">
         <Bot className="h-4 w-4 text-primary" />
         <div className="min-w-0 flex-1">

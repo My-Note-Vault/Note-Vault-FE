@@ -790,6 +790,7 @@ export default function Sidebar({ onSelectSidebarItem, docs, workspaces = [], da
     setDebouncedQuery("");
     onCloseSearch?.();
     onSelectSidebarItem?.(id, docType);
+    if (window.matchMedia("(max-width: 767px)").matches) onClose?.();
   };
 
   const isSearchMode = !!searchMode;
@@ -797,11 +798,11 @@ export default function Sidebar({ onSelectSidebarItem, docs, workspaces = [], da
   return (
     <>
       <aside
-        className={`h-screen bg-sidebar-background border-r border-sidebar-border flex flex-col shrink-0 overflow-hidden relative ${open ? "" : "border-r-0"}`}
-        style={{ width: open ? sidebarWidth : 0, transition: isResizing.current ? "none" : "width 200ms" }}
+        className={`relative z-40 flex h-screen shrink-0 flex-col overflow-hidden border-r border-sidebar-border bg-sidebar-background max-md:fixed max-md:inset-y-0 max-md:left-12 max-md:h-dvh max-md:!w-[calc(100vw-3rem)] max-md:max-w-[320px] ${open ? "max-md:translate-x-0" : "border-r-0 max-md:pointer-events-none max-md:-translate-x-full"}`}
+        style={{ width: open ? sidebarWidth : 0, transition: isResizing.current ? "none" : "width 200ms, transform 200ms" }}
       >
         <div
-          className="absolute right-0 top-0 h-full w-1 cursor-col-resize hover:bg-primary/40 z-10"
+          className="absolute right-0 top-0 z-10 hidden h-full w-1 cursor-col-resize hover:bg-primary/40 md:block"
           onMouseDown={startResize}
         />
         {/* 헤더: 검색 입력 (searchMode일 때만) */}

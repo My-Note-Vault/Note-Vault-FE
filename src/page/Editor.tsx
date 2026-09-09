@@ -276,7 +276,7 @@ function DailyNoteItemList({
   const visibleItems = items.filter((item) => item.planId !== activePlanId);
 
   return (
-    <div className="px-12 pt-4 pb-1">
+    <div className="px-3 pb-1 pt-4 sm:px-12">
       <div className="border-t border-border mb-4" />
       <h3 className="text-base font-semibold text-foreground mb-2">{label}</h3>
       <div className="space-y-1">
@@ -639,7 +639,7 @@ export default function Editor({
 
     return (
       <div className="min-h-screen bg-background">
-        <div className="mx-auto p-6">
+        <div className="mx-auto p-3 sm:p-6">
           {/* Title + Delete */}
           <div className="flex items-start">
             <input
@@ -647,7 +647,7 @@ export default function Editor({
               type="text"
               value={daily?.logicalDate ? formatLogicalDate(daily.logicalDate) : ""}
               readOnly
-              className="flex-1 px-12 pt-4 pb-0 text-xl font-semibold bg-transparent outline-none"
+              className="min-w-0 flex-1 px-3 pb-0 pt-4 text-xl font-semibold bg-transparent outline-none sm:px-12"
             />
             {onDeleteDailyNote && dailyNoteId && (
               <button
@@ -737,7 +737,7 @@ export default function Editor({
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="max-w-[54.4rem] mx-auto p-6">
+      <div className="mx-auto max-w-[54.4rem] p-3 sm:p-6">
         <div>
           <div className="flex items-start">
             <input
@@ -754,7 +754,7 @@ export default function Editor({
                   editorRef.current?.focus();
                 }
               }}
-              className="flex-1 px-12 pt-4 pb-0 text-xl font-semibold bg-transparent outline-none"
+              className="min-w-0 flex-1 px-3 pb-0 pt-4 text-xl font-semibold bg-transparent outline-none sm:px-12"
             />
             {onDeleteDocument && docType && !isNew && (
               <button
@@ -771,14 +771,14 @@ export default function Editor({
           {showMetadata && (
             <>
               <TaskMetadata value={metadata} onChange={handleMetadataChange} />
-              <div className="px-12 pb-1">
+              <div className="px-3 pb-1 sm:px-12">
                 <div className="border-t border-border" />
               </div>
             </>
           )}
 
           {showChildrenSection && (
-            <div className="px-12 pt-3 pb-1">
+            <div className="px-3 pb-1 pt-3 sm:px-12">
               <div className="space-y-0.5">
                 {children.map((child) => (
                   <button
