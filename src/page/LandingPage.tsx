@@ -2,27 +2,24 @@ import { useAuth } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { FileText, Columns3, CalendarDays, Search, ArrowRight } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 const FEATURES = [
   {
     icon: FileText,
-    title: "계층형 문서 관리",
-    description: "Task와 Note를 원하는 깊이로 자유롭게 연결해 생각을 체계적으로 정리하세요.",
+    key: "documents",
   },
   {
     icon: Columns3,
-    title: "칸반 보드",
-    description: "할 일, 진행 중, 완료, 보류 상태로 업무 현황을 한눈에 파악하세요.",
+    key: "kanban",
   },
   {
     icon: CalendarDays,
-    title: "캘린더 & 데일리 노트",
-    description: "일정 기반으로 작업을 관리하고, 매일의 기록을 남기세요.",
+    key: "calendar",
   },
   {
     icon: Search,
-    title: "전체 검색",
-    description: "모든 문서를 빠르게 검색해 필요한 정보를 즉시 찾으세요.",
+    key: "search",
   },
 ];
 
@@ -31,6 +28,7 @@ const DEV_USERS = [1, 2, 3] as const;
 export default function LandingPage() {
   const { devLogin, redirectToGoogle, redirectToKakao } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const handleGoogleLogin = () => {
     redirectToGoogle();
@@ -45,7 +43,7 @@ export default function LandingPage() {
       await devLogin(userId);
       navigate("/profile-setup", { replace: true });
     } catch {
-      toast.error("Dev 로그인에 실패했습니다");
+      toast.error(t("landing.devLoginFailed"));
     }
   };
 
@@ -54,14 +52,14 @@ export default function LandingPage() {
       {/* Hero */}
       <section className="flex flex-col items-center justify-center px-6 pt-32 pb-24">
         <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-center leading-tight">
-          생각나는 대로 적고,
+          {t("landing.headline")}
           <br />
-          <span className="text-primary">편하게 정리하세요</span>
+          <span className="text-primary">{t("landing.headlineAccent")}</span>
         </h1>
         <p className="mt-5 text-lg text-muted-foreground text-center max-w-md">
-          문서, 일정, 칸반 보드를 하나의 공간에서.
+          {t("landing.description1")}
           <br />
-          가볍고 빠른 워크스페이스를 경험해 보세요.
+          {t("landing.description2")}
         </p>
 
         <div className="mt-10 flex flex-col items-center gap-3">
@@ -75,7 +73,7 @@ export default function LandingPage() {
               <path fill="#fff" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18A10.96 10.96 0 0 0 1 12c0 1.77.42 3.45 1.18 4.93l3.66-2.84z" />
               <path fill="#fff" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
             </svg>
-            Google로 시작하기
+            {t("landing.google")}
             <ArrowRight className="h-4 w-4" />
           </button>
 
@@ -86,7 +84,7 @@ export default function LandingPage() {
             <svg className="h-5 w-5" viewBox="0 0 24 24" aria-hidden="true">
               <path fill="currentColor" d="M12 3C6.48 3 2 6.49 2 10.8c0 2.78 1.87 5.22 4.68 6.6l-.95 3.49a.4.4 0 0 0 .61.44l4.16-2.75c.49.05.99.08 1.5.08 5.52 0 10-3.49 10-7.86S17.52 3 12 3Z" />
             </svg>
-            카카오로 시작하기
+            {t("landing.kakao")}
             <ArrowRight className="h-4 w-4" />
           </button>
 
@@ -98,7 +96,7 @@ export default function LandingPage() {
                   onClick={() => handleDevLogin(id)}
                   className="text-sm text-muted-foreground hover:text-foreground underline underline-offset-4 transition-colors"
                 >
-                  Dev 유저 {id}
+                  {t("landing.devUser", { id })}
                 </button>
               ))}
             </div>
@@ -111,13 +109,13 @@ export default function LandingPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
           {FEATURES.map((feature) => (
             <div
-              key={feature.title}
+              key={feature.key}
               className="rounded-xl border border-border p-6 hover:shadow-md transition-shadow"
             >
               <feature.icon className="h-8 w-8 text-primary mb-3" />
-              <h3 className="font-semibold text-base mb-1.5">{feature.title}</h3>
+              <h3 className="font-semibold text-base mb-1.5">{t(`landing.features.${feature.key}.title`)}</h3>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                {feature.description}
+                {t(`landing.features.${feature.key}.description`)}
               </p>
             </div>
           ))}
@@ -127,7 +125,7 @@ export default function LandingPage() {
       {/* Footer CTA */}
       <section className="border-t border-border py-16 text-center">
         <p className="text-muted-foreground text-sm">
-          지금 바로 시작하세요 — 무료로 이용할 수 있습니다.
+          {t("landing.footer")}
         </p>
       </section>
     </div>

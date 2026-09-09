@@ -12,13 +12,11 @@ import {
   addMonths,
   subMonths,
 } from "date-fns";
-import { ko } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { useCalendarStats, useDailyNotes } from "@/hooks/useDocuments";
 import CalendarDateModal from "@/components/CalendarDateModal";
 import type { CalendarDateStat, DocType } from "@/types/common";
-
-const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
+import { useTranslation } from "react-i18next";
 
 interface CalendarPageProps {
   onOpenDocument: (id: string, docType?: DocType) => void;
@@ -26,6 +24,8 @@ interface CalendarPageProps {
 
 export default function CalendarPage({ onOpenDocument }: CalendarPageProps) {
   const [currentMonth, setCurrentMonth] = useState(() => new Date());
+  const { t, i18n } = useTranslation();
+  const weekdays = t("calendar.weekdays", { returnObjects: true }) as string[];
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const year = currentMonth.getFullYear();
   const month = currentMonth.getMonth() + 1;
@@ -81,13 +81,13 @@ export default function CalendarPage({ onOpenDocument }: CalendarPageProps) {
 
           <div className="flex items-center gap-2 sm:gap-3">
             <h2 className="text-base font-semibold sm:text-lg">
-              {format(currentMonth, "yyyy년 M월", { locale: ko })}
+              {new Intl.DateTimeFormat(i18n.resolvedLanguage, { year: "numeric", month: "long" }).format(currentMonth)}
             </h2>
             <button
               onClick={handleToday}
               className="px-2.5 py-1 text-xs rounded-md border border-border hover:bg-muted transition-colors"
             >
-              오늘
+              {t("calendar.today")}
             </button>
           </div>
 
@@ -101,7 +101,7 @@ export default function CalendarPage({ onOpenDocument }: CalendarPageProps) {
 
         {/* Weekday headers */}
         <div className="grid grid-cols-7 mb-1">
-          {WEEKDAYS.map((d, i) => (
+          {weekdays.map((d, i) => (
             <div
               key={d}
               className={cn(
@@ -118,13 +118,13 @@ export default function CalendarPage({ onOpenDocument }: CalendarPageProps) {
         {isError ? (
           <div className="flex flex-col items-center justify-center gap-3 py-20">
             <AlertTriangle className="h-8 w-8 text-destructive" />
-            <p className="text-sm text-muted-foreground">일정을 불러오지 못했습니다</p>
+            <p className="text-sm text-muted-foreground">{t("calendar.loadFailed")}</p>
             <button
               onClick={() => refetch()}
               className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-border text-sm hover:bg-muted transition-colors"
             >
               <RefreshCw className="h-3.5 w-3.5" />
-              다시 시도
+              {t("common.retry")}
             </button>
           </div>
         ) : isLoading ? (
@@ -171,7 +171,7 @@ export default function CalendarPage({ onOpenDocument }: CalendarPageProps) {
                       <div className="flex items-center gap-1">
                         <span className="h-2 w-2 rounded-full bg-blue-500 shrink-0" />
                         <span className="hidden truncate text-xs text-blue-600 dark:text-blue-400 sm:inline">
-                          시작 {stat.START}
+                          {t("calendar.start", { count: stat.START })}
                         </span>
                       </div>
                     )}
@@ -179,7 +179,7 @@ export default function CalendarPage({ onOpenDocument }: CalendarPageProps) {
                       <div className="flex items-center gap-1">
                         <span className="h-2 w-2 rounded-full bg-red-500 shrink-0" />
                         <span className="hidden truncate text-xs text-red-500 dark:text-red-400 sm:inline">
-                          마감 {stat.END}
+                          {t("calendar.end", { count: stat.END })}
                         </span>
                       </div>
                     )}

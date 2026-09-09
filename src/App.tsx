@@ -37,6 +37,7 @@ import { AlertTriangle, RefreshCw } from "lucide-react";
 import { ThemeProvider } from "next-themes";
 import WorkspaceChatPanel from "./components/chat/WorkspaceChatPanel";
 import { TooltipProvider } from "./components/ui/tooltip";
+import i18n from "./i18n";
 
 const queryClient = new QueryClient({
     defaultOptions: {
@@ -453,7 +454,7 @@ function AppContent() {
         } else if (isKanban) {
             name = "Kanban";
         } else if (isDrawResults) {
-            name = "추첨 결과";
+            name = i18n.t("activity.drawResults");
         } else if (isDaily) {
             const pk = Number(dailyPkMatch[1]);
             const dailyNote = dailyNotesRef.current?.find((dn: DailyNoteDetail) => dn.dailyNoteId === pk);
@@ -1054,7 +1055,7 @@ function AppContent() {
                     type="button"
                     className="fixed inset-y-0 left-12 right-0 z-30 bg-black/40 md:hidden"
                     onClick={() => setSidebarOpen(false)}
-                    aria-label="사이드바 닫기"
+                    aria-label={i18n.t("sidebar.close")}
                 />
             )}
             <main className="flex min-w-0 flex-1 overflow-hidden">

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 
 import { Bot, FileText, LoaderCircle, Send, X } from "lucide-react";
 import { askWorkspaceChat, type WorkspaceChatSource } from "@/api/workspaceChat";
 import type { DocType } from "@/types/common";
+import { useTranslation } from "react-i18next";
 
 interface ChatMessage {
   id: string;
@@ -16,6 +17,7 @@ interface WorkspaceChatPanelProps {
 }
 
 export default function WorkspaceChatPanel({ onClose, onOpenDocument }: WorkspaceChatPanelProps) {
+  const { t } = useTranslation();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [question, setQuestion] = useState("");
   const [isSending, setIsSending] = useState(false);
@@ -50,7 +52,7 @@ export default function WorkspaceChatPanel({ onClose, onOpenDocument }: Workspac
         sources: response.sources,
       }]);
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "답변을 가져오지 못했습니다.");
+      setError(requestError instanceof Error ? requestError.message : t("chat.failed"));
       setQuestion(trimmed);
     } finally {
       setIsSending(false);
@@ -70,9 +72,9 @@ export default function WorkspaceChatPanel({ onClose, onOpenDocument }: Workspac
         <Bot className="h-4 w-4 text-primary" />
         <div className="min-w-0 flex-1">
           <h2 className="truncate text-sm font-medium">Workspace Assistant</h2>
-          <p className="text-[11px] text-muted-foreground">인덱싱된 문서를 기준으로 답변합니다</p>
+          <p className="text-[11px] text-muted-foreground">{t("chat.subtitle")}</p>
         </div>
-        <button onClick={onClose} className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground" aria-label="챗봇 닫기">
+        <button onClick={onClose} className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground" aria-label={t("chat.close")}>
           <X className="h-4 w-4" />
         </button>
       </header>
@@ -83,9 +85,9 @@ export default function WorkspaceChatPanel({ onClose, onOpenDocument }: Workspac
             <div className="mb-3 rounded-xl border border-border bg-muted/40 p-3">
               <Bot className="h-6 w-6 text-muted-foreground" />
             </div>
-            <p className="text-sm font-medium">문서에 관해 질문해 보세요</p>
+            <p className="text-sm font-medium">{t("chat.promptTitle")}</p>
             <p className="mt-1.5 max-w-[260px] text-xs leading-5 text-muted-foreground">
-              참여 중인 워크스페이스와 Daily Note에서 관련 내용을 찾아 출처와 함께 답변합니다.
+              {t("chat.promptDescription")}
             </p>
           </div>
         )}
@@ -99,7 +101,7 @@ export default function WorkspaceChatPanel({ onClose, onOpenDocument }: Workspac
                 <p className="whitespace-pre-wrap leading-6">{message.content}</p>
                 {!!message.sources?.length && (
                   <div className="mt-3 space-y-1.5 border-t border-border pt-2.5">
-                    <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Sources</p>
+                    <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{t("chat.sources")}</p>
                     {message.sources.map((source) => (
                       <button
                         key={`${message.id}-${source.chunkId}`}
@@ -124,7 +126,7 @@ export default function WorkspaceChatPanel({ onClose, onOpenDocument }: Workspac
           {isSending && (
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
-              문서를 검색하고 답변을 작성하는 중...
+              {t("chat.sending")}
             </div>
           )}
           <div ref={bottomRef} />
@@ -141,16 +143,16 @@ export default function WorkspaceChatPanel({ onClose, onOpenDocument }: Workspac
             disabled={isSending}
             maxLength={4000}
             rows={3}
-            placeholder="워크스페이스 문서에 질문하기"
+            placeholder={t("chat.placeholder")}
             className="w-full resize-none bg-transparent px-3 py-2.5 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
           />
           <div className="flex items-center justify-between px-2.5 pb-2">
-            <span className="text-[10px] text-muted-foreground">Enter 전송 · Shift+Enter 줄바꿈</span>
+            <span className="text-[10px] text-muted-foreground">{t("chat.keyboardHint")}</span>
             <button
               type="submit"
               disabled={!question.trim() || isSending}
               className="rounded-md bg-primary p-1.5 text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-40"
-              aria-label="질문 전송"
+              aria-label={t("chat.send")}
             >
               {isSending ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             </button>

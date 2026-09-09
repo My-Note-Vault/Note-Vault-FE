@@ -6,6 +6,7 @@ import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover
 import InviteDialog from "@/components/InviteDialog";
 import { toast } from "sonner";
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger } from "@/components/ui/context-menu";
+import { useTranslation } from "react-i18next";
 
 export type { DocType, SidebarItem, SearchResult } from "@/types/common";
 import { sidebarUnfoldedId, type DocType, type SidebarItem, type SearchResult } from "@/types/common";
@@ -726,6 +727,7 @@ const SIDEBAR_MAX = 480;
 const SIDEBAR_DEFAULT = 300;
 
 export default function Sidebar({ onSelectSidebarItem, docs, workspaces = [], dailyNotes, dailyNoteFolders = [], onAddItem, onAddSpace, onDeleteItem, onRenameItem, onDeleteDailyNote, isLoading, unfoldedIds, open, onClose, activeTabId, searchMode, onCloseSearch, selectedWorkspaceId, onSelectWorkspace, onToggleExpand }: SidebarProps) {
+  const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState("");
   const [inviteOpen, setInviteOpen] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(() => {
@@ -811,7 +813,7 @@ export default function Sidebar({ onSelectSidebarItem, docs, workspaces = [], da
             <Search className="h-4 w-4 text-sidebar-foreground/40 shrink-0" />
             <input
               type="text"
-              placeholder="내 Note 검색..."
+              placeholder={t("sidebar.searchPlaceholder")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="flex-1 min-w-0 bg-transparent text-sm text-sidebar-foreground placeholder:text-sidebar-foreground/40 outline-none"
@@ -836,12 +838,12 @@ export default function Sidebar({ onSelectSidebarItem, docs, workspaces = [], da
             <div className="space-y-0.5">
               {normalizedQuery.length === 0 ? (
                 <div className="px-3 py-4 text-sm text-sidebar-foreground/50 text-center">
-                  검색어를 입력하세요
+                  {t("sidebar.searchPrompt")}
                 </div>
               ) : isSearching ? (
                 <div className="flex items-center gap-2 px-3 py-4 text-sm text-sidebar-foreground/50">
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>검색 중...</span>
+                  <span>{t("sidebar.searching")}</span>
                 </div>
               ) : searchResults.length > 0 ? (
                 searchResults.map((doc) => (
@@ -854,14 +856,14 @@ export default function Sidebar({ onSelectSidebarItem, docs, workspaces = [], da
                 ))
               ) : (
                 <div className="px-3 py-4 text-sm text-sidebar-foreground/50 text-center">
-                  검색 결과가 없습니다
+                  {t("sidebar.noResults")}
                 </div>
               )}
             </div>
           ) : isLoading ? (
             <div className="flex items-center gap-2 px-3 py-4 text-sm text-sidebar-foreground/50">
               <Loader2 className="h-4 w-4 animate-spin" />
-              <span>문서 불러오는 중...</span>
+              <span>{t("sidebar.loadingDocuments")}</span>
             </div>
           ) : (
             /* 기본 문서 트리 */
@@ -924,7 +926,7 @@ export default function Sidebar({ onSelectSidebarItem, docs, workspaces = [], da
                             <button
                               onClick={(e) => e.stopPropagation()}
                               className="p-0.5 rounded hover:bg-sidebar-border transition-colors"
-                              title="최상위 Note 추가"
+                              title={t("sidebar.addRoot")}
                             >
                               <Plus className="h-3.5 w-3.5" />
                             </button>
@@ -948,15 +950,15 @@ export default function Sidebar({ onSelectSidebarItem, docs, workspaces = [], da
                           setInviteOpen(true);
                         }}
                         className="p-0.5 rounded hover:bg-sidebar-border transition-colors"
-                        title="멤버 초대"
+                        title={t("sidebar.inviteMember")}
                       >
                         <UserPlus className="h-3.5 w-3.5" />
                       </button>
                     </div>
                   </div></ContextMenuTrigger>
                   <ContextMenuContent>
-                    {onAddItem && <ContextMenuItem onSelect={() => onAddItem(selectedWorkspaceId, "space", "note")}><FileText className="h-4 w-4" />새 Note</ContextMenuItem>}
-                    {onAddItem && <ContextMenuItem onSelect={() => onAddItem(selectedWorkspaceId, "space", "task")}><ListChecks className="h-4 w-4" />새 Task</ContextMenuItem>}
+                    {onAddItem && <ContextMenuItem onSelect={() => onAddItem(selectedWorkspaceId, "space", "note")}><FileText className="h-4 w-4" />{t("sidebar.newNote")}</ContextMenuItem>}
+                    {onAddItem && <ContextMenuItem onSelect={() => onAddItem(selectedWorkspaceId, "space", "task")}><ListChecks className="h-4 w-4" />{t("sidebar.newTask")}</ContextMenuItem>}
                     <ContextMenuItem onSelect={async () => {
                       const url = new URL(window.location.href);
                       url.searchParams.set("tab", `space-${selectedWorkspaceId}`);
@@ -997,14 +999,14 @@ export default function Sidebar({ onSelectSidebarItem, docs, workspaces = [], da
               {selectedWorkspaceId && docs.length === 0 && (
                 <div className="mx-2 mt-5 rounded-lg border border-dashed border-sidebar-border px-4 py-5 text-center">
                   <FileText className="mx-auto h-6 w-6 text-sidebar-foreground/35" />
-                  <p className="mt-2 text-sm font-medium text-sidebar-foreground">아직 Note가 없어요</p>
-                  <p className="mt-1 text-xs leading-5 text-sidebar-foreground/55">첫 Note를 만들고 바로 글을 작성해 보세요.</p>
+                  <p className="mt-2 text-sm font-medium text-sidebar-foreground">{t("sidebar.emptyTitle")}</p>
+                  <p className="mt-1 text-xs leading-5 text-sidebar-foreground/55">{t("sidebar.emptyDescription")}</p>
                   {onAddItem && (
                     <button
                       onClick={() => onAddItem(selectedWorkspaceId, "space", "note")}
                       className="mt-3 inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
                     >
-                      <Plus className="h-4 w-4" />첫 Note 만들기
+                      <Plus className="h-4 w-4" />{t("sidebar.firstNote")}
                     </button>
                   )}
                 </div>

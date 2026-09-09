@@ -25,19 +25,20 @@ import {
   useDeletePayoutAccount,
 } from "@/hooks/useMember";
 import { useAuth } from "@/context/AuthContext";
+import { useTranslation } from "react-i18next";
 
-const profileSchema = z.object({
+const createProfileSchema = (t: (key: string) => string) => z.object({
   nickname: z
     .string()
     .trim()
-    .min(1, "닉네임을 입력해 주세요")
-    .max(20, "닉네임은 20자 이하여야 합니다")
-    .refine((value) => !value.includes("#"), "닉네임에는 #을 사용할 수 없습니다"),
+    .min(1, t("profile.nicknameRequired"))
+    .max(20, t("profile.nicknameMax"))
+    .refine((value) => !value.includes("#"), t("profile.nicknameHash")),
   dayStartHour: z.number().min(0).max(23),
   dayStartMinute: z.number().min(0).max(59),
 });
 
-type ProfileFormValues = z.infer<typeof profileSchema>;
+type ProfileFormValues = z.infer<ReturnType<typeof createProfileSchema>>;
 
 function normalizeProfileDefaults(profile?: {
   nickname?: string | null;
@@ -56,6 +57,8 @@ function normalizeProfileDefaults(profile?: {
 }
 
 export default function ProfilePopover() {
+  const { t, i18n } = useTranslation();
+  const profileSchema = createProfileSchema(t);
   const { logout } = useAuth();
   const { data: profile } = useMemberProfile();
   const { data: profileImage } = useProfileImage();
@@ -105,7 +108,7 @@ export default function ProfilePopover() {
         onProgress: setUploadProgress,
       });
     } catch {
-      toast.error("이미지 업로드에 실패했습니다");
+      toast.error(t("profile.uploadFailed"));
     } finally {
       setUploadProgress(null);
     }
@@ -118,10 +121,10 @@ export default function ProfilePopover() {
         dayStartHour: values.dayStartHour,
         dayStartMinute: values.dayStartMinute,
       });
-      toast.success("프로필이 수정되었습니다");
+      toast.success(t("profile.updated"));
       setOpen(false);
     } catch {
-      toast.error("프로필 저장에 실패했습니다");
+      toast.error(t("profile.saveFailed"));
     }
   };
 
@@ -131,7 +134,7 @@ export default function ProfilePopover() {
       return;
     }
 
-    toast.error("프로필 정보를 다시 확인해 주세요");
+    toast.error(t("profile.checkInput"));
   };
 
   const handleOpenChange = (nextOpen: boolean) => {
@@ -151,11 +154,11 @@ export default function ProfilePopover() {
       <PopoverTrigger asChild>
         <button
           className="p-1 rounded-md hover:bg-sidebar-accent transition-colors"
-          title="프로필"
+          title={t("profile.title")}
         >
           <Avatar className="h-7 w-7">
             {profileImage?.profileImageUrl ? (
-              <AvatarImage src={profileImage.profileImageUrl} alt="프로필" />
+              <AvatarImage src={profileImage.profileImageUrl} alt={t("profile.imageAlt")} />
             ) : null}
             <AvatarFallback className="bg-muted text-xs">
               <User className="h-4 w-4 text-muted-foreground" />
@@ -175,7 +178,7 @@ export default function ProfilePopover() {
             >
               <Avatar className="h-16 w-16">
                 {avatarSrc ? (
-                  <AvatarImage src={avatarSrc} alt="프로필" />
+                  <AvatarImage src={avatarSrc} alt={t("profile.imageAlt")} />
                 ) : null}
                 <AvatarFallback className="bg-muted">
                   <User className="h-7 w-7 text-muted-foreground" />
@@ -197,7 +200,7 @@ export default function ProfilePopover() {
             </button>
             {uploadImage.isPending && (
               <span className="text-xs text-muted-foreground">
-                업로드 중 {uploadProgress ?? 0}%
+                {t("profile.uploading", { progress: uploadProgress ?? 0 })}
               </span>
             )}
             <input
@@ -221,13 +224,13 @@ export default function ProfilePopover() {
             }}
           >
             <LogOut className="h-4 w-4 mr-2" />
-            로그아웃
+            {t("profile.logout")}
           </Button>
 
           {/* 이름 (읽기 전용) */}
           {profile?.name && (
             <div className="space-y-1">
-              <Label htmlFor="popover-name" className="text-xs">이름</Label>
+              <Label htmlFor="popover-name" className="text-xs">{t("profile.name")}</Label>
               <Input
                 id="popover-name"
                 value={profile.name}
@@ -239,7 +242,7 @@ export default function ProfilePopover() {
 
           {profile?.memberTag && (
             <div className="space-y-1">
-              <Label htmlFor="popover-member-tag" className="text-xs">식별 태그</Label>
+              <Label htmlFor="popover-member-tag" className="text-xs">{t("profile.memberTag")}</Label>
               <Input
                 id="popover-member-tag"
                 value={`#${profile.memberTag}`}
@@ -251,7 +254,7 @@ export default function ProfilePopover() {
 
           {payoutAccount?.configured && (
             <div className="space-y-1">
-              <Label className="text-xs">송금 계좌</Label>
+              <Label className="text-xs">{t("profile.payoutAccount")}</Label>
               <div className="flex items-center gap-2">
                 <div className="min-w-0 flex-1 rounded-md border border-input bg-muted/50 px-3 py-2">
                   <p className="truncate text-sm">
@@ -264,14 +267,14 @@ export default function ProfilePopover() {
                   size="icon"
                   className="shrink-0 text-destructive hover:text-destructive"
                   disabled={deletePayoutAccount.isPending}
-                  title="송금 계좌 삭제"
+                  title={t("profile.deletePayout")}
                   onClick={async () => {
-                    if (!window.confirm("등록된 송금 계좌를 삭제할까요?")) return;
+                    if (!window.confirm(t("profile.confirmDeletePayout"))) return;
                     try {
                       await deletePayoutAccount.mutateAsync();
-                      toast.success("송금 계좌가 삭제되었습니다");
+                      toast.success(t("profile.payoutDeleted"));
                     } catch {
-                      toast.error("송금 계좌 삭제에 실패했습니다");
+                      toast.error(t("profile.payoutDeleteFailed"));
                     }
                   }}
                 >
@@ -285,10 +288,10 @@ export default function ProfilePopover() {
 
           {/* 닉네임 */}
           <div className="space-y-1">
-            <Label htmlFor="popover-nickname" className="text-xs">닉네임</Label>
+            <Label htmlFor="popover-nickname" className="text-xs">{t("profile.nickname")}</Label>
             <Input
               id="popover-nickname"
-              placeholder="닉네임을 입력하세요"
+              placeholder={t("profile.nicknamePlaceholder")}
               {...register("nickname")}
             />
             {errors.nickname && (
@@ -300,7 +303,7 @@ export default function ProfilePopover() {
 
           {/* 하루 시작 시간 */}
           <div className="space-y-1">
-            <Label className="text-xs">하루 시작 시간</Label>
+            <Label className="text-xs">{t("profile.dayStart")}</Label>
             <div className="flex gap-2">
               <Controller
                 name="dayStartHour"
@@ -311,14 +314,14 @@ export default function ProfilePopover() {
                     onValueChange={(value) => field.onChange(Number(value))}
                   >
                     <SelectTrigger className="flex-1">
-                      <SelectValue placeholder="시 선택">
-                        {`${Number(field.value ?? 6)}시`}
+                      <SelectValue placeholder={t("profile.selectHour")}>
+                        {t("profile.hour", { value: Number(field.value ?? 6) })}
                       </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       {Array.from({ length: 24 }, (_, i) => (
                         <SelectItem key={i} value={String(i)}>
-                          {i}시
+                          {t("profile.hour", { value: i })}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -335,14 +338,14 @@ export default function ProfilePopover() {
                     onValueChange={(value) => field.onChange(Number(value))}
                   >
                     <SelectTrigger className="flex-1">
-                      <SelectValue placeholder="분 선택">
-                        {`${String(Number(field.value ?? 0)).padStart(2, "0")}분`}
+                      <SelectValue placeholder={t("profile.selectMinute")}>
+                        {t("profile.minute", { value: String(Number(field.value ?? 0)).padStart(2, "0") })}
                       </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       {[0, 15, 30, 45].map((m) => (
                         <SelectItem key={m} value={String(m)}>
-                          {String(m).padStart(2, "0")}분
+                          {t("profile.minute", { value: String(m).padStart(2, "0") })}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -352,7 +355,7 @@ export default function ProfilePopover() {
             </div>
             {(errors.dayStartHour || errors.dayStartMinute) && (
               <p className="text-xs text-destructive">
-                하루 시작 시간을 다시 선택해 주세요.
+                {t("profile.invalidDayStart")}
               </p>
             )}
           </div>
@@ -367,9 +370,20 @@ export default function ProfilePopover() {
             {updateProfile.isPending ? (
               <Loader2 className="h-3 w-3 animate-spin" />
             ) : (
-              "저장"
+              t("common.save")
             )}
           </Button>
+
+          <div className="space-y-1">
+            <Label className="text-xs">{t("language.label")}</Label>
+            <Select value={i18n.resolvedLanguage?.startsWith("ko") ? "ko" : "en"} onValueChange={(value) => void i18n.changeLanguage(value)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ko">{t("language.korean")}</SelectItem>
+                <SelectItem value="en">{t("language.english")}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </form>
       </PopoverContent>
     </Popover>
