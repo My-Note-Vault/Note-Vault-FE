@@ -543,16 +543,58 @@ export default function Editor({
 
   // 자동 저장 (DailyNote content)
   const dailyUpdateMutation = useUpdateDailyNote();
+  const dailyRevisionRef = useRef<number | null>(null);
+  const dailyRevisionNoteIdRef = useRef<number | null>(null);
+  const dailySaveQueueRef = useRef<Promise<void>>(Promise.resolve());
+  const dailyContentConflictRef = useRef(false);
+
+  useEffect(() => {
+    if (!dailyNoteId || !dailyDetail) return;
+    if (dailyRevisionNoteIdRef.current !== dailyNoteId) {
+      dailyRevisionNoteIdRef.current = dailyNoteId;
+      dailyRevisionRef.current = dailyDetail.revision;
+      dailySaveQueueRef.current = Promise.resolve();
+      dailyContentConflictRef.current = false;
+      return;
+    }
+    if (dailyRevisionRef.current === null || dailyDetail.revision > dailyRevisionRef.current) {
+      dailyRevisionRef.current = dailyDetail.revision;
+      dailyContentConflictRef.current = false;
+    }
+  }, [dailyNoteId, dailyDetail]);
 
   const handleDailyContentAutoSave = useCallback(
     (content: string, options: AutoSaveOptions) => {
       if (!isDailyNote || !dailyNoteId) return Promise.resolve();
+      const revision = dailyRevisionRef.current;
+      if (revision === null) return Promise.resolve();
+      if (dailyContentConflictRef.current) return Promise.reject(new Error("DailyNote content revision conflict"));
+
       if (options.reason === "unload") {
-        sendKeepaliveDailyNoteAutoSave(dailyNoteId, content);
+        sendKeepaliveDailyNoteAutoSave(dailyNoteId, content, revision);
         return Promise.resolve();
       }
 
-      return dailyUpdateMutation.mutateAsync({ dailyNoteId, body: { content } });
+      const save = dailySaveQueueRef.current.then(async () => {
+        const expectedRevision = dailyRevisionRef.current;
+        if (expectedRevision === null) return;
+        try {
+          const nextRevision = await dailyUpdateMutation.mutateAsync({
+            dailyNoteId,
+            body: { content, expectedRevision },
+          });
+          dailyRevisionRef.current = nextRevision;
+        } catch (error) {
+          const status = (error as { response?: { status?: number } })?.response?.status;
+          if (status === 409) {
+            dailyContentConflictRef.current = true;
+            toast.error("다른 탭이나 기기에서 Daily Note가 수정되었습니다. 작성 중인 내용을 복사한 뒤 새로고침해 주세요.");
+          }
+          throw error;
+        }
+      });
+      dailySaveQueueRef.current = save.catch(() => {});
+      return save;
     },
     [isDailyNote, dailyNoteId, dailyUpdateMutation],
   );

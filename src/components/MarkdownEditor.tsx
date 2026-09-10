@@ -73,8 +73,13 @@ const editorTheme = EditorView.theme({
     minHeight: "700px",
     fontFamily: "inherit",
     lineHeight: "1.75",
-    paddingInline: "3rem",
+    paddingInline: "0.75rem",
     paddingBottom: "1rem",
+  },
+  "@media (min-width: 640px)": {
+    ".cm-scroller": {
+      paddingInline: "3rem",
+    },
   },
   ".cm-content": {
     minHeight: "700px",

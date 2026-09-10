@@ -266,7 +266,7 @@ export const useDailyNoteDetail = (pk: number | null) => {
 
 type UpdateDailyNoteRequest = {
   dailyNoteId: number;
-  body: { content: string };
+  body: { content: string; expectedRevision: number };
 };
 
 // Daily Note 삭제
@@ -288,11 +288,11 @@ export const useUpdateDailyNote = () => {
   return useMutation({
     mutationFn: ({dailyNoteId, body}: UpdateDailyNoteRequest) =>
       updateDailyNote(dailyNoteId, body),
-    onSuccess: (_, variables) => {
+    onSuccess: (revision, variables) => {
       queryClient.setQueryData<DailyNoteDetail | undefined>(
         documentKeys.dailyNoteDetail(variables.dailyNoteId),
         (current) => current
-          ? { ...current, content: variables.body.content }
+          ? { ...current, content: variables.body.content, revision }
           : current,
       );
 

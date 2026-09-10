@@ -23,6 +23,7 @@ export interface DailyNotePlan {
 // DailyNote 상세 타입
 export interface DailyNoteDetail {
   dailyNoteId: number;
+  revision: number;
   date: string;
   logicalDate: number[]; // [year, month, day] from Java LocalDate
   plans: DailyNotePlan[];
@@ -145,10 +146,14 @@ export const fetchDailyNoteByDate = async (date: string): Promise<DailyNoteDetai
 // Daily Note content 수정
 export const updateDailyNote = async (
   dailyNoteId: number,
-  body: { content: string },
-): Promise<void> => {
-  await apiClient.patch(`${endpoints.DAILY_NOTE}/${dailyNoteId}`, body);
+  body: { content: string; expectedRevision: number },
+): Promise<number> => {
+  const { data } = await apiClient.patch<{ revision: number }>(
+    `${endpoints.DAILY_NOTE}/${dailyNoteId}`,
+    body,
+  );
   scheduleDailyNoteIndexing(dailyNoteId);
+  return data.revision;
 };
 
 const dailyNoteIndexingTimers = new Map<number, ReturnType<typeof setTimeout>>();

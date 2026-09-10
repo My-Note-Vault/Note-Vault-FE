@@ -23,9 +23,10 @@ export function sendKeepaliveEntityAutoSave(
 export function sendKeepaliveDailyNoteAutoSave(
   dailyNoteId: number,
   content: string,
+  expectedRevision: number,
 ): void {
   sendKeepaliveJsonRequest(endpoints.DAILY_NOTE_DETAIL(dailyNoteId), {
     method: "PATCH",
-    body: { content },
+    body: { content, expectedRevision },
   });
 }
