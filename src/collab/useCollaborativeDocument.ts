@@ -2,8 +2,10 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { clearDocument, IndexeddbPersistence } from "y-indexeddb";
 import { createYjsWsProvider } from "./createYjsWsProvider";
 import type { CollaborationConfig, ProviderStatus } from "./types";
-import { ensureFreshAccessToken } from "@/api/client";
-import { fetchCollaborationBootstrap } from "@/api/collaboration";
+import {
+  fetchCollaborationBootstrap,
+  issueWebSocketTicket,
+} from "@/api/collaboration";
 import { requestDocumentIndexing } from "@/api/documentIndexing";
 
 export interface CollaboratorInfo {
@@ -14,11 +16,11 @@ export interface CollaboratorInfo {
   profileImageUrl: string | null;
 }
 
-function buildWsUrl(config: CollaborationConfig, token: string): string {
+function buildWsUrl(config: CollaborationConfig, ticket: string): string {
   const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
   const host = window.location.host;
   const path = `/ws/workspaces/${config.workspaceId}/${config.documentType}/${config.documentId}`;
-  return `${protocol}//${host}${path}?token=${encodeURIComponent(token)}`;
+  return `${protocol}//${host}${path}?ticket=${encodeURIComponent(ticket)}`;
 }
 
 function offlineDocumentName(config: CollaborationConfig): string {
@@ -103,8 +105,12 @@ export function useCollaborativeDocument(config: CollaborationConfig | null) {
       if (!latestConfig) {
         throw new Error("Collaboration config is unavailable");
       }
-      const token = await ensureFreshAccessToken();
-      return buildWsUrl(latestConfig, token);
+      const ticket = await issueWebSocketTicket(
+        latestConfig.workspaceId,
+        latestConfig.documentType,
+        latestConfig.documentId,
+      );
+      return buildWsUrl(latestConfig, ticket);
     }, true, true, async (revision) => {
       await requestDocumentIndexing(
         currentConfig.documentType,

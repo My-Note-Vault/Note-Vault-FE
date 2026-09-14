@@ -10,6 +10,23 @@ export interface CollaborationBootstrap {
   cursor: number;
 }
 
+interface WebSocketTicketResponse {
+  ticket: string;
+  expiresInSeconds: number;
+}
+
+export async function issueWebSocketTicket(
+  workspaceId: string,
+  documentType: string,
+  documentId: number,
+): Promise<string> {
+  const { data } = await apiClient.post<WebSocketTicketResponse>(
+    endpoints.WEBSOCKET_TICKETS,
+    { workspaceId, documentType, documentId },
+  );
+  return data.ticket;
+}
+
 interface RawCollaborationBootstrap {
   state: string | null;
   updates: {

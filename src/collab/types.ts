@@ -10,7 +10,7 @@ export type ProviderStatus =
   | "error";
 
 export interface YjsWsProviderOptions {
-  /** ws(s)://{BASE}/ws/workspaces/{workspaceId}/{documentType}/{documentId}?token=... */
+  /** ws(s)://{BASE}/ws/workspaces/{workspaceId}/{documentType}/{documentId}?ticket=... */
   url: string;
   doc: Y.Doc;
   awareness: Awareness;
