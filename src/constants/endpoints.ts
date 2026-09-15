@@ -17,6 +17,7 @@ SPACES: `${API_BASE}/workspaces`,
 SPACES_ALL: `${API_BASE}/workspaces/all`,
 WORKSPACE: (id: string) => `${API_BASE}/workspaces/${id}`,
 CHAT: `${API_BASE}/chat`,
+CHAT_STREAM: `${API_BASE}/chat/stream`,
 SPACE_INFORMATION: (id: string) => `${API_BASE}/workspaces/information/${id}`,
 
 // Unified Workspace Document Endpoints

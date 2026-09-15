@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { Bot, FileText, LoaderCircle, Send, X } from "lucide-react";
-import { askWorkspaceChat, type WorkspaceChatSource } from "@/api/workspaceChat";
+import { streamWorkspaceChat, type WorkspaceChatSource } from "@/api/workspaceChat";
 import type { DocType } from "@/types/common";
 import { useTranslation } from "react-i18next";
 
@@ -23,11 +23,13 @@ export default function WorkspaceChatPanel({ onClose, onOpenDocument }: Workspac
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     setMessages([]);
     setQuestion("");
     setError(null);
+    return () => abortRef.current?.abort();
   }, []);
 
   useEffect(() => {
@@ -43,18 +45,25 @@ export default function WorkspaceChatPanel({ onClose, onOpenDocument }: Workspac
     setError(null);
     setMessages((current) => [...current, { id: crypto.randomUUID(), role: "user", content: trimmed }]);
     setIsSending(true);
+    const assistantId = crypto.randomUUID();
+    const controller = new AbortController();
+    abortRef.current = controller;
     try {
-      const response = await askWorkspaceChat(trimmed);
-      setMessages((current) => [...current, {
-        id: crypto.randomUUID(),
-        role: "assistant",
-        content: response.answer,
-        sources: response.sources,
-      }]);
+      setMessages((current) => [...current, { id: assistantId, role: "assistant", content: "" }]);
+      await streamWorkspaceChat(trimmed, {
+        onDelta: (text) => setMessages((current) => current.map((message) =>
+          message.id === assistantId ? { ...message, content: message.content + text } : message)),
+        onSources: (sources) => setMessages((current) => current.map((message) =>
+          message.id === assistantId ? { ...message, sources } : message)),
+      }, controller.signal);
     } catch (requestError) {
+      if (controller.signal.aborted) return;
+      setMessages((current) => current.filter((message) =>
+        message.id !== assistantId || message.content.length > 0));
       setError(requestError instanceof Error ? requestError.message : t("chat.failed"));
       setQuestion(trimmed);
     } finally {
+      if (abortRef.current === controller) abortRef.current = null;
       setIsSending(false);
     }
   };
