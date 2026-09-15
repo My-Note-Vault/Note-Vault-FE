@@ -29,6 +29,7 @@ import { useLastVisited, useUpdateLastVisited } from "@/hooks/useLastVisited";
 import PublicRoute from "./components/auth/PublicRoute";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import ProfileSetupRoute from "./components/auth/ProfileSetupRoute";
+import GoogleAnalytics from "./components/GoogleAnalytics";
 import LandingPage from "./page/LandingPage";
 import OAuthCallbackPage from "./page/OAuthCallbackPage";
 import ProfileSetupPage from "./page/ProfileSetupPage";
@@ -1082,6 +1083,7 @@ const App = () => {
         <QueryClientProvider client={queryClient}>
             <BrowserRouter>
                 <AuthProvider>
+                    <GoogleAnalytics />
                     <ErrorBoundary>
                         <Routes>
                             <Route path="/" element={<PublicRoute><LandingPage /></PublicRoute>} />
