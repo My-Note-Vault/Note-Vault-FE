@@ -52,7 +52,7 @@ const resources = {
       },
       sidebar: {
         close: "사이드바 닫기", searchPlaceholder: "내 Note 검색...", searchPrompt: "검색어를 입력하세요", searching: "검색 중...",
-        noResults: "검색 결과가 없습니다", loadingDocuments: "문서 불러오는 중...", selectWorkspace: "Workspace 선택",
+        noResults: "검색 결과가 없습니다", loadingDocuments: "문서 불러오는 중...", loadFailed: "문서를 불러오지 못했습니다", selectWorkspace: "Workspace 선택",
         addWorkspace: "Work Space 추가", createWorkspace: "Workspace 생성하기", inviteMember: "멤버 초대", addRoot: "최상위 Note 추가",
         newNote: "새 Note", newTask: "새 Task", emptyTitle: "아직 Note가 없어요", emptyDescription: "첫 Note를 만들고 바로 글을 작성해 보세요.", firstNote: "첫 Note 만들기",
       },
@@ -107,7 +107,7 @@ const resources = {
       },
       sidebar: {
         close: "Close sidebar", searchPlaceholder: "Search my notes...", searchPrompt: "Enter a search term", searching: "Searching...",
-        noResults: "No results", loadingDocuments: "Loading documents...", selectWorkspace: "Select a workspace",
+        noResults: "No results", loadingDocuments: "Loading documents...", loadFailed: "Could not load documents", selectWorkspace: "Select a workspace",
         addWorkspace: "Add workspace", createWorkspace: "Create a workspace", inviteMember: "Invite members", addRoot: "Add a top-level note",
         newNote: "New Note", newTask: "New Task", emptyTitle: "No notes yet", emptyDescription: "Create your first note and start writing.", firstNote: "Create first note",
       },

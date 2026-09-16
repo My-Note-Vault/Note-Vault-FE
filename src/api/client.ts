@@ -10,6 +10,7 @@ interface KeepaliveJsonRequestOptions {
 // 인증 토큰이 자동으로 포함되는 axios 인스턴스
 const apiClient = axios.create({
   withCredentials: true,
+  timeout: 15_000,
   headers: {
     "Content-Type": "application/json",
   },

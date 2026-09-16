@@ -29,7 +29,7 @@ DOCUMENT_INDEXING: (type: string, id: number) =>
   `${API_BASE}/documents/${type}/${id}/indexing`,
 
 // 사이드바 문서 트리
-NOTE_INFO_LIST: `${API_BASE}/unfolded-notes/note-info`,
+WORKSPACE_DOCUMENT_TREE: (workspaceId: number) => `${API_BASE}/workspaces/${workspaceId}/documents/tree`,
 DOCUMENT_SEARCH: `${API_BASE}/search`,
 
 // Daily Note Endpoints

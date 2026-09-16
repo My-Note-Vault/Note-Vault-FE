@@ -84,11 +84,9 @@ function toSearchResults(response: SearchResponse): SearchResult[] {
   });
 }
 
-// 전체 NoteInfo 조회 (flat list)
-export const fetchNoteInfoList = async (workspaceId: number): Promise<TaskOverview[]> => {
-  const { data } = await apiClient.get<TaskOverview[]>(endpoints.NOTE_INFO_LIST, {
-    params: { workspace: workspaceId },
-  });
+// Workspace 사이드바 문서 트리 조회
+export const fetchDocumentTree = async (workspaceId: number): Promise<TaskOverview[]> => {
+  const { data } = await apiClient.get<TaskOverview[]>(endpoints.WORKSPACE_DOCUMENT_TREE(workspaceId));
   return data;
 };
 

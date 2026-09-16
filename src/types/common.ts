@@ -4,7 +4,7 @@ export type TaskStatus = "NOT_STARTED" | "IN_PROGRESS" | "COMPLETED";
 // 백엔드 NoteType (대문자)
 export type NoteType = "WORKSPACE" | "TASK" | "NOTE";
 
-// NoteInfo (flat list) — /api/v1/unfolded-notes/note-info
+// Legacy NoteInfo shape
 export interface NoteInfo {
   id: number;
   type: NoteType;
@@ -13,7 +13,7 @@ export interface NoteInfo {
   title?: string;  // TASK, NOTE
 }
 
-// TaskOverview — /api/v1/unfolded-notes/note-info?workspace={id}
+// Workspace document tree node — /api/v1/workspaces/{workspaceId}/documents/tree
 export interface TaskOverview {
   id: number;
   type: "TASK" | "NOTE";

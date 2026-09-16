@@ -228,7 +228,14 @@ function AppContent() {
     }, [selectedWorkspaceId]);
 
     const workspaceIdNum = selectedWorkspaceId ? Number(selectedWorkspaceId) : null;
-    const { data: docs = [], unfoldedIds, setUnfolded, isLoading } = useDocumentTree(workspaceIdNum);
+    const {
+        data: docs = [],
+        unfoldedIds,
+        setUnfolded,
+        isLoading,
+        isError: isDocumentTreeError,
+        refetch: refetchDocumentTree,
+    } = useDocumentTree(workspaceIdNum);
     const { data: dailyNotes, folders: dailyNoteFolders } = useDailyNotes();
 
     const handleToggleExpand = useCallback((noteId: string, docType: DocType, expanded: boolean) => {
@@ -585,7 +592,7 @@ function AppContent() {
                     openNewTab(tabId, result.name, childType);
                     updateLastVisitedMutation.mutate(tabIdToPath(result.id, childType));
                     appQueryClient.setQueryData<TaskOverview[]>(
-                        documentKeys.noteInfos(workspaceIdNum),
+                        documentKeys.tree(workspaceIdNum),
                         (old) => addCreatedEntityToTree(
                             old,
                             childType,
@@ -603,12 +610,19 @@ function AppContent() {
     const handleAddSpace = useCallback(async () => {
         try {
             const result = await createSpace({ parentId: null, name: TYPE_LABELS["space"], content: null, isPublic: false });
-            openNewTab(entityTabId("space", result.id), result.name, "space" as DocType);
-            updateLastVisitedMutation.mutate(tabIdToPath(result.id, "space"));
+            const newWorkspaceId = String(result.id);
+            workspaceSelectionRequestId.current += 1;
+            appQueryClient.setQueryData<TaskOverview[]>(
+                documentKeys.tree(Number(newWorkspaceId)),
+                [],
+            );
             appQueryClient.setQueryData<SpaceListItem[]>(
                 spaceKeys.list(),
                 (old) => [...(old ?? []), { id: Number(result.id), name: result.name }],
             );
+            setSelectedWorkspaceId(newWorkspaceId);
+            openNewTab(entityTabId("space", result.id), result.name, "space" as DocType);
+            updateLastVisitedMutation.mutate(tabIdToPath(result.id, "space"));
         } catch {
             toast.error("생성에 실패했습니다");
         }
@@ -843,7 +857,7 @@ function AppContent() {
         if (docType && docType !== "space") {
             const numId = Number(entityId);
             appQueryClient.setQueryData<TaskOverview[]>(
-                documentKeys.noteInfos(workspaceIdNum),
+                documentKeys.tree(workspaceIdNum),
                 (old) => old ? renameTreeNode(old, numId, newName) : old,
             );
         }
@@ -1034,6 +1048,8 @@ function AppContent() {
                 onRenameItem={handleRenameDocument}
                 onDeleteDailyNote={handleDeleteDailyNote}
                 isLoading={isLoading}
+                isError={isDocumentTreeError}
+                onRetry={() => void refetchDocumentTree()}
                 unfoldedIds={unfoldedIds}
                 onToggleExpand={handleToggleExpand}
                 open={sidebarOpen}

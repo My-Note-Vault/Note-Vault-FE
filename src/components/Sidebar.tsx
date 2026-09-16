@@ -709,6 +709,8 @@ interface SidebarProps {
   onRenameItem?: (id: string, name: string) => void;
   onDeleteDailyNote?: (id: number) => void;
   isLoading?: boolean;
+  isError?: boolean;
+  onRetry?: () => void;
   unfoldedIds?: Set<string>;
   open: boolean;
   onClose?: () => void;
@@ -726,7 +728,7 @@ const SIDEBAR_CLOSE_THRESHOLD = 60;
 const SIDEBAR_MAX = 480;
 const SIDEBAR_DEFAULT = 300;
 
-export default function Sidebar({ onSelectSidebarItem, docs, workspaces = [], dailyNotes, dailyNoteFolders = [], onAddItem, onAddSpace, onDeleteItem, onRenameItem, onDeleteDailyNote, isLoading, unfoldedIds, open, onClose, activeTabId, searchMode, onCloseSearch, selectedWorkspaceId, onSelectWorkspace, onToggleExpand }: SidebarProps) {
+export default function Sidebar({ onSelectSidebarItem, docs, workspaces = [], dailyNotes, dailyNoteFolders = [], onAddItem, onAddSpace, onDeleteItem, onRenameItem, onDeleteDailyNote, isLoading, isError, onRetry, unfoldedIds, open, onClose, activeTabId, searchMode, onCloseSearch, selectedWorkspaceId, onSelectWorkspace, onToggleExpand }: SidebarProps) {
   const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState("");
   const [inviteOpen, setInviteOpen] = useState(false);
@@ -865,6 +867,19 @@ export default function Sidebar({ onSelectSidebarItem, docs, workspaces = [], da
             <div className="flex items-center gap-2 px-3 py-4 text-sm text-sidebar-foreground/50">
               <Loader2 className="h-4 w-4 animate-spin" />
               <span>{t("sidebar.loadingDocuments")}</span>
+            </div>
+          ) : isError ? (
+            <div className="px-3 py-4 text-center text-sm text-sidebar-foreground/60">
+              <p>{t("sidebar.loadFailed")}</p>
+              {onRetry && (
+                <button
+                  type="button"
+                  onClick={onRetry}
+                  className="mt-3 rounded-md border border-sidebar-border px-3 py-1.5 text-sidebar-foreground hover:bg-sidebar-accent"
+                >
+                  {t("common.retry")}
+                </button>
+              )}
             </div>
           ) : (
             /* 기본 문서 트리 */

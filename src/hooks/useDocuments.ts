@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import {
-  fetchNoteInfoList,
+  fetchDocumentTree,
   searchDocuments,
   fetchDailyNotes,
   fetchDailyNoteByPk,
@@ -26,6 +26,14 @@ const NOTES_CACHE_TS_KEY = "sidebar_notes_ts";
 const UNFOLDED_CACHE_KEY = "sidebar_unfolded";
 const DAILY_CACHE_KEY = "sidebar_daily";
 const DAILY_CACHE_TS_KEY = "sidebar_daily_ts";
+
+function notesCacheKey(workspaceId: number): string {
+  return `${NOTES_CACHE_KEY}:${workspaceId}`;
+}
+
+function notesCacheTimestampKey(workspaceId: number): string {
+  return `${NOTES_CACHE_TS_KEY}:${workspaceId}`;
+}
 
 function readCache<T>(key: string): T | undefined {
   try {
@@ -103,7 +111,7 @@ function buildTree(overviews: TaskOverview[]): SidebarItem[] {
 // Query key 팩토리
 export const documentKeys = {
   all: ["documents"] as const,
-  noteInfos: (workspaceId?: number | null) => [...documentKeys.all, "note-info", workspaceId] as const,
+  tree: (workspaceId?: number | null) => [...documentKeys.all, "tree", workspaceId] as const,
   search: (query: string) => [...documentKeys.all, "search", query] as const,
   dailyNotes: () => ["daily-notes"] as const,
   dailyNoteDetail: (pk: number) => ["daily-notes", "detail", pk] as const,
@@ -113,18 +121,19 @@ export const documentKeys = {
 
 // 사이드바 문서 트리 invalidate
 export function invalidateSidebar(qc: QueryClient) {
-  qc.invalidateQueries({ queryKey: [...documentKeys.all, "note-info"] });
+  qc.invalidateQueries({ queryKey: [...documentKeys.all, "tree"] });
 }
 
 // 사이드바 트리 조회 — workspace별 TaskOverview 계층 구조
 export const useDocumentTree = (workspaceId: number | null) => {
-  const noteInfoQuery = useQuery({
-    queryKey: documentKeys.noteInfos(workspaceId),
-    queryFn: () => fetchNoteInfoList(workspaceId!),
+  const documentTreeQuery = useQuery({
+    queryKey: documentKeys.tree(workspaceId),
+    queryFn: () => fetchDocumentTree(workspaceId!),
     enabled: workspaceId !== null,
     staleTime: 1000 * 60,
     initialData: () => {
-      const cached = readCache<TaskOverview[]>(NOTES_CACHE_KEY);
+      if (workspaceId === null) return undefined;
+      const cached = readCache<TaskOverview[]>(notesCacheKey(workspaceId));
       // 고정 Task/Subtask/Note 구조로 저장된 이전 캐시는 무시한다.
       if (
         cached &&
@@ -133,8 +142,9 @@ export const useDocumentTree = (workspaceId: number | null) => {
       ) return undefined;
       return cached;
     },
-    initialDataUpdatedAt: () =>
-      Number(localStorage.getItem(NOTES_CACHE_TS_KEY)) || undefined,
+    initialDataUpdatedAt: () => workspaceId === null
+      ? undefined
+      : Number(localStorage.getItem(notesCacheTimestampKey(workspaceId))) || undefined,
   });
 
   const [unfoldedIds, setUnfoldedIds] = useState<Set<string>>(() => readUnfoldedIds(workspaceId));
@@ -145,14 +155,14 @@ export const useDocumentTree = (workspaceId: number | null) => {
 
   // localStorage 캐시 저장
   useEffect(() => {
-    if (noteInfoQuery.data && noteInfoQuery.dataUpdatedAt && !noteInfoQuery.isPlaceholderData) {
-      writeCache(NOTES_CACHE_KEY, NOTES_CACHE_TS_KEY, noteInfoQuery.data);
+    if (workspaceId !== null && documentTreeQuery.data && documentTreeQuery.dataUpdatedAt && !documentTreeQuery.isPlaceholderData) {
+      writeCache(notesCacheKey(workspaceId), notesCacheTimestampKey(workspaceId), documentTreeQuery.data);
     }
-  }, [noteInfoQuery.data, noteInfoQuery.dataUpdatedAt, noteInfoQuery.isPlaceholderData]);
+  }, [workspaceId, documentTreeQuery.data, documentTreeQuery.dataUpdatedAt, documentTreeQuery.isPlaceholderData]);
 
   const docs = useMemo(
-    () => (noteInfoQuery.data ? buildTree(noteInfoQuery.data) : []),
-    [noteInfoQuery.data],
+    () => (documentTreeQuery.data ? buildTree(documentTreeQuery.data) : []),
+    [documentTreeQuery.data],
   );
 
   const setUnfolded = useCallback((noteId: string, docType: DocType, expanded: boolean) => {
@@ -175,7 +185,9 @@ export const useDocumentTree = (workspaceId: number | null) => {
     data: docs,
     unfoldedIds,
     setUnfolded,
-    isLoading: noteInfoQuery.isLoading,
+    isLoading: documentTreeQuery.isLoading,
+    isError: documentTreeQuery.isError,
+    refetch: documentTreeQuery.refetch,
   };
 };
 
