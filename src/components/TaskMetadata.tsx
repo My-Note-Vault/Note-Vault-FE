@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { CalendarDays } from "lucide-react";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
@@ -15,6 +15,8 @@ import { cn } from "@/lib/utils";
 import type { TaskStatus } from "@/types/common";
 
 export type { TaskStatus };
+
+const MONTH_NAVIGATION_GUARD_MS = 300;
 
 const STATUS_OPTIONS: { value: TaskStatus; label: string; color: string }[] = [
   { value: "NOT_STARTED", label: "할 일", color: "bg-gray-400" },
@@ -43,9 +45,32 @@ function DatePicker({
   onSelect: (date: Date | undefined) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [month, setMonth] = useState(() => new Date());
+  const lastMonthNavigationAt = useRef<number | null>(null);
+
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (nextOpen) {
+      setMonth(new Date());
+      lastMonthNavigationAt.current = null;
+    }
+    setOpen(nextOpen);
+  };
+
+  const handleMonthChange = (nextMonth: Date) => {
+    const now = Date.now();
+    if (
+      lastMonthNavigationAt.current !== null &&
+      now - lastMonthNavigationAt.current < MONTH_NAVIGATION_GUARD_MS
+    ) {
+      return;
+    }
+
+    lastMonthNavigationAt.current = now;
+    setMonth(nextMonth);
+  };
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
         <button
           className={cn(
@@ -60,7 +85,9 @@ function DatePicker({
       <PopoverContent className="w-auto p-0" align="start">
         <Calendar
           mode="single"
+          month={month}
           selected={date}
+          onMonthChange={handleMonthChange}
           onSelect={(d) => {
             onSelect(d);
             setOpen(false);
