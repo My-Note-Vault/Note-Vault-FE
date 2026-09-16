@@ -132,6 +132,9 @@ export const useUpdateEntity = () => {
     onSuccess: (_data, variables) => {
       const keys = entityKeyMap[variables.type];
       queryClient.invalidateQueries({ queryKey: keys.detail(variables.id) });
+      if (variables.name !== undefined) {
+        invalidateSidebar(queryClient);
+      }
       if (variables.metadata) {
         queryClient.invalidateQueries({
           predicate: (query) =>

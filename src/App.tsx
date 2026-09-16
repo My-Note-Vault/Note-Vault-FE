@@ -228,6 +228,8 @@ function AppContent() {
     }, [selectedWorkspaceId]);
 
     const workspaceIdNum = selectedWorkspaceId ? Number(selectedWorkspaceId) : null;
+    const workspaceIdNumRef = useRef(workspaceIdNum);
+    workspaceIdNumRef.current = workspaceIdNum;
     const {
         data: docs = [],
         unfoldedIds,
@@ -857,7 +859,7 @@ function AppContent() {
         if (docType && docType !== "space") {
             const numId = Number(entityId);
             appQueryClient.setQueryData<TaskOverview[]>(
-                documentKeys.tree(workspaceIdNum),
+                documentKeys.tree(workspaceIdNumRef.current),
                 (old) => old ? renameTreeNode(old, numId, newName) : old,
             );
         }
